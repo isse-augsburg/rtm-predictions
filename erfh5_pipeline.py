@@ -3,17 +3,18 @@ import matplotlib.pyplot as plt
 import matplotlib
 import os 
 import time 
-from multiprocessing import Pool, Queue, Manager
+from multiprocessing import Process, Queue
 from functools import partial
 from os import listdir, walk 
 import queue 
+import threading 
+import random 
 
 
 class Batched_Queue(): 
 
-    def __init__(self, max_size):
-        self.max_size = max_size 
-        self.queue = Queue(maxsize=max_size)
+    def __init__(self):
+        self.queue = Queue()
 
     def put_batch(self, items):
         for i in items:
@@ -22,10 +23,15 @@ class Batched_Queue():
     def get_batch(self, number_of_items):
         result = []
         for i in range(number_of_items): 
-            result.append(self.queue.get())
+            result.append(self.queue.get(block=True))
         return result 
 
 
+#TODO 
+#shuffle
+#repeat 
+#fill queue using threads 
+#delete timestamps in data 
 
 class ERFH5_DataGenerator():
     
@@ -33,32 +39,59 @@ class ERFH5_DataGenerator():
         self.data_path = data_path
         self.batch_size = batch_size
         self.paths = self.__get_paths_to_files(self.data_path)
+        self.path_queue = Batched_Queue()
+        self.path_queue.put_batch(self.paths)
         #TODO shuffle 
         #TODO repeat 
-        self.batch_queue = Batched_Queue(max_size=1000000)
-        self.__fill_batch_queue()
+        self.batch_queue = Batched_Queue()
+        threading.Thread(target=self.__fill_path_queue).start()
+        threading.Thread(target=self.__fill_path_queue).start()
+        threading.Thread(target=self.__fill_path_queue).start()
+        threading.Thread(target=self.__fill_path_queue).start()
+        
+        threading.Thread(target=self.__fill_batch_queue).start()
+        threading.Thread(target=self.__fill_batch_queue).start()
+        threading.Thread(target=self.__fill_batch_queue).start()
+        threading.Thread(target=self.__fill_batch_queue).start()
+        print("after thread")
+        #self.__fill_batch_queue()
 
     def __get_paths_to_files(self, data_path):
-        dataset_filenames = Batched_Queue(max_size=1000000)
-        for (dirpath, dirnames, filenames) in walk(data_folder):
+        dataset_filenames = []
+        for (dirpath, dirnames, filenames) in walk(data_path):
             if filenames: 
                 filenames = [dirpath + '/' + f for f in filenames]
-                dataset_filenames.put_batch(filenames)
+                dataset_filenames.extend(filenames)
         return dataset_filenames   
 
     def __fill_batch_queue(self):
-            data = self.__create_filling_factors_dataset(self.paths.get_batch(3*self.batch_size))
+        while True:
+            data = self.__create_filling_factors_dataset(self.path_queue.get_batch(1))
             self.batch_queue.put_batch(data)
+    
+    def __fill_path_queue(self): 
+        while True: 
+            new_paths = self.paths
+            random.shuffle(new_paths)
+            self.path_queue.put_batch(new_paths)
     
     def __create_filling_factors_dataset(self, filenames): 
         dataset = []
         for filename in filenames:    
             states_and_fillings = self.__get_states_and_fillings(filename)
             label = int(states_and_fillings[-1][0])
+            states_and_fillings = [i[1] for i in states_and_fillings]
             instance = [states_and_fillings, label]
             dataset.append(instance)
 
         return dataset
+    
+    """ def __prepeare_next_batch(self):
+        batch = self.batch_queue.get_batch(self.batch_size)
+        data = [i[0]for i in batch]
+        labels = [i[1] for i in batch]
+
+        return data, labels  """
     
     def __get_states_and_fillings(self, filename):
         f = h5py.File(filename, 'r')
@@ -74,10 +107,14 @@ class ERFH5_DataGenerator():
         return states_and_fillings
 
     def get_batch(self):
+        print("hallo")
         batch = self.batch_queue.get_batch(self.batch_size)
+        print("here")
         data = [i[0]for i in batch]
         labels = [i[1] for i in batch]
-        self.__fill_batch_queue()
+        print("here1")
+        #self.__fill_batch_queue()
+        print("here2")
         return data, labels 
    
 ########################################################################################
@@ -130,18 +167,7 @@ def create_filling_factors_dataset(filenames):
 
 ######################################################################################################
 ######################################################################################################
-""" data_folder = '/home/lodes/Sim_Results'
-dataset_filenames = []
-for (dirpath, dirnames, filenames) in walk(data_folder):
-    if filenames: 
-        filenames = [dirpath + '/' + f for f in filenames]
-        dataset_filenames.extend(filenames)
 
-
-dataset = create_filling_factors_dataset(dataset_filenames)
-data = [i[0]for i in dataset]
-labels = [i[1] for i in dataset]
-print("foo") """
 
 if __name__== "__main__":
     data_folder = '/home/lodes/Sim_Results'
