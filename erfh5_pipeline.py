@@ -9,7 +9,14 @@ from os import listdir, walk
 import queue 
 import threading 
 import random 
+from enum import Enum
 
+
+class Queue_State(Enum):
+    empty = 0
+    loading = 1
+    complete = 2
+    uninitialized = 3
 
 class Batched_Queue(): 
 
@@ -26,35 +33,76 @@ class Batched_Queue():
             result.append(self.queue.get(block=True))
         return result 
 
+class Thread_Safe_List():
+    
+    def __init__(self, max_length=-1):
+        self.list = []
+        self.lock = threading.Lock()
+        self.max_length = max_length
+        self.should_terminate = False
+    
+    # if called, the thread using this queue will commit suicide
+    def kill(self):
+        self.should_terminate = True
 
-#TODO 
-#shuffle
-#repeat 
-#fill queue using threads 
-#delete timestamps in data 
+    def put(self, element): 
+
+        while len(self.list) >= self.max_length and self.max_length != -1: 
+            if self.should_terminate:
+                raise Exception("Oof")
+            time.sleep(0.1)
+        
+        self.lock.acquire()
+        self.list.append(element)
+        
+        self.lock.release()
+    
+    def put_batch(self, batch): 
+
+        self.lock.acquire()
+        self.list.extend(batch)
+        self.lock.release()
+
+    def get(self, number_of_elements): 
+        
+        while len(self.list) < number_of_elements: 
+            if self.should_terminate:
+                raise Exception("Big oof")
+            time.sleep(0.1)
+        
+        self.lock.acquire()
+        items = self.list[0:number_of_elements]
+        self.list = self.list[number_of_elements:]
+        self.lock.release()
+        return items 
+
+
 
 class ERFH5_DataGenerator():
     
-    def __init__(self, data_path='/home/', batch_size=64, repeat=True):
+    def __init__(self, data_path='/home/', batch_size=64, repeat=True, epochs=80):
         self.data_path = data_path
         self.batch_size = batch_size
         self.paths = self.__get_paths_to_files(self.data_path)
-        self.path_queue = Batched_Queue()
+        self.path_queue = Thread_Safe_List()
         self.path_queue.put_batch(self.paths)
-        #TODO shuffle 
-        #TODO repeat 
-        self.batch_queue = Batched_Queue()
-        threading.Thread(target=self.__fill_path_queue).start()
-        threading.Thread(target=self.__fill_path_queue).start()
-        threading.Thread(target=self.__fill_path_queue).start()
-        threading.Thread(target=self.__fill_path_queue).start()
+        self.num_workers = 6
+        self.epochs = epochs
+
+        self._queueState = Queue_State.uninitialized
         
-        threading.Thread(target=self.__fill_batch_queue).start()
-        threading.Thread(target=self.__fill_batch_queue).start()
-        threading.Thread(target=self.__fill_batch_queue).start()
-        threading.Thread(target=self.__fill_batch_queue).start()
-        print("after thread")
-        #self.__fill_batch_queue()
+        self.batch_queue = Thread_Safe_List()
+        #self.batch_queue = Queue()
+        self.threads = []
+        t_path = threading.Thread(target=self.__fill_path_queue)
+        t_path.start()
+
+        for i in range(self.num_workers):
+            t_batch = threading.Thread(target=self.__fill_batch_queue)
+            t_batch.start()
+            self.threads.append(t_batch)
+            
+        
 
     def __get_paths_to_files(self, data_path):
         dataset_filenames = []
@@ -65,33 +113,36 @@ class ERFH5_DataGenerator():
         return dataset_filenames   
 
     def __fill_batch_queue(self):
-        while True:
-            data = self.__create_filling_factors_dataset(self.path_queue.get_batch(1))
-            self.batch_queue.put_batch(data)
+        while self._queueState == Queue_State.uninitialized:
+            time.sleep(1)
+
+
+        while not self._queueState == Queue_State.empty:
+            
+            file = self.path_queue.get(1)[0]
+            if(len(self.path_queue.list) == 0 and self._queueState == Queue_State.complete):
+                self._queueState = Queue_State.empty
+                self.batch_queue.kill()
+            data = self.__create_filling_factors_dataset(file)
+            self.batch_queue.put(data)
     
     def __fill_path_queue(self): 
-        while True: 
+        self._queueState = Queue_State.loading
+        for i in range(self.epochs):
             new_paths = self.paths
             random.shuffle(new_paths)
             self.path_queue.put_batch(new_paths)
+        self._queueState = Queue_State.complete
+   
     
     def __create_filling_factors_dataset(self, filenames): 
-        dataset = []
-        for filename in filenames:    
-            states_and_fillings = self.__get_states_and_fillings(filename)
-            label = int(states_and_fillings[-1][0])
-            states_and_fillings = [i[1] for i in states_and_fillings]
-            instance = [states_and_fillings, label]
-            dataset.append(instance)
-
-        return dataset
+           
+        states_and_fillings = self.__get_states_and_fillings(filenames)
+        label = int(states_and_fillings[-1][0])
+        states_and_fillings = [i[1] for i in states_and_fillings]
+        instance = (states_and_fillings, label)
+        return instance
     
-    """ def __prepeare_next_batch(self):
-        batch = self.batch_queue.get_batch(self.batch_size)
-        data = [i[0]for i in batch]
-        labels = [i[1] for i in batch]
-
-        return data, labels  """
     
     def __get_states_and_fillings(self, filename):
         f = h5py.File(filename, 'r')
@@ -107,14 +158,20 @@ class ERFH5_DataGenerator():
         return states_and_fillings
 
     def get_batch(self):
-        print("hallo")
-        batch = self.batch_queue.get_batch(self.batch_size)
-        print("here")
+        print("Batch")
+        start_time = time.time()
+        try:
+            batch = self.batch_queue.get(self.batch_size)
+        except Exception as e:
+            raise e 
+        
+        duration = time.time() - start_time
+        print(duration)
+
         data = [i[0]for i in batch]
         labels = [i[1] for i in batch]
-        print("here1")
-        #self.__fill_batch_queue()
-        print("here2")
+        
+        #return batch[:,0], batch[:,1]
         return data, labels 
    
 ########################################################################################
@@ -171,6 +228,12 @@ def create_filling_factors_dataset(filenames):
 
 if __name__== "__main__":
     data_folder = '/home/lodes/Sim_Results'
-    generator = ERFH5_DataGenerator(data_path=data_folder, batch_size=2)
-    batch_data, batch_labels = generator.get_batch()
-    print("foo")
+    generator = ERFH5_DataGenerator(data_path=data_folder, batch_size=1, epochs=1)
+    try:
+        batch_data, batch_labels = generator.get_batch()
+    except Exception as e:
+        print("oopsie")
+    
+    while True:
+        print("foo")
+        time.sleep(2)

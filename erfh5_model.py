@@ -5,9 +5,10 @@ import erfh5_pipeline as pipeline
 import time  
 import numpy as np 
 
-batchsize = 8
-epochs = 1
-steps_per_epoch = 500
+batchsize = 4
+epochs = 5
+steps_per_epoch = 10000
+eval_frequency = 100
 
 class Net(nn.Module):
 
@@ -22,6 +23,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(69366, 1024)
         self.fc2 = nn.Linear(1024, 512)
         self.fc3 = nn.Linear(512, 1)
+   
 
     def forward(self, x):
         # Max pooling over a (2, 2) window
@@ -31,7 +33,7 @@ class Net(nn.Module):
         x = x.view(-1, self.num_flat_features(x)) """
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc3(x))
         return x
 
     def num_flat_features(self, x):
@@ -42,7 +44,7 @@ class Net(nn.Module):
         return num_features
 
 
-generator = pipeline.ERFH5_DataGenerator('/home/lodes/Sim_Results', batch_size=batchsize)
+generator = pipeline.ERFH5_DataGenerator('/home/lodes/Sim_Results', batch_size=batchsize, epochs=epochs)
 
 
 
@@ -61,14 +63,15 @@ for e in range(epochs):
             inputs, labels = generator.get_batch()
             inputs = [i[90] for i in inputs]
             inputs, labels = torch.FloatTensor(inputs), torch.FloatTensor(labels)
-            train_acc = 0 
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = loss_criterion(outputs, labels)
             loss.backward() 
             optimizer.step()
             counter = counter + 1
-            print("Loss: " + str(loss.item()))
+            
+            if step % eval_frequency == 0:
+                print("Loss: " + str(loss.item()))
 
         time_per_epoch = time.time() - start_time
         print("Duration of epoch " + str(e+1) + ": " + str(time_per_epoch))
