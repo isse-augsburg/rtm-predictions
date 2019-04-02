@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import erfh5_pipeline as pipeline
 import time  
+
 import numpy as np 
 
 batchsize = 4
@@ -44,7 +45,7 @@ class Net(nn.Module):
         return num_features
 
 
-generator = pipeline.ERFH5_DataGenerator('/home/lodes/Sim_Results', batch_size=batchsize, epochs=epochs)
+generator = pipeline.ERFH5_DataGenerator('/home/niklas/Documents/Data', batch_size=batchsize, epochs=epochs)
 
 
 

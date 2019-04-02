@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 import os 
 import time 
+import pandas
+import numpy as np 
 from multiprocessing import Process, Queue
 from multiprocessing import cpu_count
 from functools import partial
@@ -122,15 +124,19 @@ class ERFH5_DataGenerator():
    
     #creates a instance of data and label from the preprocessed file. 
     def __create_data_instance(self, filename):
-       
+     
         states_and_fillings = self.__get_states_and_fillings(filename)
         
         label = int(states_and_fillings[-1][0])
         states_and_fillings = [i[1] for i in states_and_fillings]
+       
         instance = (states_and_fillings, label)
         #TODO cut out N frames 
+        
         return instance
     
+   
+
     #function for preprocessing the erfh5 file and extracting all states and the filling factors at this state 
     def __get_states_and_fillings(self, filename):
         
@@ -139,9 +145,8 @@ class ERFH5_DataGenerator():
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
         all_states = f['post']['singlestate']
-        t1 = time.time()
-        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]
-        print(time.time() -t1)       
+        
+        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]  
         states_as_list = [x[-5:] for x in list(all_states.keys())]
         flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
         states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
@@ -212,8 +217,8 @@ def create_filling_factors_dataset(filenames):
 
 
 if __name__== "__main__":
-    data_folder = '/home/lodes/Sim_Results'
-    #data_folder = '/home/niklas/Documents/Data'
+    #data_folder = '/home/lodes/Sim_Results'
+    data_folder = '/home/niklas/Documents/Data'
     generator = ERFH5_DataGenerator(data_path=data_folder, batch_size=1, epochs=1)
     try:
         batch_data, batch_labels = generator.get_batch()
