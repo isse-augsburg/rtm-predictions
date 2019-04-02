@@ -92,7 +92,6 @@ class ERFH5_DataGenerator():
         self._queueState = Queue_State.uninitialized
         
         self.batch_queue = Thread_Safe_List()
-        #self.batch_queue = Queue()
         self.threads = []
         t_path = threading.Thread(target=self.__fill_path_queue)
         t_path.start()
@@ -115,7 +114,6 @@ class ERFH5_DataGenerator():
     def __fill_batch_queue(self):
         while self._queueState == Queue_State.uninitialized:
             time.sleep(1)
-
 
         while not self._queueState == Queue_State.empty:
             
@@ -158,20 +156,13 @@ class ERFH5_DataGenerator():
         return states_and_fillings
 
     def get_batch(self):
-        print("Batch")
-        start_time = time.time()
         try:
             batch = self.batch_queue.get(self.batch_size)
         except Exception as e:
             raise e 
-        
-        duration = time.time() - start_time
-        print(duration)
-
+            
         data = [i[0]for i in batch]
         labels = [i[1] for i in batch]
-        
-        #return batch[:,0], batch[:,1]
         return data, labels 
    
 ########################################################################################
