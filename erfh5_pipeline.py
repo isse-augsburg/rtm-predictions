@@ -4,6 +4,7 @@ import matplotlib
 import os 
 import time 
 from multiprocessing import Process, Queue
+from multiprocessing import cpu_count
 from functools import partial
 from os import listdir, walk 
 import queue 
@@ -72,9 +73,8 @@ class ERFH5_DataGenerator():
         self.paths = self.__get_paths_to_files(self.data_path)
         self.path_queue = Thread_Safe_List()
         self.path_queue.put_batch(self.paths)
-        self.num_workers = 6
+        self.num_workers = cpu_count() - 2
         self.epochs = epochs
-
         self._queueState = Queue_State.uninitialized
         
         self.batch_queue = Thread_Safe_List()
@@ -139,8 +139,9 @@ class ERFH5_DataGenerator():
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
         all_states = f['post']['singlestate']
-        
+        t1 = time.time()
         filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]
+        print(time.time() -t1)       
         states_as_list = [x[-5:] for x in list(all_states.keys())]
         flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
         states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
@@ -212,6 +213,7 @@ def create_filling_factors_dataset(filenames):
 
 if __name__== "__main__":
     data_folder = '/home/lodes/Sim_Results'
+    #data_folder = '/home/niklas/Documents/Data'
     generator = ERFH5_DataGenerator(data_path=data_folder, batch_size=1, epochs=1)
     try:
         batch_data, batch_labels = generator.get_batch()
