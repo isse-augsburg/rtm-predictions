@@ -6,7 +6,7 @@ import time
 import numpy as np 
 
 batchsize = 4
-epochs = 5
+epochs = 80
 steps_per_epoch = 10000
 eval_frequency = 100
 
