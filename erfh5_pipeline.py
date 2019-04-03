@@ -36,7 +36,9 @@ class Thread_Safe_List():
 
         while len(self.list) >= self.max_length and self.max_length != -1: 
             if self.should_terminate:
-                raise Exception("The Thread has ended because the list is full.")
+                print("here")
+                return
+                #raise Exception("The Thread has ended because the list is full.")
             time.sleep(0.1)
         
         self.lock.acquire()
@@ -72,7 +74,7 @@ class ERFH5_DataGenerator():
         self.batch_size = batch_size
         self.paths = self.__get_paths_to_files(self.data_path)
         self.path_queue = Thread_Safe_List()
-        self.path_queue.put_batch(self.paths)
+        #self.path_queue.put_batch(self.paths)
         self.num_workers = cpu_count() - 2
         self.epochs = epochs
         self._queueState = Queue_State.uninitialized
@@ -117,6 +119,7 @@ class ERFH5_DataGenerator():
             new_paths = self.paths
             random.shuffle(new_paths)
             self.path_queue.put_batch(new_paths)
+           
 
         self._queueState = Queue_State.complete
    
@@ -139,14 +142,28 @@ class ERFH5_DataGenerator():
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
         all_states = f['post']['singlestate']
-        t1 = time.time()
-        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]
-        print(time.time() -t1)       
+        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]       
         states_as_list = [x[-5:] for x in list(all_states.keys())]
         flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
         states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
         return states_and_fillings
 
+    def __iter__(self):
+        return self 
+    
+    def __next__(self):
+        try:
+            batch = self.batch_queue.get(self.batch_size)
+        except Exception as e:
+            raise StopIteration 
+            
+        data = [i[0]for i in batch]
+        labels = [i[1] for i in batch]
+        return data, labels
+
+    def __len__(self): 
+        return self.epochs * len(self.paths)
+    
     #returns a batch of data of the specified batch size 
     def get_batch(self):
         try:
