@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 import os 
 import time 
-import pandas
 import numpy as np 
 from multiprocessing import Process, Queue
 from multiprocessing import cpu_count
@@ -15,11 +14,7 @@ import random
 from enum import Enum
 
 
-class Queue_State(Enum):
-    empty = 0
-    loading = 1
-    complete = 2
-    uninitialized = 3
+
 
 #Helper data structure that's thread safe and supports batch-wise get 
 class Thread_Safe_List():
@@ -28,19 +23,22 @@ class Thread_Safe_List():
         self.list = []
         self.lock = threading.Lock()
         self.max_length = max_length
-        self.should_terminate = False
+        self.finished = False
     
     # if called, the thread using this queue will commit suicide
     def kill(self):
-        self.should_terminate = True
+        self.finished = True
+
+
+    def __len__(self):
+        #self.lock.acquire()
+        length = len(self.list)
+        #self.lock.release()
+        return length
 
     def put(self, element): 
 
         while len(self.list) >= self.max_length and self.max_length != -1: 
-            if self.should_terminate:
-                print("here")
-                return
-                #raise Exception("The Thread has ended because the list is full.")
             time.sleep(0.1)
         
         self.lock.acquire()
@@ -56,9 +54,9 @@ class Thread_Safe_List():
 
     def get(self, number_of_elements): 
         
-        while len(self.list) < number_of_elements: 
-            if self.should_terminate:
-                raise Exception("The thread has ended because the list ist empty")
+        while len(self) < number_of_elements: 
+            if(self.finished):
+                raise StopIteration
             time.sleep(0.1)
         
         self.lock.acquire()
@@ -70,27 +68,66 @@ class Thread_Safe_List():
 
 #class for providing batches of data. The number of epochs can be specified. 
 class ERFH5_DataGenerator():
-    
-    def __init__(self, data_path='/home/', batch_size=64, repeat=True, epochs=80):
+
+
+    #####Parameters#####
+    #data_path: root directory for ERFH5 files 
+    #indices: elements of filling factors sequence that should be contained in an instance
+    #max_queue_length: number of instances that are preloaded to the batch queue 
+    #sequence: if true, instances consist of more than one state (exact number is specified with indices) 
+    def __init__(self, data_path='/home/', batch_size=64, epochs=80,   indices = [0, 20, 40, 60, 80], max_queue_length=-1, sequence=True, num_validation_samples=1):
         self.data_path = data_path
         self.batch_size = batch_size
+        self.indices = indices
+        self.sequence = sequence
+        self.data_dict = dict()
+        self.num_validation_samples = num_validation_samples
         self.paths = self.__get_paths_to_files(self.data_path)
+        random.shuffle(self.paths)
+        self.validation_samples = self.paths[:self.num_validation_samples]
+        self.paths = self.paths[self.num_validation_samples:]
+        self.max_queue_length = max_queue_length
         self.path_queue = Thread_Safe_List()
+        self.validation_list = []
         #self.path_queue.put_batch(self.paths)
-        self.num_workers = cpu_count() - 2
+        print("Cpu count:", cpu_count())
+        self.num_workers = 2
+        #self.num_workers = 2
         self.epochs = epochs
-        self._queueState = Queue_State.uninitialized
         
-        self.batch_queue = Thread_Safe_List()
+        self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
         self.threads = []
-        t_path = threading.Thread(target=self.__fill_path_queue)
-        t_path.start()
+        self.barrier = threading.Barrier(self.num_workers)
+
+     
+        try:
+            self.__fill_path_queue()
+        except Exception as e:
+            raise e
+        
+        self.__fill_validation_list()
 
         for i in range(self.num_workers):
             t_batch = threading.Thread(target=self.__fill_batch_queue)
             t_batch.start()
             self.threads.append(t_batch)
             
+
+    def get_current_Q_length(self):
+        return self.batch_queue.__len__()       
+    
+    def __fill_validation_list(self):
+        for sample in self.validation_samples: 
+            instance = self.__create_data_instance(sample)
+
+            if self.sequence: 
+                self.validation_list.append(instance)
+            else: 
+                instance = instance[0]
+                random.shuffle(instance)
+                for i in instance: 
+                    self.validation_list.append(i)
+    
     #returns a list of all file paths in a root directory including sub-directories
     def __get_paths_to_files(self, root_directory):
         dataset_filenames = []
@@ -102,41 +139,59 @@ class ERFH5_DataGenerator():
 
     #function that creates instances of data from filepaths 
     def __fill_batch_queue(self):
-        while self._queueState == Queue_State.uninitialized:
-            time.sleep(1)
-
-        while not self._queueState == Queue_State.empty:
-            file = self.path_queue.get(1)[0]
-            if(len(self.path_queue.list) == 0 and self._queueState == Queue_State.complete):
-                self._queueState = Queue_State.empty
-                self.batch_queue.kill()
+        while len(self.path_queue) > 0:
+            try:
+                file = self.path_queue.get(1)[0]
+            except StopIteration as si:
+                break
+            if(len(self.path_queue) == 0):
+                self.path_queue.kill()
             data = self.__create_data_instance(file)
-            self.batch_queue.put(data)
+            if self.sequence: 
+                self.batch_queue.put(data)
+            else:
+                data = data[0]
+                random.shuffle(data)
+                for i in data:
+                    self.batch_queue.put((i,0))
+        
+        print("thread waiting for his death", threading.get_ident())
+        self.barrier.wait()
+        self.batch_queue.kill()
+        print("thread has ended", threading.get_ident())
     
     #function for providing the filepaths in a shuffeled order and for realizing epochs.
     def __fill_path_queue(self): 
-        self._queueState = Queue_State.loading
+        if len(self.paths) == 0:
+            raise Exception("No file paths found.")
         
         for i in range(self.epochs):
             new_paths = self.paths
             random.shuffle(new_paths)
             self.path_queue.put_batch(new_paths)
-           
+        
+       
 
-        self._queueState = Queue_State.complete
+        
    
     #creates a instance of data and label from the preprocessed file. 
     def __create_data_instance(self, filename):
         
-        states_and_fillings = self.__get_states_and_fillings(filename)
+        if filename in self.data_dict:
+            
+            return self.data_dict[filename]
+        else:
+            
+            fillings, label = self.__get_states_and_fillings(filename)
+            self.data_dict[filename] = (fillings,label)
         
-        label = int(states_and_fillings[-1][0])
+        """ label = int(states_and_fillings[-1][0])
         states_and_fillings = [i[1] for i in states_and_fillings]
         
         instance = (states_and_fillings, label)
         #TODO cut out N frames 
-        
-        return instance
+         """
+        return (fillings,label)
 
 
 
@@ -148,11 +203,21 @@ class ERFH5_DataGenerator():
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
         all_states = f['post']['singlestate']
-        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]       
-        states_as_list = [x[-5:] for x in list(all_states.keys())]
+        j = ""
+        for k in all_states:
+            j = k
+        
+        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]  
+        label = f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]  
+         
+        #states_as_list = [x[-5:] for x in list(all_states.keys())]
         flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
-        states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
-        return states_and_fillings
+
+        if self.sequence: 
+            flat_fillings = [flat_fillings[j] for j in self.indices]
+        #states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
+        
+        return flat_fillings, label
 
     def __iter__(self):
         return self 
@@ -160,8 +225,8 @@ class ERFH5_DataGenerator():
     def __next__(self):
         try:
             batch = self.batch_queue.get(self.batch_size)
-        except Exception as e:
-            raise StopIteration 
+        except StopIteration as e:
+            raise e 
             
         data = [i[0]for i in batch]
         labels = [i[1] for i in batch]
@@ -170,16 +235,9 @@ class ERFH5_DataGenerator():
     def __len__(self): 
         return self.epochs * len(self.paths)
 
-    #returns a batch of data of the specified batch size 
-    def get_batch(self):
-        try:
-            batch = self.batch_queue.get(self.batch_size)
-        except Exception as e:
-            raise e 
-            
-        data = [i[0]for i in batch]
-        labels = [i[1] for i in batch]
-        return data, labels 
+
+    def get_validation_samples(self):
+        return self.validation_list 
     
     ########################################################################################
     ###functions not relevant for using this file, still there in case someone needs them###
@@ -235,13 +293,12 @@ class ERFH5_DataGenerator():
 
 
 if __name__== "__main__":
-    #data_folder = '/home/lodes/Sim_Results'
-    data_folder = '/home/niklas/Documents/Data'
+    data_folder = '/home/lodes/Sim_Results'
+    #data_folder = '/home/niklas/Documents/Data'
     generator = ERFH5_DataGenerator(data_path=data_folder, batch_size=1, epochs=1)
-    try:
-        batch_data, batch_labels = generator.get_batch()
-    except Exception as e:
-        print("oopsie")
+    
+    batch_data, batch_labels = generator.__next__()
+   
     
     while True:
         print("foo")
