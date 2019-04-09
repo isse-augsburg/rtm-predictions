@@ -4,6 +4,7 @@ import matplotlib
 import os 
 import time 
 import numpy as np 
+import torch
 from multiprocessing import Process, Queue
 from multiprocessing import cpu_count
 from functools import partial
@@ -183,6 +184,7 @@ class ERFH5_DataGenerator():
         else:
             
             fillings, label = self.__get_states_and_fillings(filename)
+            fillings, label = torch.FloatTensor(fillings), torch.FloatTensor(label)
             self.data_dict[filename] = (fillings,label)
         
         """ label = int(states_and_fillings[-1][0])
@@ -223,6 +225,7 @@ class ERFH5_DataGenerator():
         return self 
 
     def __next__(self):
+        
         try:
             batch = self.batch_queue.get(self.batch_size)
         except StopIteration as e:
@@ -230,6 +233,8 @@ class ERFH5_DataGenerator():
             
         data = [i[0]for i in batch]
         labels = [i[1] for i in batch]
+        data = torch.stack(data)
+        labels = torch.stack(labels)
         return data, labels
 
     def __len__(self): 

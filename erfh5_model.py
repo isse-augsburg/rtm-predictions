@@ -4,34 +4,39 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pad_packed_sequence as unpack
 import torch.nn.functional as F
 import erfh5_pipeline as pipeline
+import erfh5_autoencoder as autoencoder 
 import time
+#from apex import amp
 
 import numpy as np
 
-batchsize = 16
-epochs = 80
-eval_frequency = 2
+#amp_handle = amp.init()
+
+batchsize = 768
+epochs = 500
+eval_frequency = 1
+path = '/cfs/home/l/o/lodesluk/models/encoder-08-04-1304.pth'
 
 
-
-
-
-class Net(nn.Module):
-
+class ERFH5_RNN(nn.Module):
     def __init__(self, input_dim, hidden_dim, batch_size, num_layers=2):
-        super(Net, self).__init__()
+        super(ERFH5_RNN, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.nlayers = num_layers
+        
+
        
         self.lstm = nn.LSTM(input_dim, hidden_dim,
-                            batch_first=False, num_layers=self.nlayers, bidirectional=True)
+                            batch_first=False, num_layers=self.nlayers, bidirectional=True, dropout=0.5)
 
         self.hidden2hidden1 = nn.Linear(int(hidden_dim*2), 1024)
         self.hidden2hidden2 = nn.Linear(1024, 512)
         self.hidden2hidden3 = nn.Linear(512, 256)
         self.hidden2hidden4 = nn.Linear(256, 128)
         self.hidden2value = nn.Linear(128, 1)
+        self.drop = nn.Dropout(0.5)
+       
 
         self.init_weights()
 
@@ -65,17 +70,61 @@ class Net(nn.Module):
         out = lstm_out[-1]
         
         out = out.view(out.size(0), -1)
+        out = self.drop(out)
         out = F.relu(self.hidden2hidden1(out))
+        out = self.drop(out)
         out = F.relu(self.hidden2hidden2(out))
+        out = self.drop(out)
         out = F.relu(self.hidden2hidden3(out))
+        out = self.drop(out)
         out = F.relu(self.hidden2hidden4(out))
+        out = self.drop(out)
         out = self.hidden2value(out)
+        return out
+
+
+
+class Net(nn.Module):
+
+    def __init__(self, input_dim, hidden_dim, batch_size, num_layers=4, encoder_path= '/home', split_gpus=True, parallel=True):
+        super(Net, self).__init__()
+        self.hidden_dim = hidden_dim
+        self.batch_size = batch_size
+        self.nlayers = num_layers
+        self.encoder_path = encoder_path
+        self.input_dim = input_dim
+
+        self.rnn = ERFH5_RNN(self.input_dim, self.hidden_dim, self.batch_size, self.nlayers)
+        self.encoder = autoencoder.load_stacked_fc(self.encoder_path)
+        self.encoder.eval()
+
+        if split_gpus and parallel:
+            self.encoder = nn.DataParallel(self.encoder, device_ids=[0, 1, 2, 3]).to('cuda:0')
+            self.rnn = nn.DataParallel(self.rnn, device_ids=[ 4, 5, 6, 7]).to('cuda:4')
+            #self.encoder = nn.DataParallel(self.encoder).to('cuda:0')
+            #self.rnn = nn.DataParallel(self.rnn).to('cuda:0')
+
+
+    def forward(self, x):
+       
+        with torch.no_grad():
+            x = x.view(-1, 69366)
+        
+            out = self.encoder(x)
+        
+            #out = out.to('cuda:4')
+            
+            out = out.view(self.batch_size, -1, 8192)
+        
+        out = self.rnn(out)
+       
+        
         return out
 
 
 try:
     generator = pipeline.ERFH5_DataGenerator(
-       '/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batchsize, epochs=epochs,indices=range(100) ,max_queue_length=128)
+       '/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batchsize, epochs=epochs,indices=range(100) ,max_queue_length=2048)
 except Exception as e:
     print("Fatal Error:", e)
     exit()
@@ -85,17 +134,17 @@ except Exception as e:
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-model = Net(69366, 1024, batchsize)
-if torch.cuda.device_count() > 1:
+model = Net(8192, 1024, batchsize, encoder_path=path)
+""" if torch.cuda.device_count() > 1:
     print("Let's use", torch.cuda.device_count(), "GPUs!")
-    model = nn.DataParallel(model)
+    model = nn.DataParallel(model) """
 
 
-model.to(device)
+#model.to(device)
 
 
-loss_criterion = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+loss_criterion = torch.nn.MSELoss().cuda()
+optimizer = torch.optim.Adam(model.rnn.parameters(), lr=0.00001)
 
 start_time = time.time()
 counter = 1
@@ -104,18 +153,31 @@ print("Expected length of data generator:", len(generator))
 
 
 for inputs, labels in generator:
-
-
-    inputs, labels = torch.FloatTensor(inputs), torch.FloatTensor(labels)
-    inputs, labels = inputs.to(device), labels.to(device)
     
+   
+   
+    #inputs, labels = torch.FloatTensor(inputs), torch.FloatTensor(labels)
+    
+    inputs, labels = inputs.to(device, non_blocking=True), labels.to('cuda:4', non_blocking=True)
+   
+
     optimizer.zero_grad()
+    
     outputs = model(inputs)
     
+    
+    #outputs = outputs.to(device, non_blocking=True)
+  
     loss = loss_criterion(outputs, labels)
+   
+    
+    #with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
+    #    scaled_loss.backward()
     
     loss.backward()
+  
     optimizer.step()
+  
 
     if counter % eval_frequency == 0:
         time_per_epoch = time.time() - start_time
@@ -125,4 +187,4 @@ for inputs, labels in generator:
 
     counter = counter + 1
 
-print(counter)
+print(">>> INFO: MASTER PROCESS TERMINATED - TRAINING COMPLETE - MISSION SUCCESS ")
