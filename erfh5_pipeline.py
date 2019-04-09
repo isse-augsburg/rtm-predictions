@@ -15,6 +15,10 @@ import random
 from enum import Enum
 
 
+class Pipeline_Mode(Enum):
+    index_sequence = 0
+    single_instance = 1
+    time_sequence = 2
 
 
 #Helper data structure that's thread safe and supports batch-wise get 
@@ -76,11 +80,12 @@ class ERFH5_DataGenerator():
     #indices: elements of filling factors sequence that should be contained in an instance
     #max_queue_length: number of instances that are preloaded to the batch queue 
     #sequence: if true, instances consist of more than one state (exact number is specified with indices) 
-    def __init__(self, data_path='/home/', batch_size=64, epochs=80,   indices = [0, 20, 40, 60, 80], max_queue_length=-1, sequence=True, num_validation_samples=1):
+    def __init__(self, data_path='/home/', batch_size=64, epochs=80, indices=[0, 20, 40, 60, 80], max_queue_length=-1,
+                 pipeline_mode=Pipeline_Mode.single_instance, num_validation_samples=1, num_workers=2):
         self.data_path = data_path
         self.batch_size = batch_size
         self.indices = indices
-        self.sequence = sequence
+        self.pipeline_mode = pipeline_mode
         self.data_dict = dict()
         self.num_validation_samples = num_validation_samples
         self.paths = self.__get_paths_to_files(self.data_path)
@@ -90,10 +95,8 @@ class ERFH5_DataGenerator():
         self.max_queue_length = max_queue_length
         self.path_queue = Thread_Safe_List()
         self.validation_list = []
-        #self.path_queue.put_batch(self.paths)
-        print("Cpu count:", cpu_count())
-        self.num_workers = 2
-        #self.num_workers = 2
+
+        self.num_workers = num_workers
         self.epochs = epochs
         
         self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
@@ -112,21 +115,21 @@ class ERFH5_DataGenerator():
             t_batch = threading.Thread(target=self.__fill_batch_queue)
             t_batch.start()
             self.threads.append(t_batch)
-            
 
-    def get_current_Q_length(self):
+    def get_current_queue_length(self):
         return self.batch_queue.__len__()       
     
     def __fill_validation_list(self):
         for sample in self.validation_samples: 
             instance = self.__create_data_instance(sample)
 
-            if self.sequence: 
+            if self.pipeline_mode == Pipeline_Mode.index_sequence:
                 self.validation_list.append(instance)
-            else: 
+            elif self.pipeline_mode == Pipeline_Mode.single_instance:
                 instance = instance[0]
+                instance = torch.unbind(instance)
                 random.shuffle(instance)
-                for i in instance: 
+                for i in instance:
                     self.validation_list.append(i)
     
     #returns a list of all file paths in a root directory including sub-directories
@@ -148,18 +151,19 @@ class ERFH5_DataGenerator():
             if(len(self.path_queue) == 0):
                 self.path_queue.kill()
             data = self.__create_data_instance(file)
-            if self.sequence: 
+
+            if self.pipeline_mode == Pipeline_Mode.index_sequence:
                 self.batch_queue.put(data)
-            else:
+            elif self.pipeline_mode == Pipeline_Mode.single_instance:
                 data = data[0]
+                data = torch.unbind(data)
                 random.shuffle(data)
                 for i in data:
                     self.batch_queue.put((i,0))
-        
-        print("thread waiting for his death", threading.get_ident())
+
         self.barrier.wait()
         self.batch_queue.kill()
-        print("thread has ended", threading.get_ident())
+        print(">>>INFO: Data loading complete. - SUCCESS")
     
     #function for providing the filepaths in a shuffeled order and for realizing epochs.
     def __fill_path_queue(self): 
@@ -209,15 +213,14 @@ class ERFH5_DataGenerator():
         for k in all_states:
             j = k
         
-        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]  
-        label = f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]  
-         
-        #states_as_list = [x[-5:] for x in list(all_states.keys())]
+        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]
+        label = \
+        f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
+
         flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
 
-        if self.sequence: 
+        if self.pipeline_mode == Pipeline_Mode.index_sequence:
             flat_fillings = [flat_fillings[j] for j in self.indices]
-        #states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
         
         return flat_fillings, label
 
@@ -225,7 +228,6 @@ class ERFH5_DataGenerator():
         return self 
 
     def __next__(self):
-        
         try:
             batch = self.batch_queue.get(self.batch_size)
         except StopIteration as e:

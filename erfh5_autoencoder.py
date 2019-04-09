@@ -6,9 +6,13 @@ import torch.nn.functional as F
 import erfh5_pipeline as pipeline
 import time
 import numpy as np
-#from apex import amp
+
 from collections import OrderedDict
-#amp_handle = amp.init()
+
+if __name__ == '__main__':
+    from apex import amp
+
+    amp_handle = amp.init()
 
 
 class stacked_FullyConnected(nn.Module):
@@ -36,15 +40,15 @@ class stacked_FullyConnected(nn.Module):
 
 
 class erfh5_Distributed_Autoencoder(nn.Module):
-    def __init__(self, split_gpus=True, parallel=True):
+    def __init__(self, dgx_mode=True, layers_size_list=[69366, 15000, 8192]):
         super(erfh5_Distributed_Autoencoder, self).__init__()
-        
-        self.encoder = stacked_FullyConnected([69366, 15000, 8192])
-        self.decoder = stacked_FullyConnected([8192, 15000, 69366])
+
+        self.encoder = stacked_FullyConnected(layers_size_list)
+        self.decoder = stacked_FullyConnected(reversed(layers_size_list))
         print(self.encoder)
         print(self.decoder)
 
-        if split_gpus and parallel:
+        if dgx_mode:
             self.encoder = nn.DataParallel(self.encoder, device_ids=[
                                            0, 1, 2, 3]).to('cuda:0')
             self.decoder = nn.DataParallel(self.decoder, device_ids=[
@@ -97,10 +101,10 @@ class erfh5_Autoencoder(nn.Module):
 # '/cfs/share/data/RTM/Lautern/clean_erfh5/'
 
 
-def load_stacked_fc(path):
+def load_stacked_fc(path, list=[69366, 15000, 8192]):
     state_dict = torch.load(path)
     new_state_dict = OrderedDict()
-    model = stacked_FullyConnected([69366, 15000, 8192])
+    model = stacked_FullyConnected(list)
 
     for k, v in state_dict.items():
         name = k[7:] # remove `module.`
@@ -113,14 +117,14 @@ def load_stacked_fc(path):
 
 
 if __name__ == "__main__":
-    batchsize = 1024
+    batch_size = 1024
     epochs = 80
     eval_frequency = 10
     test_frequency = 50
     path = '/cfs/home/l/o/lodesluk/models/encoder-08-04-1304.pth'
 
     try:
-        generator = pipeline.ERFH5_DataGenerator('/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batchsize,
+        generator = pipeline.ERFH5_DataGenerator('/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batch_size,
                                                  epochs=epochs, indices=1, max_queue_length=2048, sequence=False, num_validation_samples=3)
         validation_samples = generator.get_validation_samples()
     except Exception as e:
@@ -128,12 +132,12 @@ if __name__ == "__main__":
         exit()
 
     #encoder = erfh5_Autoencoder(69366, [8000, 6000])
-    encoder = erfh5_Distributed_Autoencoder()
+    autoencoder = erfh5_Distributed_Autoencoder()
     #encoder.load_state_dict(torch.load(path))
     #half_encoder = load_stacked_fc(path)
     
     loss_criterion = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(encoder.parameters(), lr=0.000005)
+    optimizer = torch.optim.Adam(autoencoder.parameters(), lr=0.000005)
     
     
 
@@ -142,11 +146,7 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
 
-    """ if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        encoder = nn.DataParallel(encoder)
-    """
-    #encoder.to(device)
+
 
     start_time = time.time()
     counter = 1
@@ -160,7 +160,7 @@ if __name__ == "__main__":
         inputs = inputs.to(device)
 
         optimizer.zero_grad()
-        outputs = encoder(inputs)
+        outputs = autoencoder(inputs)
         outputs = outputs.to(device)
 
         loss = loss_criterion(outputs, inputs)
@@ -172,46 +172,46 @@ if __name__ == "__main__":
         if counter % eval_frequency == 0:
             time_per_epoch = time.time() - start_time
             print("Loss:", "{:8.4f}".format(loss.item()), "|| Duration of step:", "{:6}".format(
-                counter), "{:4.2f}".format(time_per_epoch), "seconds || Q:", generator.get_current_Q_length())
+                counter), "{:4.2f}".format(time_per_epoch), "seconds || Q:", generator.get_current_queue_length())
             start_time = time.time()
 
         if counter % test_frequency == 0:
             with torch.no_grad():
-                encoder.eval()
+                autoencoder.eval()
                 loss = 0
                 for i in validation_samples:
                     i = torch.FloatTensor(i)
                     i = i.to(device)
                     i = torch.unsqueeze(i, 0)
-                    output = encoder(i)
+                    output = autoencoder(i)
                     output = output.to(device) 
                     loss = loss + loss_criterion(output, i).item()
 
                 loss = loss / len(validation_samples)
                 print(">>>Loss on Test:", "{:8.4f}".format(loss))
-                encoder.train()
+                autoencoder.train()
 
         counter = counter + 1
 
 
     with torch.no_grad():
-        encoder.eval()
+        autoencoder.eval()
         loss = 0
         for i in validation_samples:
             i = torch.FloatTensor(i)
             i = i.to(device)
             i = torch.unsqueeze(i, 0)
-            output = encoder(i)
+            output = autoencoder(i)
             output = output.to(device) 
             loss = loss + loss_criterion(output, i).item()
 
         loss = loss / len(validation_samples)
         print(">>>FINAL on Test:", "{:8.4f}".format(loss))
-        encoder.train()
+        autoencoder.train()
 
     print(">>>INFO: Saving state dict")
     #torch.save(encoder.state_dict(), path)
-    encoder.save_encoder(path)
+    autoencoder.save_encoder(path)
 
 
 

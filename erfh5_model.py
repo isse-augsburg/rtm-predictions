@@ -182,7 +182,7 @@ for inputs, labels in generator:
     if counter % eval_frequency == 0:
         time_per_epoch = time.time() - start_time
         print("Loss:", "{:12.4f}".format(loss.item()), "|| Duration of step:", "{:6}".format(
-            counter), "{:10.2f}".format(time_per_epoch), "seconds || Q:", generator.get_current_Q_length())
+            counter), "{:10.2f}".format(time_per_epoch), "seconds || Q:", generator.get_current_queue_length())
         start_time = time.time()
 
     counter = counter + 1
