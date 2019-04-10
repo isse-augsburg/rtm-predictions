@@ -20,6 +20,9 @@ class Pipeline_Mode(Enum):
     single_instance = 1
     time_sequence = 2
 
+class NoSequenceException(Exception):
+    pass 
+
 
 #Helper data structure that's thread safe and supports batch-wise get 
 class Thread_Safe_List():
@@ -52,6 +55,9 @@ class Thread_Safe_List():
         self.lock.release()
     
     def put_batch(self, batch): 
+
+        while len(self.list) >= self.max_length and self.max_length != -1: 
+            time.sleep(0.1)
 
         self.lock.acquire()
         self.list.extend(batch)
@@ -90,8 +96,7 @@ class ERFH5_DataGenerator():
         self.num_validation_samples = num_validation_samples
         self.paths = self.__get_paths_to_files(self.data_path)
         random.shuffle(self.paths)
-        self.validation_samples = self.paths[:self.num_validation_samples]
-        self.paths = self.paths[self.num_validation_samples:]
+        
         self.max_queue_length = max_queue_length
         self.path_queue = Thread_Safe_List()
         self.validation_list = []
@@ -102,6 +107,12 @@ class ERFH5_DataGenerator():
         self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
         self.threads = []
         self.barrier = threading.Barrier(self.num_workers)
+        self.t_begin = 0
+        self.t_end = 50
+        self.t_delta = 2
+        self.t_target_offset = 2
+        self.t_sequnce_distance = 10
+        self.t_final = 1000 
 
      
         try:
@@ -120,20 +131,32 @@ class ERFH5_DataGenerator():
         return self.batch_queue.__len__()       
     
     def __fill_validation_list(self):
-        for sample in self.validation_samples: 
-            try:
-                instance = self.__create_data_instance(sample)
-            except IndexError as ie:
-                continue 
-
+        while len(self.validation_list) < self.num_validation_samples: 
+            sample = self.paths[0]
+            self.paths = self.paths[1:]
             if self.pipeline_mode == Pipeline_Mode.index_sequence:
+                try:
+                    instance = self.__create_data_instance(sample)
+                except IndexError as ie:
+                    continue 
                 self.validation_list.append(instance)
             elif self.pipeline_mode == Pipeline_Mode.single_instance:
+                try:
+                    instance = self.__create_data_instance(sample)
+                except IndexError as ie:
+                    continue 
                 instance = instance[0]
                 instance = torch.unbind(instance)
                 random.shuffle(instance)
                 for i in instance:
                     self.validation_list.append(i)
+            elif self.pipeline_mode == Pipeline_Mode.time_sequence:
+                try:
+                    instance_list = self.__create_data_instances_for_a_land_before_our_time(sample)
+                except NoSequenceException as E:
+                    continue
+                self.validation_list.extend(instance_list)
+
     
     #returns a list of all file paths in a root directory including sub-directories
     def __get_paths_to_files(self, root_directory):
@@ -151,12 +174,23 @@ class ERFH5_DataGenerator():
                 file = self.path_queue.get(1)[0]
             except StopIteration as si:
                 break
+
+
             if(len(self.path_queue) == 0):
                 self.path_queue.kill()
-            try:
-                data = self.__create_data_instance(file)
-            except IndexError as ie:
-                continue 
+
+            if self.pipeline_mode == Pipeline_Mode.index_sequence or self.pipeline_mode == Pipeline_Mode.single_instance:
+                try:
+                    data = self.__create_data_instance(file)
+                except IndexError as ie:
+                    continue 
+            elif self.pipeline_mode == Pipeline_Mode.time_sequence:
+                try:
+                    data = self.__create_data_instances_for_a_land_before_our_time(file)
+                except NoSequenceException as E:
+                    continue
+                self.batch_queue.put_batch(data)
+
             if self.pipeline_mode == Pipeline_Mode.index_sequence:
                 self.batch_queue.put(data)
             elif self.pipeline_mode == Pipeline_Mode.single_instance:
@@ -185,6 +219,34 @@ class ERFH5_DataGenerator():
         
    
     #creates a instance of data and label from the preprocessed file. 
+
+    def __create_data_instances_for_a_land_before_our_time(self, filename):
+        tensor_instances = list()
+        
+        if filename in self.data_dict:
+            if self.data_dict[filename] != -1:
+                return self.data_dict[filename]
+            else:
+                raise NoSequenceException  
+        else:  
+            try:
+                instanceList = self.__get_all_sequences_for_file(filename, self.t_begin, self.t_end, self.t_delta, self.t_target_offset, self.t_sequnce_distance, self.t_final)
+            except NoSequenceException as E:
+                self.data_dict[filename] = -1
+                raise E
+            
+            for inst in instanceList:
+                sequence, label = torch.FloatTensor(inst[0]), torch.FloatTensor(inst[1])
+                tensor_instances.append((sequence,label))
+            
+            self.data_dict[filename] = tensor_instances
+            
+
+
+        return tensor_instances
+        
+
+
     def __create_data_instance(self, filename):
         
         if filename in self.data_dict:
@@ -194,14 +256,15 @@ class ERFH5_DataGenerator():
                 raise IndexError
             return data
         else:
-            try:
-                fillings, label = self.__get_states_and_fillings(filename)
-                fillings, label = torch.FloatTensor(fillings), torch.FloatTensor(label)
-                self.data_dict[filename] = (fillings,label)
-            except IndexError as ie:
-                print(">>>WARNING: File", filename, "does not have enough steps.")
-                self.data_dict[filename] = -1
-                raise ie
+             
+                try:
+                    fillings, label = self.__get_states_and_fillings(filename)
+                    fillings, label = torch.FloatTensor(fillings), torch.FloatTensor(label)
+                    self.data_dict[filename] = (fillings,label)
+                except IndexError as ie:
+                    print(">>>WARNING: File", filename, "does not have enough steps.")
+                    self.data_dict[filename] = -1
+                    raise ie
         
         """ label = int(states_and_fillings[-1][0])
         states_and_fillings = [i[1] for i in states_and_fillings]
@@ -211,7 +274,72 @@ class ERFH5_DataGenerator():
          """
         return (fillings,label)
 
+    def __get_all_sequences_for_file(self,filename, t_begin, t_end, t_delta, t_target_offset, t_sequence_distance, t_final):
+        all_sequences = list()
 
+        
+        try:
+            while t_end + t_target_offset < t_final:
+                instance = self.__get_fillings_at_times(filename, t_begin,t_end,t_delta,t_end+t_target_offset)
+                t_begin = t_begin +t_sequence_distance
+                t_end = t_end + t_sequence_distance
+                all_sequences.append(instance)
+        except NoSequenceException:
+            pass
+        
+        if len(all_sequences) == 0:
+            raise NoSequenceException
+
+        return all_sequences
+
+
+    def __get_fillings_at_times(self, filename, t_start, t_finish, t_delta, t_target):
+        t_now = t_start
+
+        try:
+            f = h5py.File(filename, 'r')
+        except OSError as E:
+            print(">>> ERROR: FILE", filename, "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
+            raise NoSequenceException
+
+        all_states = f['post']['singlestate']
+        filling_factors_at_certain_times = list()
+        filling_percentage = -1
+    
+        
+        for state in all_states:
+            try:
+                time = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
+                
+                if time >= t_target:
+                    target_fillingstate = filling_factor =  f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+                    non_zeros = np.count_nonzero(target_fillingstate)
+                    state_count = np.shape(target_fillingstate)[0]
+                    filling_percentage = np.array(non_zeros/state_count)
+                    t_target = 9999999
+                if(time >= t_finish):
+                    continue
+                if(time >= t_now):
+                    filling_factor =  f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+                    filling_factors_at_certain_times.append(filling_factor)   
+                    t_now += t_delta
+                
+            except KeyError as e:
+                continue
+            
+        
+        #label = f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
+
+
+        if(t_target != 9999999 or filling_factors_at_certain_times.__len__() != (t_finish -t_start)/t_delta):
+            #print("Didn't",len(filling_factors_at_certain_times), t_target, filling_percentage)
+            raise NoSequenceException
+
+
+        flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
+    
+        #print("Worked",len(filling_factors_at_certain_times), t_target, filling_percentage)
+        return flat_fillings, filling_percentage    
 
     #function for preprocessing the erfh5 file and extracting all states and the filling factors at this state 
     def __get_states_and_fillings(self, filename):

@@ -12,15 +12,15 @@ import numpy as np
 
 #amp_handle = amp.init()
 
-batchsize = 256
+batchsize = 16
 epochs = 200
 eval_frequency = 5
-test_frequency = 20
+test_frequency = 40
 path = '/cfs/home/l/o/lodesluk/models/encoder-08-04-1304.pth'
 
 
 class ERFH5_RNN(nn.Module):
-    def __init__(self, input_dim, hidden_dim, batch_size, num_layers=2):
+    def __init__(self, input_dim, hidden_dim, batch_size, num_layers=1):
         super(ERFH5_RNN, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
@@ -29,14 +29,14 @@ class ERFH5_RNN(nn.Module):
 
        
         self.lstm = nn.LSTM(input_dim, hidden_dim,
-                            batch_first=False, num_layers=self.nlayers, bidirectional=True, dropout=0.5)
+                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0)
 
-        self.hidden2hidden1 = nn.Linear(int(hidden_dim*2), 1024)
-        self.hidden2hidden2 = nn.Linear(1024, 512)
+        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 4096)
+        self.hidden2hidden2 = nn.Linear(4096, 512)
         self.hidden2hidden3 = nn.Linear(512, 256)
         self.hidden2hidden4 = nn.Linear(256, 128)
         self.hidden2value = nn.Linear(128, 1)
-        self.drop = nn.Dropout(0.5)
+        self.drop = nn.Dropout(0.8)
        
 
         self.init_weights()
@@ -125,7 +125,7 @@ class Net(nn.Module):
 
 try:
     generator = pipeline.ERFH5_DataGenerator(
-       '/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batchsize, epochs=epochs,indices=range(50) ,max_queue_length=2048, pipeline_mode=pipeline.Pipeline_Mode.index_sequence, num_validation_samples=5)
+       '/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batchsize, epochs=epochs,indices=range(50) ,max_queue_length=2048, pipeline_mode=pipeline.Pipeline_Mode.time_sequence, num_validation_samples=10)
     validation_samples = generator.get_validation_samples()
 
 except Exception as e:
@@ -137,7 +137,9 @@ except Exception as e:
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-model = Net(8192, 1024, batchsize, encoder_path=path)
+#model = Net(8192, 1024, batchsize, encoder_path=path)
+model = ERFH5_RNN(69366, 3072, batchsize)
+model = nn.DataParallel(model).to('cuda:0')
 """ if torch.cuda.device_count() > 1:
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     model = nn.DataParallel(model) """
@@ -147,7 +149,7 @@ model = Net(8192, 1024, batchsize, encoder_path=path)
 
 
 loss_criterion = torch.nn.MSELoss().cuda()
-optimizer = torch.optim.RMSprop(model.rnn.parameters(), lr=0.01)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
 
 start_time = time.time()
 counter = 1
@@ -158,9 +160,9 @@ print("Expected length of data generator:", len(generator))
 for inputs, labels in generator:
     
     #inputs, labels = torch.FloatTensor(inputs), torch.FloatTensor(labels)
-    inputs, labels = inputs.to(device, non_blocking=True), labels.to('cuda:4', non_blocking=True)
+    inputs, labels = inputs.to(device, non_blocking=True), labels.to('cuda:0', non_blocking=True)
     optimizer.zero_grad()
-    outputs = model(inputs, batchsize)
+    outputs = model(inputs)
     
     #outputs = outputs.to(device, non_blocking=True)
     loss = loss_criterion(outputs, labels)
@@ -182,10 +184,10 @@ for inputs, labels in generator:
                 loss = 0
                 for sample in validation_samples:
                     data = sample[0].to(device)
-                    label = sample[1].to('cuda:4')
+                    label = sample[1].to('cuda:0')
                     label = torch.unsqueeze(label,0)
                     data = torch.unsqueeze(data, 0)
-                    output = model(data, 1)
+                    output = model(data)
                     loss = loss + loss_criterion(output, label).item()
                     print(output.item(), label.item())
 
