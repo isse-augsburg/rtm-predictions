@@ -235,4 +235,4 @@ if __name__ == "__main__":
         half_encoder.train() """
 
 
-print(">>>INFO: Finished.")
+    print(">>>INFO: Finished.")

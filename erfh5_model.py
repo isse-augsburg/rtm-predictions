@@ -12,9 +12,10 @@ import numpy as np
 
 #amp_handle = amp.init()
 
-batchsize = 768
-epochs = 500
-eval_frequency = 1
+batchsize = 256
+epochs = 200
+eval_frequency = 5
+test_frequency = 20
 path = '/cfs/home/l/o/lodesluk/models/encoder-08-04-1304.pth'
 
 
@@ -105,7 +106,7 @@ class Net(nn.Module):
             #self.rnn = nn.DataParallel(self.rnn).to('cuda:0')
 
 
-    def forward(self, x):
+    def forward(self, x, batch_size):
        
         with torch.no_grad():
             x = x.view(-1, 69366)
@@ -114,7 +115,7 @@ class Net(nn.Module):
         
             #out = out.to('cuda:4')
             
-            out = out.view(self.batch_size, -1, 8192)
+            out = out.view(batch_size, -1, 8192)
         
         out = self.rnn(out)
        
@@ -124,7 +125,9 @@ class Net(nn.Module):
 
 try:
     generator = pipeline.ERFH5_DataGenerator(
-       '/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batchsize, epochs=epochs,indices=range(100) ,max_queue_length=2048)
+       '/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batchsize, epochs=epochs,indices=range(50) ,max_queue_length=2048, pipeline_mode=pipeline.Pipeline_Mode.index_sequence, num_validation_samples=5)
+    validation_samples = generator.get_validation_samples()
+
 except Exception as e:
     print("Fatal Error:", e)
     exit()
@@ -144,7 +147,7 @@ model = Net(8192, 1024, batchsize, encoder_path=path)
 
 
 loss_criterion = torch.nn.MSELoss().cuda()
-optimizer = torch.optim.Adam(model.rnn.parameters(), lr=0.00001)
+optimizer = torch.optim.RMSprop(model.rnn.parameters(), lr=0.01)
 
 start_time = time.time()
 counter = 1
@@ -154,28 +157,16 @@ print("Expected length of data generator:", len(generator))
 
 for inputs, labels in generator:
     
-   
-   
     #inputs, labels = torch.FloatTensor(inputs), torch.FloatTensor(labels)
-    
     inputs, labels = inputs.to(device, non_blocking=True), labels.to('cuda:4', non_blocking=True)
-   
-
     optimizer.zero_grad()
-    
-    outputs = model(inputs)
-    
+    outputs = model(inputs, batchsize)
     
     #outputs = outputs.to(device, non_blocking=True)
-  
     loss = loss_criterion(outputs, labels)
-   
-    
     #with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
     #    scaled_loss.backward()
-    
     loss.backward()
-  
     optimizer.step()
   
 
@@ -184,6 +175,23 @@ for inputs, labels in generator:
         print("Loss:", "{:12.4f}".format(loss.item()), "|| Duration of step:", "{:6}".format(
             counter), "{:10.2f}".format(time_per_epoch), "seconds || Q:", generator.get_current_queue_length())
         start_time = time.time()
+
+    if counter % test_frequency == 0:
+            with torch.no_grad():
+                model.eval()
+                loss = 0
+                for sample in validation_samples:
+                    data = sample[0].to(device)
+                    label = sample[1].to('cuda:4')
+                    label = torch.unsqueeze(label,0)
+                    data = torch.unsqueeze(data, 0)
+                    output = model(data, 1)
+                    loss = loss + loss_criterion(output, label).item()
+                    print(output.item(), label.item())
+
+                loss = loss / len(validation_samples)
+                print(">>>RMSE on Test:", "{:8.4f}".format(np.sqrt(loss)))
+                model.train()
 
     counter = counter + 1
 

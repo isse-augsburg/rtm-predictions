@@ -121,7 +121,10 @@ class ERFH5_DataGenerator():
     
     def __fill_validation_list(self):
         for sample in self.validation_samples: 
-            instance = self.__create_data_instance(sample)
+            try:
+                instance = self.__create_data_instance(sample)
+            except IndexError as ie:
+                continue 
 
             if self.pipeline_mode == Pipeline_Mode.index_sequence:
                 self.validation_list.append(instance)
@@ -150,8 +153,10 @@ class ERFH5_DataGenerator():
                 break
             if(len(self.path_queue) == 0):
                 self.path_queue.kill()
-            data = self.__create_data_instance(file)
-
+            try:
+                data = self.__create_data_instance(file)
+            except IndexError as ie:
+                continue 
             if self.pipeline_mode == Pipeline_Mode.index_sequence:
                 self.batch_queue.put(data)
             elif self.pipeline_mode == Pipeline_Mode.single_instance:
@@ -184,12 +189,19 @@ class ERFH5_DataGenerator():
         
         if filename in self.data_dict:
             
-            return self.data_dict[filename]
+            data = self.data_dict[filename]
+            if data == -1:
+                raise IndexError
+            return data
         else:
-            
-            fillings, label = self.__get_states_and_fillings(filename)
-            fillings, label = torch.FloatTensor(fillings), torch.FloatTensor(label)
-            self.data_dict[filename] = (fillings,label)
+            try:
+                fillings, label = self.__get_states_and_fillings(filename)
+                fillings, label = torch.FloatTensor(fillings), torch.FloatTensor(label)
+                self.data_dict[filename] = (fillings,label)
+            except IndexError as ie:
+                print(">>>WARNING: File", filename, "does not have enough steps.")
+                self.data_dict[filename] = -1
+                raise ie
         
         """ label = int(states_and_fillings[-1][0])
         states_and_fillings = [i[1] for i in states_and_fillings]
@@ -210,19 +222,36 @@ class ERFH5_DataGenerator():
         _coords = coord_as_np_array[:, :-1]
         all_states = f['post']['singlestate']
         j = ""
-        for k in all_states:
-            j = k
+        filling_factors_at_certain_times = list()
+        """ for k in all_states:
+            j = k """
         
-        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]
-        label = \
-        f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
+        for state in all_states:
+            try:
+                filling_factor =  f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+                #label = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
+            except KeyError as e:
+                continue
+            
+            filling_factors_at_certain_times.append(filling_factor)   
+        #label = f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
 
         flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
-
-        if self.pipeline_mode == Pipeline_Mode.index_sequence:
-            flat_fillings = [flat_fillings[j] for j in self.indices]
+        last_filling = flat_fillings[-1]
+        non_zeros = np.count_nonzero(last_filling)
+        state_count = np.shape(last_filling)[0]
+        filling_percentage = np.array(non_zeros/state_count)
         
-        return flat_fillings, label
+        
+        if self.pipeline_mode == Pipeline_Mode.index_sequence:
+           
+            try:
+                flat_fillings = [flat_fillings[j] for j in self.indices]
+            except IndexError as ie:
+                raise ie
+        
+        
+        return flat_fillings, filling_percentage
 
     def __iter__(self):
         return self 
