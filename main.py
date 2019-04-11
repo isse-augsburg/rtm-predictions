@@ -11,33 +11,43 @@ import subprocess
 from shutil import copy2
 from pathlib import Path
 from multiprocessing import Pool
-import matplotlib.pyplot as plt
-from matplotlib import cm
 
 import resources
 
+# class Perturbator:
+#     def __init__(self):
+#         self.in_filename = in_filename
+#         self.outfolder
 
-def read_lperm_and_perturbate_k1(in_filename, out_folder, sigma=5e-15, mu=0, iteration=-1):
+def read_lperm_and_perturbate_kN(in_filename, out_folder, sigma=5e-15, mu=0, iteration=-1, count=1):
     t0 = time.time()
-    df = pandas.read_csv(in_filename, sep=' ')
-    # For starters, let's just perturbate the K1 permeability; K3 is always 0
-    # The use of the vectors for the principal directions are currently unknown
-    keys = list(df.keys())
-    iK1 = keys.index('K1')
-    df.iloc[:, iK1] = df.iloc[:, iK1] + np.random.normal(mu, sigma, len(df))
-
     root_dir = Path(in_filename).parent
+    if not (root_dir / out_folder).exists():
+        (root_dir / out_folder).mkdir()
+    df = pandas.read_csv(in_filename, sep=' ')
+    keys = list(df.keys())
+    with Pool() as p:
+        res = p.map(partial(perturbate_wrapper, root_dir, out_folder, iteration, sigma, mu, keys, df), range(count))
+    print(f'Adding noise and writing all files took {time.time() - t0} seconds.')
+
+
+def perturbate_wrapper(root_dir, out_folder, iteration, sigma, mu, keys, df, count):
     append = ''
     if iteration != -1:
         append = f'_{iteration}'
-    new_folder = f'{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_k1_pertubated_sigma{sigma:.3e}_mu{mu:.1f}{append}'
-    filename = new_folder + '.lperm'
-    if not (root_dir / out_folder).exists():
-        (root_dir / out_folder).mkdir()
+
+    new_stem = f'{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_k1_pertubated_sigma{sigma:.3e}_mu{mu:.1f}{append}_{count}'
+    filename = new_stem + '.lperm'
     fn = root_dir / out_folder / filename
     if fn.exists():
         return fn
-    lperm_str = df.to_string(formatters = {'\#Element_ID':'{:,i}'.format,
+
+    iK1 = keys.index('K1')
+    # iK2 = keys.index('K2')
+    df.iloc[:, iK1] = df.iloc[:, iK1] + np.random.normal(mu, sigma, len(df))
+    # df.iloc[:, iK2] = df.iloc[:, iK2] + np.random.normal(mu, sigma, len(df))
+
+    lperm_str = df.to_string(formatters={'\#Element_ID': '{:,i}'.format,
                                          # 'Thickness': '{:,.6f}'.format,
                                          # 'Fiber_Content': '{:,.6f}'.format,
                                          'K1': '{:,.4e}'.format,
@@ -52,22 +62,49 @@ def read_lperm_and_perturbate_k1(in_filename, out_folder, sigma=5e-15, mu=0, ite
                                          }, index=False)
     with open(fn, 'w') as f:
         f.write(lperm_str)
-    print(f'Adding noise and writing file took {time.time()-t0} seconds.')
-    return fn
+    # print(count)
+
+def get_perturbated_lperms_paths(perturbated_lperms_folder):
+    paths = []
+    for root, dirs, files in os.walk(perturbated_lperms_folder, topdown=False):
+        for name in files:
+            p = Path(name)
+            if p.suffix == '.lperm':
+                paths.append(Path(root) / p)
+        break
+    return paths
 
 
-def write_solver_input(pertubated_lperms_folder, solver_input_folder, vdb_input, new_perturbated_lperms=''):
+def get_vdb_blocks_and_vdb_filenames_for_each_lperm_file(paths, solver_input_folder, var_count, copy_lperm):
+    py_vdb_blocks = []
+    fns_vdb = []
+    for i, p in enumerate(paths):
+        py_vdb_lines = []
+        dest_dir = solver_input_folder / p.stem
+        if not dest_dir.exists():
+            dest_dir.mkdir()
+
+        if copy_lperm and not (dest_dir / (p.stem + p.suffix)).exists():
+            copy2(p, dest_dir)
+
+        py_vdb_lines.append(resources.import_lperm % (var_count, var_count, p, var_count))
+
+        fn_vdb = f"{solver_input_folder / p.stem / p.stem}.vdb"
+        fns_vdb.append(fn_vdb)
+        py_vdb_lines.append(resources.export_file % fn_vdb)
+
+        py_vdb_blocks.append(''.join(py_vdb_lines))
+
+    return py_vdb_blocks, fns_vdb
+
+
+def write_solver_input(perturbated_lperms_folder, solver_input_folder, vdb_input, new_perturbated_lperms='',
+                       step_size=2, max_injection_time=800000, copy_lperm=False):
     vebatch_exec = r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat'
 
     t0 = time.time()
-    paths = []
     if new_perturbated_lperms == '':
-        for root, dirs, files in os.walk(pertubated_lperms_folder, topdown=False):
-            for name in files:
-                p = Path(name)
-                if p.suffix == '.lperm':
-                    paths.append(Path(root) / p)
-            break
+        paths = get_perturbated_lperms_paths(perturbated_lperms_folder)
     else:
         paths = new_perturbated_lperms
 
@@ -75,41 +112,46 @@ def write_solver_input(pertubated_lperms_folder, solver_input_folder, vdb_input,
     if not solver_input_folder.exists():
         solver_input_folder.mkdir()
 
-    py_script_str = resources.python2_script_X_vdbs % vdb_input
+    py_script_str = resources.python2_script_X_vdbs % (vdb_input, max_injection_time, step_size)
     used_var_nums_in_script = 3 + 1 # starts with 1
-    py_script_as_list = [py_script_str]
 
-    fns_vdb = []
-    for i, p in enumerate(paths):
-        dest_dir = solver_input_folder / p.stem
-        if not dest_dir.exists():
-            dest_dir.mkdir()
-        copy2(p, dest_dir)
-        var_count = used_var_nums_in_script + i
-        py_script_as_list.append(resources.import_lperm % (var_count, var_count, p, var_count))
+    var_count = used_var_nums_in_script
+    py_vdb_blocks, fns_vdb = get_vdb_blocks_and_vdb_filenames_for_each_lperm_file(paths, solver_input_folder, var_count, copy_lperm)
 
-        fn_vdb = f"{solver_input_folder / p.stem / p.stem}.vdb"
-        fns_vdb.append(fn_vdb)
-        py_script_as_list.append(resources.export_file % fn_vdb)
+    n_parallel = 1
+    len_block = int(len(paths) / n_parallel)
+    procs = []
+    for i in range(n_parallel):
+        fn_vdb_writer = solver_input_folder / f'vdb_writerpy2_{i}.py'
+        py_vdb_for_one_call = ''.join(py_vdb_blocks[i*len_block:(i+1)*len_block])
+        _str = py_script_str + py_vdb_for_one_call
+        with open(fn_vdb_writer, 'w') as f:
+            f.write(''.join(_str))
 
-    fn_vdb_writer = solver_input_folder / 'vdb_writerpy2.py'
-    with open(fn_vdb_writer, 'w') as f:
-        f.write(''.join(py_script_as_list))
+        print(f'PROCESS [{i}]: Creating .vdb files ...')
+        call_make_vdb = fr''' "{vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{fn_vdb_writer}" -nodisplay -exit'''
+        args = shlex.split(call_make_vdb)
+        procs.append(subprocess.Popen(args, shell=True, stdout=subprocess.PIPE))
+        # time.sleep(3)
 
-    t0 = time.time()
-    print('Creating .vdb files ...')
-    call_make_vdb = fr''' "{vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{fn_vdb_writer}" -nodisplay -exit'''
-    args = shlex.split(call_make_vdb)
-    subprocess.call(args, shell=True, stdout=subprocess.PIPE)
-    print(f'Took {time.time() - t0} seconds.')
+    [x.communicate() for x in procs]
+    print([x.returncode for x in procs])
+    print(f'Writing .vdbs took {time.time() - t0} seconds.')
 
-    t2 = time.time()
-    print('Creating .unf files ...')
-    for e in fns_vdb:
+    t1 = time.time()
+    procs2 = []
+    for i, e in enumerate(fns_vdb):
+        if Path(e[:-4] + 'g.unf').exists():
+            continue
+        print(f'Process [{i}] Creating .unf files ...')
         call_make_rest = fr'''"{vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -nodisplay -imp "{e}" -datacast -exit'''
         args2 = shlex.split(call_make_rest)
-        subprocess.call(args2, shell=True, stdout=subprocess.PIPE)
-    print(f'Took {time.time() - t2} seconds.')
+        procs2.append(subprocess.Popen(args2, shell=True, stdout=subprocess.PIPE))
+        if i % n_parallel == 0 and i != 0:
+            [x.communicate() for x in procs2]
+            print([x.returncode for x in procs2])
+            procs2.clear()
+        # time.sleep(3)
     return fns_vdb
 
 
@@ -137,26 +179,36 @@ def solve_simulations(path):
         print(output)
 
 
-def write_slurm_script(input_dir, output_dir):
+def write_slurm_script(input_dir, output_dir, num_hosts=1, num_cpus=16, timeout=12):
     calls = []
-    line_before_unf = 'singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np 16'
+    line_before_unf = 'srun -t %s singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np %d' % (timeout, num_cpus)
     for root, dirs, files in os.walk(input_dir, topdown=True):
         for fn in files:
             if fn[-5:] == "g.unf":
                 p = Path(root)
-                unf_path = (p / (p.stem + '.0')).as_posix().replace('Y:', '/cfs/share') + 'g.unf'
+                unf_path = (p / (p.stem + p.suffix)).as_posix().replace('Y:', '/cfs/share') + 'g.unf'
                 call = '%s %s' % (line_before_unf, unf_path)
                 calls.append(call)
-    script_str = '%s\n%s'%(resources.sbatch_script_header, '\n'.join(calls))
 
-    with open((Path(output_dir) / '4_solve_pam_rtm_auto.sh'), 'w') as f:
-        f.write(script_str)
+    delim = int(np.round(len(calls) / num_hosts))
+    sublist_calls = [calls[x:x + delim] for x in range(0, len(calls), delim)]
+    for i in range(num_hosts):
+        script_str = '%s\n%s' % (f'''#!/bin/sh
+#SBATCH --partition=small-cpu
+#SBATCH --mem=24000
+#SBATCH --time=100:00:00
+#SBATCH --job-name=PAM_RTM
+#SBATCH --cpus-per-task={num_cpus}
+#SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%x.out
+''', '\n'.join(sublist_calls[i]))
+        filename = Path(output_dir) / f'0{i}_solve_pam_rtm_auto.sh'
+        with open(filename, 'w') as f:
+            f.write(script_str)
 
-    filename = Path(output_dir) / '4_solve_pam_rtm_auto.sh'
-    fileContents = open(filename,"r").read()
-    f = open(filename,"w", newline="\n")
-    f.write(fileContents)
-    f.close()
+        fileContents = open(filename,"r").read()
+        f = open(filename,"w", newline="\n")
+        f.write(fileContents)
+        f.close()
 
 def analyse_finished_run(path, print_options='all'):
     filename = ''
@@ -214,45 +266,6 @@ def print_result_line(path, success, filled, last_state_int):
     p1 = str(p / p.stem) + '.0_RESULT.erfh5'
     print(f'{p1}\t{sigma}\t{success}\t{sfilled}\t{last_state_int} steps')
 
-
-def plot_filling_from_erfh5(filename):
-    f = h5py.File(filename, 'r')
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
-    # Cut off last column (z), since it is filled with 1s anyway
-    _coords = coord_as_np_array[:, :-1]
-    all_states = f['post']['singlestate']
-    filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]
-    states_as_list = [x[-5:] for x in list(all_states.keys())]
-    flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
-    states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
-
-    t0 = time.time()
-    with Pool(6) as p:
-        res = p.map(partial(plot_wrapper, coords= _coords), states_and_fillings)
-    print('Done after', time.time() -t0)
-
-
-def plot_wrapper(states_and_filling, coords):
-    filename = r'C:\Users\stiebesi\code\datamuddler\plots\lautern_flawless_hd\%s.png' % str(states_and_filling[0])
-    if os.path.exists(filename):
-        return False
-    fig = plt.gcf()
-    fig.set_size_inches(18.5, 18.5)
-    areas = len(states_and_filling[1]) * [3]
-    norm = cm.colors.Normalize(vmax=states_and_filling[1].max(), vmin=states_and_filling[1].min())
-    plt.scatter(coords[:, 0], coords[:, 1], c=states_and_filling[1], s=areas, norm=norm)
-    fig.savefig(filename)
-    return True
-
-
-def plot_wrapper_simple(coords):
-    print('Start test')
-    plt.scatter(coords[:, 0], coords[:, 1])
-    plt.savefig(r'C:\Users\stiebesi\code\datamuddler\plots\lautern\test.png')
-    print('Done plotting')
-    return True
-
-
 def analyse_subdirs(path, print_options='all'):
     for root, dirs, files in os.walk(path, topdown=True):
         for name in dirs:
@@ -261,28 +274,52 @@ def analyse_subdirs(path, print_options='all'):
         break
 
 def run_until_slurm_script():
-    perturbated_lperms = r'Y:\data\RTM\Lautern\100_perturbated_lperms_sigma1.11e-11'
-    print('Perturbating k1 ...')
-    for i in range(20):
-        p = read_lperm_and_perturbate_k1(
-            r'C:\Users\stiebesi\Documents\0_RTM_data\Data\Lautern\flawless_one_layer\k1_k2_equal_one_layer.lperm',
-                perturbated_lperms,
-                sigma=1.11e-11)
+    perturbated_lperms = r'Y:\data\RTM\Lautern\0_lperm_files\100p_k1_sig1.11e-11'
+    solved_sims = r'Y:\data\RTM\Lautern\1_solved_simulations\output'
 
-    solver_input_folder = r'Y:\data\RTM\Lautern\2000_auto_solver_inputs'
-    vdb_origin = r"C:\Users\stiebesi\Documents\0_RTM_data\Data\Lautern\flawless_one_layer\flawless_one_layer.vdb"
+    solver_input_folder = r'C:\Data\0_RTM_data\Data\output'
+    vdb_origin = r"C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\flawless_one_layer.vdb"
+    count = 100
+    sim_step = 4
+
+    # print('Perturbating k1 ...')
+    # read_lperm_and_perturbate_kN(
+    #     r'C:\Users\stiebesi\Documents\0_RTM_data\Data\Lautern\flawless_one_layer\k1_k2_equal_one_layer.lperm',
+    #     perturbated_lperms,
+    #     sigma=1.11e-11,
+    #     count=count)
+
     print('Writing .vdbs ...')
-    vdbs = write_solver_input(perturbated_lperms, solver_input_folder, vdb_origin)
-    print('Writing slurm script.')
-    write_slurm_script(input_dir=solver_input_folder, output_dir=r'X:\s\t\stiebesi\slurm_scripts')
+    fns_vdb = write_solver_input(perturbated_lperms, solver_input_folder, vdb_origin, step_size=sim_step)
+
+    # Move all simulation files to cluster
+
+    # for e in fns_vdb:
+    #     path = e[:-4]
+    #     filename = path.split('\\')[-1:][0]
+    #     if not os.path.exists(os.path.join(solved_sims, filename)):
+    #         os.makedirs(os.path.join(solved_sims, filename))
+    #     copy2(path + 'g.unf', os.path.join(solved_sims, filename, filename + 'g.unf'))
+    #     copy2(path + 'ff.unf', os.path.join(solved_sims, filename, filename + 'ff.unf'))
+    #     copy2(path + '.elrnm', os.path.join(solved_sims, filename, filename + '.elrnm'))
+    #     copy2(path + '.ndrnm', os.path.join(solved_sims, filename, filename + '.ndrnm'))
+    #     copy2(path + '.ptrnm', os.path.join(solved_sims, filename, filename + '.ptrnm'))
+    #     copy2(path + 'd.out', os.path.join(solved_sims, filename, filename + 'd.out'))
+    #     copy2(path + 'p.dat', os.path.join(solved_sims, filename, filename + 'p.dat'))
+
+
+    # print('Writing slurm script ...')
+    # write_slurm_script(input_dir=solved_sims, output_dir=r'X:\s\t\stiebesi\slurm_scripts', num_hosts=2, num_cpus=8)
 
 
 if __name__== "__main__":
-    # Write simulations
+    # if os.environ['Write_Simulation'] == '1':
+        # Write simulations
     run_until_slurm_script()
     # Execute slurm ...
 
     # Run an analysis over the new simulations
-    path = r'Y:\data\RTM\Lautern\2000_auto_solver_inputs'
-    print_options = ['all', 'fails_only', 'success_only']
-    analyse_subdirs(path, print_options='all')
+    # elif os.environ['Analysis'] == '1':
+    #     path = r'Y:\data\RTM\Lautern\2000_auto_solver_inputs'
+    #     print_options = ['all', 'fails_only', 'success_only']
+    #     analyse_subdirs(path, print_options='all')

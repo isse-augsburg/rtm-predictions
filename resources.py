@@ -1,12 +1,3 @@
-sbatch_script_header ='''#!/bin/sh
-#SBATCH --partition=big-cpu
-#SBATCH --mem=24000
-#SBATCH --time=100:00:00
-#SBATCH --job-name=PAM_RTM
-#SBATCH --cpus-per-task=16
-#SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%x.out
-'''
-
 python2_script = f'''#!/usr/bin/env python
 null=''
 from VgPoint3 import *
@@ -62,12 +53,14 @@ import VistaDb
 var1=VCmd.Activate( 1, r"VHostManagerPlugin.VhmInterface", r"VhmCommand" )
 var2=VCmd.Activate( 1, r"VSessionManager.Command", r"SessionCommand" )
 ret=VExpMngr.LoadFile( r"%s", 0 )
+ret=VHostManager.ChangeContext( r"Visual-RTM" )
 var3=VCmd.Activate( 1, r"VRTMUtilities.VRTMInterface", r"SimulationParameters" )
 VCmd.SetStringValue( var3, r"MaterialDB", r"Model" )
 VCmd.SetStringValue( var3, r"InjectedResin", r"RapeSeedOil" )
+VCmd.SetDoubleValue( var3, r"MaxInjectionTime", %d.  )
 VCmd.SetStringValue( var3, r"OutputFrequencyType", r"Time" )
 VCmd.SetStringValue( var3, r"OutputFrequencyType", r"Step" )
-VCmd.SetDoubleValue( var3, r"OutputFrequency", 2.  )
+VCmd.SetDoubleValue( var3, r"OutputFrequency", %d.  )
 VCmd.Accept( var3 )
 VCmd.Quit( var3 )
 '''
@@ -78,6 +71,12 @@ ret=VCmd.ExecuteCommand( var%d, r"ImportLocalResults" )
 '''
 
 export_file = r'''VExpMngr.ExportFile( r"%s", 0 )
+'''
+
+export_unf_file = r'''var%d=VCmd.Activate(1, r"VRTMUtilities.VRTMInterface", r"SolverManager")
+VCmd.SetStringValue( var%d, r"File Path", r"%s" )
+ret=VCmd.ExecuteCommand( var%d, r"RunDataCAST" )
+VCmd.Quit( var%d )
 '''
 
 python2_script_full = f'''#!/usr/bin/env python
