@@ -20,6 +20,7 @@ import resources
 #         self.outfolder
 
 def read_lperm_and_perturbate_kN(in_filename, out_folder, sigma=5e-15, mu=0, iteration=-1, count=1):
+    print('Perturbating k1 ...')
     t0 = time.time()
     root_dir = Path(in_filename).parent
     if not (root_dir / out_folder).exists():
@@ -170,7 +171,8 @@ def solve_simulations(path):
         print(output)
 
 
-def write_slurm_script(input_dir, output_dir, num_hosts=1, num_cpus=16, timeout=12):
+def write_slurm_scripts(input_dir, output_dir, num_hosts=1, num_cpus=16, timeout=12):
+    print('Writing slurm script ...')
     calls = []
     line_before_unf = 'srun -t %s singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np %d' % (timeout, num_cpus)
     for root, dirs, files in os.walk(input_dir, topdown=True):
@@ -183,6 +185,7 @@ def write_slurm_script(input_dir, output_dir, num_hosts=1, num_cpus=16, timeout=
 
     delim = int(np.round(len(calls) / num_hosts))
     sublist_calls = [calls[x:x + delim] for x in range(0, len(calls), delim)]
+    fns = []
     for i in range(num_hosts):
         script_str = '%s\n%s' % (f'''#!/bin/sh
 #SBATCH --partition=small-cpu
@@ -192,7 +195,9 @@ def write_slurm_script(input_dir, output_dir, num_hosts=1, num_cpus=16, timeout=
 #SBATCH --cpus-per-task={num_cpus}
 #SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%x.out
 ''', '\n'.join(sublist_calls[i]))
-        filename = Path(output_dir) / f'0{i}_solve_pam_rtm_auto.sh'
+        n = f'0{i}_solve_pam_rtm_auto.sh'
+        fns.append(n)
+        filename = Path(output_dir) / n
         with open(filename, 'w') as f:
             f.write(script_str)
 
@@ -200,6 +205,7 @@ def write_slurm_script(input_dir, output_dir, num_hosts=1, num_cpus=16, timeout=
         f = open(filename,"w", newline="\n")
         f.write(fileContents)
         f.close()
+    return fns
 
 def analyse_finished_run(path, print_options='all'):
     filename = ''
@@ -264,10 +270,29 @@ def analyse_subdirs(path, print_options='all'):
             analyse_finished_run(abspath, print_options)
         break
 
+
+def alter_dat_files(fns_vdb, max_steps):
+    for i, e in enumerate(fns_vdb):
+        fn = Path(e[:-4] + 'p.dat')
+        if fn.exists():
+            with open(fn, 'r') as f:
+                lines = f.readlines()
+                lines = [f'NSTEP {max_steps}\n' if 'NSTEP' in x else x for x in lines]
+            with open(fn, 'w') as f:
+                f.writelines(lines)
+
+
+
+
 def run_until_slurm_script():
-    sigma = 1.01e-11
-    count = 2
+    sigma = 5e-12
+    count = 20
     initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    solver_hosts = 2
+    solver_cpus = 8
+
+    sim_step = 4
+    max_sim_step = 1500
 
     solved_sims = r'Y:\data\RTM\Lautern\1_solved_simulations\output'
 
@@ -276,14 +301,9 @@ def run_until_slurm_script():
     solver_input_folder = r'C:\Data\0_RTM_data\Data\output'
     vdb_origin = r"C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\flawless_one_layer.vdb"
     vebatch_exec = r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat'
-    sim_step = 4
+    slurm_scripts_folder = r'X:\s\t\stiebesi\slurm_scripts'
 
-    print('Perturbating k1 ...')
-    read_lperm_and_perturbate_kN(
-        original_lperm,
-        perturbated_lperm_folder,
-        sigma=sigma,
-        count=count)
+    read_lperm_and_perturbate_kN(original_lperm, perturbated_lperm_folder, sigma=sigma, count=count)
 
     fns_vdb, fn_vdb_writer = write_solver_input(perturbated_lperm_folder, solver_input_folder, vdb_origin, step_size=sim_step)
 
@@ -291,11 +311,19 @@ def run_until_slurm_script():
 
     create_unfs_et_al(fns_vdb, vebatch_exec)
 
+    alter_dat_files(fns_vdb, max_sim_step)
+
     copy_simfiles_to_cluster(fns_vdb, solved_sims)
 
-    print('Writing slurm script ...')
-    write_slurm_script(input_dir=solved_sims, output_dir=r'X:\s\t\stiebesi\slurm_scripts', num_hosts=2, num_cpus=8)
-
+    fns_slurm_scripts = write_slurm_scripts(input_dir=solved_sims, output_dir=slurm_scripts_folder, num_hosts=solver_hosts, num_cpus=solver_cpus)
+    # fns_slurm_scripts=['00_solve_pam_rtm_auto.sh', '01_solve_pam_rtm_auto.sh']
+    # for e in fns_slurm_scripts:
+    #     call = f'ssh swt-clustermanager sbatch ~/slurm_scripts/{e}'
+    #     c = shlex.split(call)
+    #     p = subprocess.Popen(c, shell=True, stdout=subprocess.PIPE)
+    #     std, err = p.communicate()
+    #     print(std)
+    #     print(err)
 
 def copy_simfiles_to_cluster(fns_vdb, solved_sims):
     f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat']
@@ -308,13 +336,12 @@ def copy_simfiles_to_cluster(fns_vdb, solved_sims):
 
 
 if __name__== "__main__":
-    # if os.environ['Write_Simulation'] == '1':
-        # Write simulations
-    run_until_slurm_script()
+    if os.environ['Write_Simulation'] == '1':
+        run_until_slurm_script()
     # Execute slurm ...
 
     # Run an analysis over the new simulations
-    # elif os.environ['Analysis'] == '1':
-    #     path = r'Y:\data\RTM\Lautern\2000_auto_solver_inputs'
-    #     print_options = ['all', 'fails_only', 'success_only']
-    #     analyse_subdirs(path, print_options='all')
+    elif os.environ['Analysis'] == '1':
+        path = r'Y:\data\RTM\Lautern\1_solved_simulations\output'
+        print_options = ['all', 'fails_only', 'success_only']
+        analyse_subdirs(path, print_options='all')
