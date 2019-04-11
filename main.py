@@ -100,9 +100,6 @@ def get_vdb_blocks_and_vdb_filenames_for_each_lperm_file(paths, solver_input_fol
 
 def write_solver_input(perturbated_lperms_folder, solver_input_folder, vdb_input, new_perturbated_lperms='',
                        step_size=2, max_injection_time=800000, copy_lperm=False):
-    vebatch_exec = r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat'
-
-    t0 = time.time()
     if new_perturbated_lperms == '':
         paths = get_perturbated_lperms_paths(perturbated_lperms_folder)
     else:
@@ -118,41 +115,35 @@ def write_solver_input(perturbated_lperms_folder, solver_input_folder, vdb_input
     var_count = used_var_nums_in_script
     py_vdb_blocks, fns_vdb = get_vdb_blocks_and_vdb_filenames_for_each_lperm_file(paths, solver_input_folder, var_count, copy_lperm)
 
-    n_parallel = 1
-    len_block = int(len(paths) / n_parallel)
-    procs = []
-    for i in range(n_parallel):
-        fn_vdb_writer = solver_input_folder / f'vdb_writerpy2_{i}.py'
-        py_vdb_for_one_call = ''.join(py_vdb_blocks[i*len_block:(i+1)*len_block])
-        _str = py_script_str + py_vdb_for_one_call
-        with open(fn_vdb_writer, 'w') as f:
-            f.write(''.join(_str))
+    fn_vdb_writer = solver_input_folder / f'vdb_writerpy2.py'
+    py_vdb_for_one_call = ''.join(py_vdb_blocks)
+    _str = py_script_str + py_vdb_for_one_call
+    with open(fn_vdb_writer, 'w') as f:
+        f.write(''.join(_str))
 
-        print(f'PROCESS [{i}]: Creating .vdb files ...')
-        call_make_vdb = fr''' "{vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{fn_vdb_writer}" -nodisplay -exit'''
-        args = shlex.split(call_make_vdb)
-        procs.append(subprocess.Popen(args, shell=True, stdout=subprocess.PIPE))
-        # time.sleep(3)
+    return fns_vdb, fn_vdb_writer
 
-    [x.communicate() for x in procs]
-    print([x.returncode for x in procs])
-    print(f'Writing .vdbs took {time.time() - t0} seconds.')
 
-    t1 = time.time()
-    procs2 = []
+def create_unfs_et_al(fns_vdb, vebatch_exec):
+    print('Creating .unf files ...')
+    t0 = time.time()
     for i, e in enumerate(fns_vdb):
         if Path(e[:-4] + 'g.unf').exists():
             continue
-        print(f'Process [{i}] Creating .unf files ...')
+
         call_make_rest = fr'''"{vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -nodisplay -imp "{e}" -datacast -exit'''
         args2 = shlex.split(call_make_rest)
-        procs2.append(subprocess.Popen(args2, shell=True, stdout=subprocess.PIPE))
-        if i % n_parallel == 0 and i != 0:
-            [x.communicate() for x in procs2]
-            print([x.returncode for x in procs2])
-            procs2.clear()
-        # time.sleep(3)
-    return fns_vdb
+        subprocess.call(args2, shell=True, stdout=subprocess.PIPE)
+    print(f'Writing .unf files took {time.time()-t0}.')
+
+
+def create_vdbs(fn_vdb_writer, vebatch_exec):
+    print(f'Writing .vdb files ...')
+    t0 = time.time()
+    call_make_vdb = fr''' "{vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{fn_vdb_writer}" -nodisplay -exit'''
+    args = shlex.split(call_make_vdb)
+    subprocess.call(args, shell=True, stdout=subprocess.PIPE)
+    print(f'Writing .vdbs took {time.time() - t0} seconds.')
 
 
 def solve_simulations(path):
@@ -274,42 +265,46 @@ def analyse_subdirs(path, print_options='all'):
         break
 
 def run_until_slurm_script():
-    perturbated_lperms = r'Y:\data\RTM\Lautern\0_lperm_files\100p_k1_sig1.11e-11'
+    sigma = 1.01e-11
+    count = 2
+    initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+
     solved_sims = r'Y:\data\RTM\Lautern\1_solved_simulations\output'
 
+    original_lperm = r'C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\k1_k2_equal_one_layer.lperm'
+    perturbated_lperm_folder = r'C:\Data\0_RTM_data\Data\Lautern\0_lperm_files\%s_%dp_k1_sig%s' % (initial_timestamp, count, str(sigma))
     solver_input_folder = r'C:\Data\0_RTM_data\Data\output'
     vdb_origin = r"C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\flawless_one_layer.vdb"
-    count = 100
+    vebatch_exec = r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat'
     sim_step = 4
 
-    # print('Perturbating k1 ...')
-    # read_lperm_and_perturbate_kN(
-    #     r'C:\Users\stiebesi\Documents\0_RTM_data\Data\Lautern\flawless_one_layer\k1_k2_equal_one_layer.lperm',
-    #     perturbated_lperms,
-    #     sigma=1.11e-11,
-    #     count=count)
+    print('Perturbating k1 ...')
+    read_lperm_and_perturbate_kN(
+        original_lperm,
+        perturbated_lperm_folder,
+        sigma=sigma,
+        count=count)
 
-    print('Writing .vdbs ...')
-    fns_vdb = write_solver_input(perturbated_lperms, solver_input_folder, vdb_origin, step_size=sim_step)
+    fns_vdb, fn_vdb_writer = write_solver_input(perturbated_lperm_folder, solver_input_folder, vdb_origin, step_size=sim_step)
 
-    # Move all simulation files to cluster
+    create_vdbs(fn_vdb_writer, vebatch_exec)
 
-    # for e in fns_vdb:
-    #     path = e[:-4]
-    #     filename = path.split('\\')[-1:][0]
-    #     if not os.path.exists(os.path.join(solved_sims, filename)):
-    #         os.makedirs(os.path.join(solved_sims, filename))
-    #     copy2(path + 'g.unf', os.path.join(solved_sims, filename, filename + 'g.unf'))
-    #     copy2(path + 'ff.unf', os.path.join(solved_sims, filename, filename + 'ff.unf'))
-    #     copy2(path + '.elrnm', os.path.join(solved_sims, filename, filename + '.elrnm'))
-    #     copy2(path + '.ndrnm', os.path.join(solved_sims, filename, filename + '.ndrnm'))
-    #     copy2(path + '.ptrnm', os.path.join(solved_sims, filename, filename + '.ptrnm'))
-    #     copy2(path + 'd.out', os.path.join(solved_sims, filename, filename + 'd.out'))
-    #     copy2(path + 'p.dat', os.path.join(solved_sims, filename, filename + 'p.dat'))
+    create_unfs_et_al(fns_vdb, vebatch_exec)
+
+    copy_simfiles_to_cluster(fns_vdb, solved_sims)
+
+    print('Writing slurm script ...')
+    write_slurm_script(input_dir=solved_sims, output_dir=r'X:\s\t\stiebesi\slurm_scripts', num_hosts=2, num_cpus=8)
 
 
-    # print('Writing slurm script ...')
-    # write_slurm_script(input_dir=solved_sims, output_dir=r'X:\s\t\stiebesi\slurm_scripts', num_hosts=2, num_cpus=8)
+def copy_simfiles_to_cluster(fns_vdb, solved_sims):
+    f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat']
+    for e in fns_vdb:
+        path = e[:-4]
+        filename = path.split('\\')[-1:][0]
+        if not os.path.exists(os.path.join(solved_sims, filename)):
+            os.makedirs(os.path.join(solved_sims, filename))
+        [copy2(path + x, os.path.join(solved_sims, filename, filename + x)) for x in f_endings]
 
 
 if __name__== "__main__":
