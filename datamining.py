@@ -56,9 +56,9 @@ def get_states_and_fillings(filename):
             #print("KeyError in file", filename)
             continue
 
-   
     plt.plot(labels, filling_percentages)
     plt.show()
+    
 
 
 
@@ -128,9 +128,9 @@ def get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
 paths = get_paths_to_files('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/')
 
 for file in paths:
-    #get_states_and_fillings(file)
+    get_states_and_fillings(file)
     #get_fillings_at_times(file,50,90,2,100)
-    try:
+    """ try:
         print(len(get_all_sequences_for_file(file,0,50,2,3,10,1000)))
     except NoSequenceException as E:
-        print("big oof.")
+        print("big oof.") """

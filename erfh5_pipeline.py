@@ -146,7 +146,7 @@ class ERFH5_DataGenerator():
                 except IndexError as ie:
                     continue 
                 instance = instance[0]
-                instance = torch.unbind(instance)
+                instance = list(torch.unbind(instance))
                 random.shuffle(instance)
                 for i in instance:
                     self.validation_list.append(i)
@@ -195,7 +195,7 @@ class ERFH5_DataGenerator():
                 self.batch_queue.put(data)
             elif self.pipeline_mode == Pipeline_Mode.single_instance:
                 data = data[0]
-                data = torch.unbind(data)
+                data = list(torch.unbind(data))
                 random.shuffle(data)
                 for i in data:
                     self.batch_queue.put((i,0))
@@ -207,7 +207,7 @@ class ERFH5_DataGenerator():
     #function for providing the filepaths in a shuffeled order and for realizing epochs.
     def __fill_path_queue(self): 
         if len(self.paths) == 0:
-            raise Exception("No file paths found.")
+            raise Exception("No file paths found")
         
         for i in range(self.epochs):
             new_paths = self.paths
