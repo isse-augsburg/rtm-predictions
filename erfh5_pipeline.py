@@ -195,7 +195,7 @@ class ERFH5_DataGenerator():
                 self.batch_queue.put(data)
             elif self.pipeline_mode == Pipeline_Mode.single_instance:
                 data = data[0]
-                data = list(torch.unbind(data))
+                data = list(torch.unbind(data)) 
                 random.shuffle(data)
                 for i in data:
                     self.batch_queue.put((i,0))
@@ -457,13 +457,11 @@ class ERFH5_DataGenerator():
 
 
 if __name__== "__main__":
-    data_folder = '/home/lodes/Sim_Results'
+    data_folder = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
     #data_folder = '/home/niklas/Documents/Data'
-    generator = ERFH5_DataGenerator(data_path=data_folder, batch_size=1, epochs=1)
+    generator = ERFH5_DataGenerator(data_path=data_folder, batch_size=4, epochs=1, pipeline_mode = Pipeline_Mode.single_instance)
     
     batch_data, batch_labels = generator.__next__()
-   
     
-    while True:
-        print("foo")
-        time.sleep(2)
+    for data, labels in generator: 
+        print(data.size(), labels.size())
