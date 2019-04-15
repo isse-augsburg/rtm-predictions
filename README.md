@@ -6,7 +6,7 @@ Brainstorming on what to store in the .h5 data file:
 * Perc of how much it ran through
 * Type of output frequency: step/time/perc
 * Time it took
+* Sigmas etc.
 * ...
-* 
 
 Some can be derived from the data, but some info my need to be added as well.
