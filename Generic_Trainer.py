@@ -1,11 +1,12 @@
 import torch
 import numpy as np 
 import time
-import erfh5_pipeline
+import erfh5_pipeline 
+from collections import OrderedDict
 
 
 class Master_Trainer():
-    def __init__(self, model, generator:erfh5_pipeline.ERFH5_DataGenerator, loss_criterion = torch.nn.MSELoss(),train_print_frequency= 10, eval_frequency=50, savepath = "model.pth"):
+    def __init__(self, model, generator:erfh5_pipeline.ERFH5_DataGenerator, loss_criterion = torch.nn.MSELoss(),train_print_frequency= 10, eval_frequency=100, savepath = "model.pth"):
         self.validationList = generator.get_validation_samples()
         self.model = model
         self.generator = generator
@@ -20,6 +21,7 @@ class Master_Trainer():
 
     def start_training(self):
         self.__train()
+        self.__eval()
         print(">>> INFO: MASTER PROCESS TERMINATED - TRAINING COMPLETE - MISSION SUCCESS ")
 
 
@@ -59,7 +61,7 @@ class Master_Trainer():
                     data = torch.unsqueeze(data, 0)
                     output = self.model(data)
                     loss = loss + self.loss_criterion(output, label).item()
-                    #print(output.item(), label.item())
+                    print(output.item(), label.item())
 
                 loss = loss / len(self.validationList)
                 print(">>>RMSE on Eval:", "{:8.4f}".format(np.sqrt(loss)))

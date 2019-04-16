@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from os import listdir, walk
 from os.path import isdir
+import random
 
 #returns a sequence of simulation steps as data and the filling percentage of the last step as label 
 def get_index_sequence(filename): 
@@ -141,7 +142,7 @@ def get_single_states_and_fillings(filename):
     return single_states
     
 
-def get_image_state_sequence(folder, start_state=0, end_state=20, step=1, label_offset=1):
+def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label_offset=3):
     filelist = get_filelist_within_folder(folder)
     if len(filelist) == 0:
         return None
@@ -177,14 +178,55 @@ def get_image_state_sequence(folder, start_state=0, end_state=20, step=1, label_
     if label is None:
         return None
     
-    data = np.stack(state_list) 
-    if np.shape(data)[0] !=end_state - start_state +1:
+    data = np.stack(state_list)
+    if np.shape(data)[0] !=int((end_state - start_state)/step) +1:
         return None
 
     return [(data, label)]
-    # load right files
-    #load label#
-    #return instance
+
+
+def get_sensordata_and_filling_percentage(file, until=400, frm = 0):
+    f = h5py.File(file, 'r')
+    try:
+        pressure_array = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
+        all_states = f['post']['singlestate']
+        _tmp = [state for state in all_states]
+        last_filling =  f['post']['singlestate'][_tmp[-1]]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+        non_zeros = np.count_nonzero(last_filling)
+        state_count = np.shape(last_filling)[0]
+        filling_percentage = np.array(non_zeros/state_count)  
+
+    except KeyError:
+        return None
+
+    if(np.shape(pressure_array)[0] < until):
+        return None
+    pressure_array = pressure_array[frm:until,:,:]
+    pressure_array = np.squeeze(pressure_array)
+
+    #print(np.shape(pressure_array), filling_percentage)
+
+    return([(pressure_array,filling_percentage)])
+
+
+def get_image_percentage(folder):
+    filelist = get_filelist_within_folder(folder)
+    if len(filelist) == 0:
+        return None
+    random.shuffle(filelist)
+    
+    ret_list = []
+    for el in filelist:
+        f_split = el.split("/")[-1].split("_")
+        percentage = float(f_split[1])
+        dat = load_image(el)
+        ret_list.append((dat,np.array(percentage)))
+    
+    return ret_list
+
+
+
+
 
 def load_image( f_name ) :
     img = Image.open( f_name )
@@ -201,13 +243,29 @@ def get_filelist_within_folder(root_directory):
             dataset_filenames.extend(filenames)
     return dataset_filenames  
 
+
+def get_erfh5_files_recursive(root_directory):
+    dataset_filenames = []
+    for (dirpath, _, filenames) in walk(root_directory):
+        if filenames: 
+            filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
+            dataset_filenames.extend(filenames)
+    return dataset_filenames  
+
 def get_folders_within_folder(root_directory):
     for (dirpath, dirnames, _) in walk(root_directory):
         return [dirpath+ '/' + f for f in dirnames]
 
 
 if __name__ == "__main__":
-    folders = get_folders_within_folder('/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images/')
+
+    files = get_filelist_within_folder('/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5')
+    for f in files:
+        get_sensordata_and_filling_percentage(f)
+    
+    
+    
+    """ folders = get_folders_within_folder('/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images/')
     for folder in folders:
         instances = get_image_state_sequence(folder)
         if instances is None:
@@ -216,3 +274,4 @@ if __name__ == "__main__":
         else:
             print(np.shape(instances[0][0]))
 
+ """

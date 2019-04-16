@@ -32,12 +32,12 @@ class ERFH5_RNN(nn.Module):
         self.lstm = nn.LSTM(input_dim, hidden_dim,
                             batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0)
 
-        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 4096)
-        self.hidden2hidden2 = nn.Linear(4096, 512)
+        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 1024)
+        self.hidden2hidden2 = nn.Linear(1024, 512)
         self.hidden2hidden3 = nn.Linear(512, 256)
         self.hidden2hidden4 = nn.Linear(256, 128)
         self.hidden2value = nn.Linear(128, 1)
-        self.drop = nn.Dropout(0.8)
+        self.drop = nn.Dropout(0.2)
        
 
         self.init_weights()
@@ -81,7 +81,7 @@ class ERFH5_RNN(nn.Module):
         out = self.drop(out)
         out = F.relu(self.hidden2hidden4(out))
         out = self.drop(out)
-        out = self.hidden2value(out)
+        out = F.relu(self.hidden2value(out))
         return out
 
 
