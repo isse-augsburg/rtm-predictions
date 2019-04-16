@@ -139,6 +139,14 @@ def get_single_states_and_fillings(filename):
 
     
     return single_states
+
+def get_sensor_sequence(filename):
+    time_stamps = [10, 20, 30, 35, 40, 45]
+
+    f = h5py.File(filename, 'r')
+    sensor_values = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']
+
+
     
 
 def get_image_state_sequence(folder, start_state=0, end_state=20, step=1, label_offset=1):
@@ -198,7 +206,10 @@ def get_filelist_within_folder(root_directory):
     for (dirpath, _, filenames) in walk(root_directory):
         if filenames: 
             filenames = [dirpath + '/' + f for f in filenames]
-            dataset_filenames.extend(filenames)
+            #dataset_filenames.extend(filenames)
+            for f in filenames:
+                if f.endswith('.erfh5'):
+                    dataset_filenames.append(f)
     return dataset_filenames  
 
 def get_folders_within_folder(root_directory):
