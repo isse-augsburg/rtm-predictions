@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pad_packed_sequence as unpack
 import torch.nn.functional as F
 import erfh5_pipeline as pipeline
+import data_loaders as dl
 import erfh5_autoencoder as autoencoder 
 import time
 #from apex import amp
@@ -123,78 +124,3 @@ class Net(nn.Module):
         return out
 
 
-try:
-    generator = pipeline.ERFH5_DataGenerator(
-       '/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batchsize, epochs=epochs,indices=range(50) ,max_queue_length=2048, pipeline_mode=pipeline.Pipeline_Mode.time_sequence, num_validation_samples=10)
-    validation_samples = generator.get_validation_samples()
-
-except Exception as e:
-    print("Fatal Error:", e)
-    exit()
-
-# '/home/lodes/Sim_Results'
-# '/cfs/share/data/RTM/Lautern/clean_erfh5/'
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
-
-#model = Net(8192, 1024, batchsize, encoder_path=path)
-model = ERFH5_RNN(69366, 3072, batchsize)
-model = nn.DataParallel(model).to('cuda:0')
-""" if torch.cuda.device_count() > 1:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    model = nn.DataParallel(model) """
-
-
-#model.to(device)
-
-
-loss_criterion = torch.nn.MSELoss().cuda()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
-
-start_time = time.time()
-counter = 1
-
-print("Expected length of data generator:", len(generator))
-
-
-for inputs, labels in generator:
-    
-    #inputs, labels = torch.FloatTensor(inputs), torch.FloatTensor(labels)
-    inputs, labels = inputs.to(device, non_blocking=True), labels.to('cuda:0', non_blocking=True)
-    optimizer.zero_grad()
-    outputs = model(inputs)
-    
-    #outputs = outputs.to(device, non_blocking=True)
-    loss = loss_criterion(outputs, labels)
-    #with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
-    #    scaled_loss.backward()
-    loss.backward()
-    optimizer.step()
-  
-
-    if counter % eval_frequency == 0:
-        time_per_epoch = time.time() - start_time
-        print("Loss:", "{:12.4f}".format(loss.item()), "|| Duration of step:", "{:6}".format(
-            counter), "{:10.2f}".format(time_per_epoch), "seconds || Q:", generator.get_current_queue_length())
-        start_time = time.time()
-
-    if counter % test_frequency == 0:
-            with torch.no_grad():
-                model.eval()
-                loss = 0
-                for sample in validation_samples:
-                    data = sample[0].to(device)
-                    label = sample[1].to('cuda:0')
-                    label = torch.unsqueeze(label,0)
-                    data = torch.unsqueeze(data, 0)
-                    output = model(data)
-                    loss = loss + loss_criterion(output, label).item()
-                    print(output.item(), label.item())
-
-                loss = loss / len(validation_samples)
-                print(">>>RMSE on Test:", "{:8.4f}".format(np.sqrt(loss)))
-                model.train()
-
-    counter = counter + 1
-
-print(">>> INFO: MASTER PROCESS TERMINATED - TRAINING COMPLETE - MISSION SUCCESS ")

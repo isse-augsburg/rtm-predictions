@@ -7,13 +7,13 @@ import erfh5_pipeline as pipeline
 import time
 import numpy as np
 
+import data_loaders as dl
+
 from collections import OrderedDict
 import matplotlib.pyplot as plt 
 import matplotlib
 
-#from apex import amp
 
-#amp_handle = amp.init() 
 
 
 class stacked_FullyConnected(nn.Module):
@@ -41,11 +41,11 @@ class stacked_FullyConnected(nn.Module):
 
 
 class erfh5_Distributed_Autoencoder(nn.Module):
-    def __init__(self, dgx_mode=True, layers_size_list=[69366, 15000, 8192]):
+    def __init__(self, dgx_mode=True, layers_size_list=[69366, 15000]):
         super(erfh5_Distributed_Autoencoder, self).__init__()
 
         self.encoder = stacked_FullyConnected(layers_size_list)
-        self.decoder = stacked_FullyConnected(reversed(layers_size_list))
+        self.decoder = stacked_FullyConnected(list(reversed(layers_size_list)))
         print(self.encoder)
         print(self.decoder)
 
@@ -58,7 +58,7 @@ class erfh5_Distributed_Autoencoder(nn.Module):
     def forward(self, x):
         x = self.encoder(x)
         x = self.decoder(x)
-        return x
+        return x.to('cuda:0')
 
     def save_encoder(self, path):
         torch.save(self.encoder.state_dict(), path)
@@ -118,107 +118,12 @@ def load_stacked_fc(path, list=[69366, 15000, 8192]):
 
 
 if __name__ == "__main__":
-    batch_size = 8
-    epochs = 1
-    eval_frequency = 10
-    test_frequency = 50
-    path = '/cfs/home/l/o/lodesluk/models/encoder-08-04-1304.pth'
-    #path =  '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/l/o/lodesluk/models/encoder-08-04-1304.pth'
-  
-    try:
-        generator = pipeline.ERFH5_DataGenerator(data_path='/cfs/share/data/RTM/Lautern/clean_erfh5/', batch_size=batch_size,
-                                                    epochs=epochs, indices=1, max_queue_length=32, pipeline_mode=pipeline.Pipeline_Mode.single_instance, num_validation_samples=3)
-        validation_samples = generator.get_validation_samples()
-    except Exception as e:
-        print("Fatal Error:", e)
-        exit() 
+    pass 
 
-    #encoder = erfh5_Autoencoder(69366, [8000, 6000])
-    
-    #autoencoder = erfh5_Distributed_Autoencoder()
-    half_encoder = load_stacked_fc(path)
-    
-    loss_criterion = torch.nn.MSELoss()
-    #optimizer = torch.optim.Adam(autoencoder.parameters(), lr=0.000005)
-    
-    
-
-    #encoder, optimizer = amp.initialize(model, optimizer, opt_level='O1')
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(device)
+   # half_encoder = load_stacked_fc(path)
 
 
-
-    """ start_time = time.time()
-    counter = 1
-
-    print("Expected length of data generator:", len(generator))
-
-    for inputs, _ in generator:
-
-        inputs = torch.FloatTensor(inputs)
-
-        inputs = inputs.to(device)
-
-        optimizer.zero_grad()
-        outputs = autoencoder(inputs)
-        outputs = outputs.to(device)
-
-        loss = loss_criterion(outputs, inputs)
-
-        with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
-            scaled_loss.backward()
-        optimizer.step()
-
-        if counter % eval_frequency == 0:
-            time_per_epoch = time.time() - start_time
-            print("Loss:", "{:8.4f}".format(loss.item()), "|| Duration of step:", "{:6}".format(
-                counter), "{:4.2f}".format(time_per_epoch), "seconds || Q:", generator.get_current_queue_length())
-            start_time = time.time()
-
-        if counter % test_frequency == 0:
-            with torch.no_grad():
-                autoencoder.eval()
-                loss = 0
-                for i in validation_samples:
-                    i = torch.FloatTensor(i)
-                    i = i.to(device)
-                    i = torch.unsqueeze(i, 0)
-                    output = autoencoder(i)
-                    output = output.to(device) 
-                    loss = loss + loss_criterion(output, i).item()
-
-                loss = loss / len(validation_samples)
-                print(">>>Loss on Test:", "{:8.4f}".format(loss))
-                autoencoder.train()
-
-        counter = counter + 1
-
-
-    with torch.no_grad():
-        autoencoder.eval()
-        loss = 0
-        for i in validation_samples:
-            i = torch.FloatTensor(i)
-            i = i.to(device)
-            i = torch.unsqueeze(i, 0)
-            output = autoencoder(i)
-            output = output.to(device) 
-            loss = loss + loss_criterion(output, i).item()
-
-        loss = loss / len(validation_samples)
-        print(">>>FINAL on Test:", "{:8.4f}".format(loss))
-        autoencoder.train()
-
-    print(">>>INFO: Saving state dict")
-    #torch.save(encoder.state_dict(), path)
-    autoencoder.save_encoder(path) """
-
-
-
-
-    print(">>>INFO: Loading State dict finished.")  
+    """ print(">>>INFO: Loading State dict finished.")  
     half_encoder.to(device)  
     with torch.no_grad():
         half_encoder.eval()
@@ -248,6 +153,6 @@ if __name__ == "__main__":
         #loss = loss / len(validation_samples)
         #print(">>>Loss on loaded model:", "{:8.4f}".format(loss))
         half_encoder.train()
-
+ """
 
     print(">>>INFO: Finished.")

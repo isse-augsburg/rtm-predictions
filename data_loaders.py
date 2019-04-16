@@ -135,7 +135,7 @@ def get_single_states_and_fillings(filename):
         filling_factors_at_certain_times.append(filling_factor)   
 
     flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
-    single_states = [(data, np.array(0.0)) for data in flat_fillings]
+    single_states = [(data, data) for data in flat_fillings]
 
     
     return single_states
