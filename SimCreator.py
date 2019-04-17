@@ -108,12 +108,20 @@ class SimCreator:
         for k in _keys:
             iK = keys.index(k)
             if k == 'Fiber_Content':
-                sigma = self.perturbation_factors[k]
+                factor = self.perturbation_factors[k]
+                # Perturbate FVC everywhere
                 df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, 0.001, len(df))
-                print('')
+                # Apply function that gets k1 and k2 from FVC
+                # FIXME should be different values for K1 and K", currently just the same
+                df['K1'] = fvc_to_k1(df['Fiber_Content'])
+                df['K2'] = fvc_to_k1(df['Fiber_Content'])
+                # Apply rectangle
+                df.update(df.iloc[self.indices_rectangle]['Fiber_Content'] * (1 + factor))
+                df['K1'].update(fvc_to_k1(df['Fiber_Content']))
+                df['K2'].update(fvc_to_k1(df['Fiber_Content']))
 
-            sigma = self.perturbation_factors[k]
-            df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, sigma, len(df))
+            # sigma = self.perturbation_factors[k]
+            # df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, sigma, len(df))
 
         formatters = \
         {'\#Element_ID': '{:,i}'.format,
