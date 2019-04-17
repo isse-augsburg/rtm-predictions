@@ -198,7 +198,8 @@ if __name__ == "__main__":
     """ generator = ERFH5_DataGenerator(data_path= "/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images",
                                     batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
     #'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
-    generator = ERFH5_DataGenerator(data_path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/',
+    #'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
+    generator = ERFH5_DataGenerator(data_path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/',
         data_processing_function=get_index_sequence, data_gather_function=get_filelist_within_folder, batch_size=2, epochs=2, max_queue_length=16)
     for data, label in generator:
         print(data.size(), label.size())

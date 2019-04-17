@@ -205,11 +205,8 @@ def get_filelist_within_folder(root_directory):
     dataset_filenames = []
     for (dirpath, _, filenames) in walk(root_directory):
         if filenames: 
-            filenames = [dirpath + '/' + f for f in filenames]
-            #dataset_filenames.extend(filenames)
-            for f in filenames:
-                if f.endswith('.erfh5'):
-                    dataset_filenames.append(f)
+            filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
+            dataset_filenames.extend(filenames)
     return dataset_filenames  
 
 def get_folders_within_folder(root_directory):
