@@ -58,9 +58,7 @@ var3=VCmd.Activate( 1, r"VRTMUtilities.VRTMInterface", r"SimulationParameters" )
 VCmd.SetStringValue( var3, r"MaterialDB", r"Model" )
 VCmd.SetStringValue( var3, r"InjectedResin", r"RapeSeedOil" )
 VCmd.SetDoubleValue( var3, r"MaxInjectionTime", %d.  )
-VCmd.SetStringValue( var3, r"OutputFrequencyType", r"Time" )
-VCmd.SetStringValue( var3, r"OutputFrequencyType", r"Step" )
-VCmd.SetDoubleValue( var3, r"OutputFrequency", %d.  )
+%s
 VCmd.Accept( var3 )
 VCmd.Quit( var3 )
 '''

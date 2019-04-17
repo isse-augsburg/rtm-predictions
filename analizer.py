@@ -65,5 +65,5 @@ def print_result_line(path, success, filled, last_state_int):
     sfilled = f'{filled:.5f}'.replace('.', ',')
 
     p = Path(path)
-    p1 = str(p / p.stem) + '.0_RESULT.erfh5'
+    p1 = [x for x in p.glob('**/*.ERFH5')][0]
     print(f'{p1}\t{sigma}\t{success}\t{sfilled}\t{last_state_int} steps')
