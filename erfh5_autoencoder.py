@@ -36,7 +36,7 @@ class stacked_FullyConnected(nn.Module):
     def forward(self, inputs):
         x = inputs
         for layer in self.FCs:
-            x = F.relu(layer(x))
+            x = F.softsign(layer(x))
         return x
 
 

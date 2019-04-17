@@ -15,7 +15,7 @@ class Master_Trainer():
         self.savepath = savepath
         self.loss_criterion = loss_criterion
         self.loss_criterion = self.loss_criterion.cuda()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0001)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -64,7 +64,7 @@ class Master_Trainer():
                     #print(output.item(), label.item())
 
                 loss = loss / len(self.validationList)
-                print(">>> RMSE on Eval:", "{:8.4f}".format(np.sqrt(loss)))
+                print(">>> Mean Loss on Eval:", "{:8.4f}".format(loss))
                 self.model.train()
 
     def saveModel(self):
