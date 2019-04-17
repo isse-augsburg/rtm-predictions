@@ -94,6 +94,29 @@ class SimCreator:
 
         return indices_of_rectangle
 
+    def get_coordinates_of_circle(self, circles=(([-5, -5], 1.25), ([5, 5], 0.25), ([7, 0], 0.5))):
+
+        indices_of_circles = list()
+
+        x_coords = all_coords[:,0]
+        y_coords = all_coords[:,1]
+
+        for centre, radius in circles:
+            current_indices = list()
+            for i in np.arange(centre[0]-radius, centre[0]+radius, 0.125):
+                for j in np.arange(centre[1]-radius, centre[1]+radius, 0.125):
+                    distance = (i - centre[0])**2 + (j-centre[1])**2 
+                    if distance <= radius**2:
+                        index = np.where((all_coords[:,0] == [i]) & (all_coords[:,1] == [j]))
+                        index = index[0]
+                        if index.size != 0:
+                            current_indices.append(index)
+            indices_of_circles.append(current_indices)
+        
+        #list that contains lists of the indices of circles
+        return indices_of_circles
+
+
     def perturbate_wrapper(self, keys, df, count, mu=0):
         new_stem = str(count)
         dir = self.solver_input_folder / new_stem
