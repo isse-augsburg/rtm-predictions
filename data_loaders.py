@@ -281,7 +281,7 @@ if __name__ == "__main__":
         r = get_sensordata_and_flowfront(f)
         if r is not None:
             for d in r:
-                print(len(d), np.shape(d[0]), np.shape(d[1]))
+                print(np.shape(d[0]), np.shape(d[1]))
         
     
     
