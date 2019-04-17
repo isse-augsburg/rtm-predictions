@@ -116,6 +116,42 @@ class SimCreator:
         #list that contains lists of the indices of circles
         return indices_of_circles
 
+    def get_elements_in_shape(self, filename, shape):
+        f = h5py.File(filename, 'r')
+        triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'].value
+        triangle_coords = triangle_coords[:, :-1]
+        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+        # Cut off last column (z), since it is filled with 1s anyway
+        _all_coords = coord_as_np_array[:, :-1]
+        
+        indices_of_elements = list()
+
+        
+        for i in shape: 
+            current_elements = list()
+            for index, t in enumerate(triangle_coords):
+                if t[0] in i and t[1] in i and t[2] in i: 
+                    current_elements.append(index)
+            indices_of_elements.append(current_elements)
+        return indices_of_elements
+    
+    def get_indices_of_elements_in_circles(self, filename, circles=(([-5, -5], 1.25), ([5, 5], 2), ([7, 0], 0.5))):
+        
+        indices_of_circles = get_coordinates_of_circle(filename, circles)
+        indices_of_elements = get_elements_in_shape(filename, indices_of_circles)
+    
+        return indices_of_elements
+
+    def get_indices_of_elements_in_rectangle(self, filename, lower_left=[-5, -8], height=3, width=0.5):
+    
+        indices_of_rectangle = get_coordinates_of_rectangle(filename, lower_left, height, width)
+        indices_of_elements = get_elements_in_shape(filename, indices_of_rectangle)
+
+        return indices_of_elements
+
+
+
+
 
     def perturbate_wrapper(self, keys, df, count, mu=0):
         new_stem = str(count)
