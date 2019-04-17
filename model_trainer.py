@@ -5,17 +5,17 @@ import torch
 from torch import nn
 from erfh5_RNN_models import ERFH5_RNN
 from erfh5_autoencoder import erfh5_Distributed_Autoencoder
-from erfh5_ConvModel import erfh5_Conv3d, erfh5_Conv2dPercentage
+from erfh5_ConvModel import erfh5_Conv3d, erfh5_Conv2dPercentage, erfh5_Conv25D_Frame
 import traceback
 
-batchsize = 64
+batchsize = 128
 max_Q_len= batchsize * 4
-epochs = 80
+epochs = 800
 
 def create_dataGenerator_Pressure_percentage():
     try:
         generator = pipeline.ERFH5_DataGenerator(data_path= "/cfs/share/data/RTM/Lautern/",num_validation_samples=10,
-                                    batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, data_processing_function=dl.get_sensordata_and_filling_percentage, data_gather_function=dl.get_erfh5_files_recursive)
+                                    batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, data_processing_function=dl.get_sensordata_and_filling_percentage, data_gather_function=dl.get_filelist_within_folder)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -70,11 +70,12 @@ def create_dataGenerator_single_state():
 if __name__ == "__main__":
     #torch.cuda.set_device(0)
     #generator = create_dataGenerator_IMG_percentage()
-    #generator = create_dataGenerator_IMG()
+    generator = create_dataGenerator_IMG()
     #generator = create_dataGenerator_index_sequence()
     #generator = create_dataGenerator_single_state()
-    generator = create_dataGenerator_Pressure_percentage()
-    model = ERFH5_RNN(360, 512, batchsize)
+    #generator = create_dataGenerator_Pressure_percentage()
+    #model = ERFH5_RNN(360, 512, batchsize)
+    model = erfh5_Conv25D_Frame(21)
     #model = erfh5_Conv3d(21)
     #model = erfh5_Conv2dPercentage()
     model = nn.DataParallel(model).to('cuda:0')

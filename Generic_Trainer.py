@@ -61,10 +61,10 @@ class Master_Trainer():
                     data = torch.unsqueeze(data, 0)
                     output = self.model(data)
                     loss = loss + self.loss_criterion(output, label).item()
-                    print(output.item(), label.item())
+                    #print(output.item(), label.item())
 
                 loss = loss / len(self.validationList)
-                print(">>>RMSE on Eval:", "{:8.4f}".format(np.sqrt(loss)))
+                print(">>> RMSE on Eval:", "{:8.4f}".format(np.sqrt(loss)))
                 self.model.train()
 
     def saveModel(self):

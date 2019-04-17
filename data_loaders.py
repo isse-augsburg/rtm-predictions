@@ -209,6 +209,30 @@ def get_sensordata_and_filling_percentage(file, until=400, frm = 0):
     return([(pressure_array,filling_percentage)])
 
 
+def get_sensordata_and_flowfront(file):
+    f = h5py.File(file, 'r')
+    instances = []
+    try:
+        pressure_array = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
+        all_states = f['post']['singlestate']
+
+        filling_factors_at_certain_times = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in all_states]
+        flat_fillings = np.squeeze(filling_factors_at_certain_times)
+    except KeyError:
+        return None
+    for state, filling in zip(all_states, flat_fillings):
+            try:
+                s = state.replace("state", '')
+                state_num = int(s)
+                sensordata = np.squeeze(pressure_array[state_num-1])
+                #print(state_num, np.shape(filling), np.shape(sensordata))
+                instances.append((sensordata, filling))
+            except IndexError:
+                continue
+    if(len(instances) == 0):
+        return None
+    return instances
+
 def get_image_percentage(folder):
     filelist = get_filelist_within_folder(folder)
     if len(filelist) == 0:
@@ -239,18 +263,11 @@ def get_filelist_within_folder(root_directory):
     dataset_filenames = []
     for (dirpath, _, filenames) in walk(root_directory):
         if filenames: 
-            filenames = [dirpath + '/' + f for f in filenames]
-            dataset_filenames.extend(filenames)
-    return dataset_filenames  
-
-
-def get_erfh5_files_recursive(root_directory):
-    dataset_filenames = []
-    for (dirpath, _, filenames) in walk(root_directory):
-        if filenames: 
             filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
             dataset_filenames.extend(filenames)
     return dataset_filenames  
+
+
 
 def get_folders_within_folder(root_directory):
     for (dirpath, dirnames, _) in walk(root_directory):
@@ -259,10 +276,13 @@ def get_folders_within_folder(root_directory):
 
 if __name__ == "__main__":
 
-    files = get_filelist_within_folder('/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5')
+    files = get_filelist_within_folder('/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/')
     for f in files:
-        get_sensordata_and_filling_percentage(f)
-    
+        r = get_sensordata_and_flowfront(f)
+        if r is not None:
+            for d in r:
+                print(len(d), np.shape(d[0]), np.shape(d[1]))
+        
     
     
     """ folders = get_folders_within_folder('/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images/')

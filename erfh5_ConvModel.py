@@ -78,3 +78,31 @@ class erfh5_Conv2dPercentage(nn.Module):
 
         return out
 
+
+class erfh5_Conv25D_Frame(nn.Module):
+     def __init__(self, sequence_len):
+        super(erfh5_Conv25D_Frame, self).__init__()
+        self.conv1 = nn.Conv2d(sequence_len,32,(15,15), padding=7)
+        self.conv2 = nn.Conv2d(32,64,(7,7), padding=3)
+        self.conv3 = nn.Conv2d(64,128,(3,3), padding = 1)
+        self.conv4 = nn.Conv2d(128,1,(3,3), padding = 1)
+        self.dropout = nn.Dropout(0.5)
+
+     def forward(self,x):
+        out = self.dropout(x)
+        out = F.relu(self.conv1(out))
+        
+        out = self.dropout(out)
+        out =  F.relu(self.conv2(out))
+     
+        out = self.dropout(out)
+        out =  F.relu(self.conv3(out))
+ 
+        out = self.dropout(out)
+        out =  F.relu(self.conv4(out))
+        out = torch.squeeze(out, 1)
+        
+
+        
+
+        return out
