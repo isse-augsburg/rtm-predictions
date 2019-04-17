@@ -14,12 +14,12 @@ def get_coordinates_of_rectangle(filename, lower_left, height, width):
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
 
-    indices_of_rectangles = list()
+    indices_of_rectangles = []
 
     corner_x = lower_left[0]
     corner_y = lower_left[1]
 
-    current_rect = list()
+    current_rect = []
     for i in np.arange(lower_left[0], lower_left[0]+width, 0.125):
         for j in np.arange(lower_left[1], lower_left[1]+height, 0.125):
             index = np.where((_all_coords[:,0] == [i]) & (_all_coords[:,1] == [j]))
@@ -51,13 +51,13 @@ def get_coordinates_of_circle(filename, circles):
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
 
-    indices_of_circles = list()
+    indices_of_circles = []
 
     x_coords = _all_coords[:,0]
     y_coords = _all_coords[:,1]
 
     for centre, radius in circles:
-        current_indices = list()
+        current_indices = []
         for i in np.arange(centre[0]-radius, centre[0]+radius, 0.125):
             for j in np.arange(centre[1]-radius, centre[1]+radius, 0.125):
                 distance = (i - centre[0])**2 + (j-centre[1])**2 
@@ -81,11 +81,11 @@ def get_elements_in_shape(filename, shape):
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
     
-    indices_of_elements = list()
+    indices_of_elements = []
 
     
     for i in shape: 
-        current_elements = list()
+        current_elements = []
         for index, t in enumerate(triangle_coords):
             if t[0] in i and t[1] in i and t[2] in i: 
                 current_elements.append(index)
