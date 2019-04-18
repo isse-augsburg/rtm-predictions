@@ -7,6 +7,7 @@ Brainstorming on what to store in the .h5 data file:
 * Type of output frequency: step/time/perc
 * Time it took
 * Sigmas etc.
+* Used shapes, their size, placement and FVC
 * ...
 
 Some can be derived from the data, but some info my need to be added as well.
