@@ -1,3 +1,4 @@
+import random
 import re
 from functools import partial
 import os
@@ -14,6 +15,8 @@ import time
 
 import resources
 from enum import Enum
+
+from shapes import Rectangle, Circle
 
 
 class OutputFrequencyType(Enum):
@@ -32,10 +35,13 @@ def derive_k1k2_from_fvc(fvcs):
 def fvc_to_k1(fvc):
     return 1.00000000e-06 * np.exp(-1.86478393e+01*fvc)
 
+
+def rounded_random(value, minClip):
+    return round(float(value)/ minClip) * minClip
+
 # def fit_func(x, a, b):
 #     return a*np.exp(b*x)
 # params = curve_fit(fit_func2, x, y)
-
 
 class SimCreator:
     def __init__(self, perturbation_factors, count=20):
@@ -43,10 +49,10 @@ class SimCreator:
         self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
         self.perturbation_factors = perturbation_factors
-        self.perturbation_factors_str = re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
+        self.perturbation_factors_str = 'with_shapes'# re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
         self.count = count
-        self.num_hosts = 2
-        self.num_cpus = 8
+        self.num_hosts = 10
+        self.num_cpus = 32
 
         self.output_frequency_type = OutputFrequencyType.Time
         self.output_frequency = 0.5
@@ -59,12 +65,22 @@ class SimCreator:
         self.reference_erfh5        = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless\flawless_RESULT.erfh5')
 
         f = h5py.File(self.reference_erfh5, 'r')
-        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
-        self.all_coords = coord_as_np_array[:, :-1]
-        self.indices_rectangle = self.get_coordinates_of_rectangle()
+        self.all_coords= f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()][:, :-1]
+        self.triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()][:, :-1]
+        self.x_bounds = (-20, 20)
+        self.y_bounds = (-20, 20)
+        self.circ_radius_bounds = (1, 2)
+        self.rect_width_bounds = self.rect_height_bounds = (1, 2)
+
+        self.shapes = []
+        [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
+        [self.shapes.append(Circle) for x in range(self.perturbation_factors['Shapes']['Circles']['Num'])]
+        self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
+        self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
 
         self.solver_input_folder    = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (self.perturbation_factors_str, self.initial_timestamp, self.count))
         self.slurm_scripts_folder   = Path(r'X:\s\t\stiebesi\slurm_scripts')
+        self.slurm_partition        = "big-cpu"
 
         self.slurm_scripts = []
         self.dirs_with_stems = []
@@ -72,7 +88,7 @@ class SimCreator:
         self.unf_files_on_storage = []
 
     def create_folder_structure_and_perturbate_kN(self):
-        print(f'Perturbating k1 ...')
+        print(f'Perturbating {self.perturbation_factors_str} ...')
         t0 = time.time()
         self.solver_input_folder.mkdir(parents=True, exist_ok=True)
         df = pandas.read_csv(self.original_lperm, sep=' ')
@@ -82,76 +98,6 @@ class SimCreator:
             self.dirs_with_stems = p.map(partial(self.perturbate_wrapper, keys, df), range(self.count))
         # self.dirs_with_stems =self.perturbate_wrapper(keys, df, 1)
         print(f'Adding noise and writing all files took {time.time() - t0:.0f} seconds.')
-
-    def get_coordinates_of_rectangle(self, lower_left=(-5, -8), height=15, width=0.125):
-        indices_of_rectangle = []
-
-        for i in np.arange(lower_left[0], lower_left[0] + width, 0.125):
-            for j in np.arange(lower_left[1], lower_left[1] + height, 0.125):
-                index = np.where((self.all_coords[:, 0] == [i]) & (self.all_coords[:, 1] == [j]))[0]
-                if index.size != 0:
-                    indices_of_rectangle.append(index[0])
-
-        return indices_of_rectangle
-
-    def get_coordinates_of_circle(self, circles=(([-5, -5], 1.25), ([5, 5], 0.25), ([7, 0], 0.5))):
-
-        indices_of_circles = list()
-
-        x_coords = all_coords[:,0]
-        y_coords = all_coords[:,1]
-
-        for centre, radius in circles:
-            current_indices = list()
-            for i in np.arange(centre[0]-radius, centre[0]+radius, 0.125):
-                for j in np.arange(centre[1]-radius, centre[1]+radius, 0.125):
-                    distance = (i - centre[0])**2 + (j-centre[1])**2 
-                    if distance <= radius**2:
-                        index = np.where((all_coords[:,0] == [i]) & (all_coords[:,1] == [j]))
-                        index = index[0]
-                        if index.size != 0:
-                            current_indices.append(index)
-            indices_of_circles.append(current_indices)
-        
-        #list that contains lists of the indices of circles
-        return indices_of_circles
-
-    def get_elements_in_shape(self, filename, shape):
-        f = h5py.File(filename, 'r')
-        triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'].value
-        triangle_coords = triangle_coords[:, :-1]
-        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
-        # Cut off last column (z), since it is filled with 1s anyway
-        _all_coords = coord_as_np_array[:, :-1]
-        
-        indices_of_elements = list()
-
-        
-        for i in shape: 
-            current_elements = list()
-            for index, t in enumerate(triangle_coords):
-                if t[0] in i and t[1] in i and t[2] in i: 
-                    current_elements.append(index)
-            indices_of_elements.append(current_elements)
-        return indices_of_elements
-    
-    def get_indices_of_elements_in_circles(self, filename, circles=(([-5, -5], 1.25), ([5, 5], 2), ([7, 0], 0.5))):
-        
-        indices_of_circles = get_coordinates_of_circle(filename, circles)
-        indices_of_elements = get_elements_in_shape(filename, indices_of_circles)
-    
-        return indices_of_elements
-
-    def get_indices_of_elements_in_rectangle(self, filename, lower_left=[-5, -8], height=3, width=0.5):
-    
-        indices_of_rectangle = get_coordinates_of_rectangle(filename, lower_left, height, width)
-        indices_of_elements = get_elements_in_shape(filename, indices_of_rectangle)
-
-        return indices_of_elements
-
-
-
-
 
     def perturbate_wrapper(self, keys, df, count, mu=0):
         new_stem = str(count)
@@ -163,21 +109,40 @@ class SimCreator:
         if fn.exists():
             return fn
 
-        _keys = self.perturbation_factors.keys()
-        for k in _keys:
-            iK = keys.index(k)
-            if k == 'Fiber_Content':
-                factor = self.perturbation_factors[k]
-                # Perturbate FVC everywhere
-                df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, 0.001, len(df))
-                # Apply function that gets k1 and k2 from FVC
-                # FIXME should be different values for K1 and K", currently just the same
-                df['K1'] = fvc_to_k1(df['Fiber_Content'])
-                df['K2'] = fvc_to_k1(df['Fiber_Content'])
-                # Apply rectangle
-                df.update(df.iloc[self.indices_rectangle]['Fiber_Content'] * (1 + factor))
-                df['K1'].update(fvc_to_k1(df['Fiber_Content']))
-                df['K2'].update(fvc_to_k1(df['Fiber_Content']))
+        # factor = self.perturbation_factors['Fiber_Content']
+        iK = df.keys().get_loc('Fiber_Content')
+        # Perturbate FVC everywhere
+        df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, self.perturbation_factors['General_Sigma'], len(df))
+        # Apply shapes
+        all_indices_of_elements = []
+        list_of_indices_of_shape = []
+        for shape in self.shapes:
+            print(shape)
+            y = rounded_random(random.random() * (self.y_bounds[1] - self.y_bounds[0]) + self.y_bounds[0], 0.125)
+            x = rounded_random(random.random() * (self.x_bounds[1] - self.x_bounds[0]) + self.x_bounds[0], 0.125)
+            if shape.__name__ == 'Rectangle':
+                fvc =    random.random() * (self.rect_fvc_bounds[1] - self.rect_fvc_bounds[0]) + self.rect_fvc_bounds[0]
+                height = rounded_random(random.random() * (self.rect_height_bounds[1] - self.rect_height_bounds[0]) + self.rect_height_bounds[0], 0.125)
+                width =  rounded_random(random.random() * (self.rect_width_bounds[1] - self.rect_width_bounds[0]) + self.rect_width_bounds[0], 0.125)
+
+                list_of_indices_of_shape.append(self.get_coordinates_of_rectangle((x, y), height, width))
+
+            elif shape.__name__  == 'Circle':
+                fvc =       random.random() * (self.circ_fvc_bounds[1] - self.circ_fvc_bounds[0]) + self.circ_fvc_bounds[0]
+                radius =    rounded_random(random.random() * (self.circ_radius_bounds[1] - self.circ_radius_bounds[0]) + self.circ_radius_bounds[0], 0.125)
+
+                list_of_indices_of_shape.append(self.get_coordinates_of_circle((x, y), radius))
+
+        all_indices_of_elements.extend(self.get_elements_in_shape(list_of_indices_of_shape))
+        df.update(df.iloc[all_indices_of_elements]['Fiber_Content'] * (1 + fvc))
+
+        # Apply function that gets k1 and k2 from FVC
+        # FIXME should be different values for K1 and K", currently just the same
+        df['K1'] = fvc_to_k1(df['Fiber_Content'])
+        df['K2'] = fvc_to_k1(df['Fiber_Content'])
+        # TODO Handle many shapes
+        # df['K1'].update(fvc_to_k1(df['Fiber_Content']))
+        # df['K2'].update(fvc_to_k1(df['Fiber_Content']))
 
             # sigma = self.perturbation_factors[k]
             # df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, sigma, len(df))
@@ -185,7 +150,7 @@ class SimCreator:
         formatters = \
         {'\#Element_ID': '{:,i}'.format,
          # 'Thickness': '{:,.6f}'.format,
-         # 'Fiber_Content': '{:,.6f}'.format,
+         'Fiber_Content': '{:,.6f}'.format,
          'K1': '{:,.4e}'.format,
          'K2': '{:,.4e}'.format,
          'K3': '{:,.4e}'.format
@@ -200,6 +165,48 @@ class SimCreator:
         with open(fn, 'w') as f:
             f.write(lperm_str)
         return Path(dir / f'{self.initial_timestamp}_{count}')
+
+    def get_coordinates_of_rectangle(self, lower_left, height, width):
+        current_rect = []
+
+        for i in np.arange(lower_left[0], lower_left[0] + width, 0.125):
+            for j in np.arange(lower_left[1], lower_left[1] + height, 0.125):
+                index = np.where((self.all_coords[:, 0] == [i]) & (self.all_coords[:, 1] == [j]))[0]
+                if index.size != 0:
+                    current_rect.append(index[0])
+        return current_rect
+
+    def get_coordinates_of_circle(self, centre, radius):
+        current_indices = []
+        for i in np.arange(centre[0]-radius, centre[0]+radius, 0.125):
+            for j in np.arange(centre[1]-radius, centre[1]+radius, 0.125):
+                distance = (i - centre[0])**2 + (j-centre[1])**2
+                if distance <= radius**2:
+                    index = np.where((self.all_coords[:,0] == [i]) & (self.all_coords[:,1] == [j]))
+                    index = index[0]
+                    if index.size != 0:
+                        current_indices.append(index[0])
+
+        #list that contains lists of the indices of circles
+        return current_indices
+
+    def get_elements_in_shape(self, shape):
+        indices_of_elements = []
+        for i in shape:
+            current_elements = list()
+            for index, t in enumerate(self.triangle_coords):
+                if t[0] in i and t[1] in i and t[2] in i:
+                    current_elements.append(index)
+            indices_of_elements.extend(current_elements)
+        return indices_of_elements
+
+    # def get_indices_of_elements_in_circles(self, filename, circles=(([-5, -5], 1.25), ([5, 5], 2), ([7, 0], 0.5))):
+    #
+    #     indices_of_circles = self.get_coordinates_of_circle(filename, circles)
+    #     indices_of_elements = self.get_elements_in_shape(filename, indices_of_circles)
+    #
+    #     return indices_of_elements
+
 
     def write_solver_input(self):
         str = \
@@ -247,7 +254,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
     def write_slurm_scripts(self, timeout=15):
         print('Writing slurm script ...')
         calls = []
-        line_before_unf = 'srun -t %s singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np %d' % (timeout, self.num_cpus)
+        line_before_unf = f'srun -t {timeout} singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np {self.num_cpus}'
         for e in self.unf_files_on_storage:
             call = '%s %s' % (line_before_unf, e)
             calls.append(call)
@@ -258,17 +265,26 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             delim = 1
         sublist_calls = [calls[x:x + delim] for x in range(0, len(calls), delim)]
         for i in range(self.num_hosts):
+            slurm_partition = self.slurm_partition
+            num_cpus = self.num_cpus
+            calls_str = '\n'.join(sublist_calls[i])
+            if i == 0:
+                slurm_partition = 'small-cpu'
+                num_cpus = 8
+                calls_str = calls_str.replace(f'-np {self.num_cpus}', f'-np {num_cpus}')
+
             script_str = '%s\n%s' % (f'''#!/bin/sh
-#SBATCH --partition=small-cpu
+#SBATCH --partition={slurm_partition}
 #SBATCH --mem=24000
 #SBATCH --time=100:00:00
 #SBATCH --job-name=PAM_RTM
-#SBATCH --cpus-per-task={self.num_cpus}
+#SBATCH --cpus-per-task={num_cpus}
 #SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%x.out
-''', '\n'.join(sublist_calls[i]))
+''', calls_str)
             n = f'0{i}_solve_pam_rtm_auto.sh'
             self.slurm_scripts.append(n)
             filename = self.slurm_scripts_folder / n
+
             with open(filename, 'w') as f:
                 f.write(script_str)
             fileContents = open(filename,"r").read()

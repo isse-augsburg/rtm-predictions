@@ -5,12 +5,30 @@ from SimCreator import SimCreator
 
 if __name__== "__main__":
     if os.environ['Write_Simulation'] == '1':
-        count = 20
-        perturbation_factors = {"Fiber_Content": -0.3,
-                                "K1": 9e-12,
-                                "K2": 9e-12}
+        count = 1
+        perturbation_factors = \
+        {
+        "General_Sigma": .001,
+        "Shapes":
+            {
+                "Rectangles":
+                    {
+                        "Num": 1,
+                        "Fiber_Content":
+                            [-.3, .3]
+                    },
+                "Circles":
+                    {
+                        "Num": 0,
+                        "Fiber_Content": [-.3, 0]
+                    }
+            }
+        }
+
+
         sc = SimCreator(perturbation_factors, count)
         t00 = time.time()
+        print(f'Creating {count} simulations.')
         sc.run()
         print(f'Whole creation of {count} simulations took {time.time() - t00:.0f} seconds.')
     # Execute slurm ...
