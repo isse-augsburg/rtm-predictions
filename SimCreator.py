@@ -45,6 +45,7 @@ def rounded_random(value, minClip):
 
 class SimCreator:
     def __init__(self, perturbation_factors, count=20):
+        self.save_to_h5_data = {}
         self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat')
         self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
@@ -71,6 +72,7 @@ class SimCreator:
         self.y_bounds = (-20, 20)
         self.circ_radius_bounds = (1, 3)
         self.rect_width_bounds = self.rect_height_bounds = (1, 8)
+        self.grid_step = 0.125
 
         self.shapes = []
         [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
@@ -117,20 +119,33 @@ class SimCreator:
         all_indices_of_elements = []
         list_of_indices_of_shape = []
         for shape in self.shapes:
-            y = rounded_random(random.random() * (self.y_bounds[1] - self.y_bounds[0]) + self.y_bounds[0], 0.125)
-            x = rounded_random(random.random() * (self.x_bounds[1] - self.x_bounds[0]) + self.x_bounds[0], 0.125)
+            y = rounded_random(random.random() * (self.y_bounds[1] - self.y_bounds[0]) + self.y_bounds[0], self.grid_step)
+            x = rounded_random(random.random() * (self.x_bounds[1] - self.x_bounds[0]) + self.x_bounds[0], self.grid_step)
+            if 'shapes' not in self.save_to_h5_data.keys():
+                self.save_to_h5_data['shapes'] = []
             if shape.__name__ == 'Rectangle':
                 fvc =    random.random() * (self.rect_fvc_bounds[1] - self.rect_fvc_bounds[0]) + self.rect_fvc_bounds[0]
-                height = rounded_random(random.random() * (self.rect_height_bounds[1] - self.rect_height_bounds[0]) + self.rect_height_bounds[0], 0.125)
-                width =  rounded_random(random.random() * (self.rect_width_bounds[1] - self.rect_width_bounds[0]) + self.rect_width_bounds[0], 0.125)
-
+                height = rounded_random(random.random() * (self.rect_height_bounds[1] - self.rect_height_bounds[0]) + self.rect_height_bounds[0], self.grid_step)
+                width =  rounded_random(random.random() * (self.rect_width_bounds[1] - self.rect_width_bounds[0]) + self.rect_width_bounds[0], self.grid_step)
                 list_of_indices_of_shape = self.get_coordinates_of_rectangle((x, y), height, width)
+                _dict = {"Rectangle":
+                         {"fvc": fvc,
+                              "height": height,
+                              "width": width
+                      }
+                }
 
             elif shape.__name__  == 'Circle':
                 fvc =       random.random() * (self.circ_fvc_bounds[1] - self.circ_fvc_bounds[0]) + self.circ_fvc_bounds[0]
-                radius =    rounded_random(random.random() * (self.circ_radius_bounds[1] - self.circ_radius_bounds[0]) + self.circ_radius_bounds[0], 0.125)
+                radius =    rounded_random(random.random() * (self.circ_radius_bounds[1] - self.circ_radius_bounds[0]) + self.circ_radius_bounds[0], self.grid_step)
 
                 list_of_indices_of_shape = self.get_coordinates_of_circle((x, y), radius)
+                _dict = {"Circle":
+                            {"fvc": fvc,
+                            "radius": radius,
+                      }
+                }
+            self.save_to_h5_data['shapes'].apend(_dict)
 
             indices_of_elements = self.get_elements_in_shape(list_of_indices_of_shape)
             df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
@@ -162,8 +177,8 @@ class SimCreator:
     def get_coordinates_of_rectangle(self, lower_left, height, width):
         current_rect = []
 
-        for i in np.arange(lower_left[0], lower_left[0] + width, 0.125):
-            for j in np.arange(lower_left[1], lower_left[1] + height, 0.125):
+        for i in np.arange(lower_left[0], lower_left[0] + width, self.grid_step):
+            for j in np.arange(lower_left[1], lower_left[1] + height, self.grid_step):
                 index = np.where((self.all_coords[:, 0] == [i]) & (self.all_coords[:, 1] == [j]))[0]
                 if index.size != 0:
                     current_rect.append(index[0])
@@ -171,8 +186,8 @@ class SimCreator:
 
     def get_coordinates_of_circle(self, centre, radius):
         current_indices = []
-        for i in np.arange(centre[0]-radius, centre[0]+radius, 0.125):
-            for j in np.arange(centre[1]-radius, centre[1]+radius, 0.125):
+        for i in np.arange(centre[0]-radius, centre[0]+radius, self.grid_step):
+            for j in np.arange(centre[1]-radius, centre[1]+radius, self.grid_step):
                 distance = (i - centre[0])**2 + (j-centre[1])**2
                 if distance <= radius**2:
                     index = np.where((self.all_coords[:,0] == [i]) & (self.all_coords[:,1] == [j]))
