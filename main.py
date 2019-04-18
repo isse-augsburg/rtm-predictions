@@ -13,13 +13,13 @@ if __name__== "__main__":
             {
                 "Rectangles":
                     {
-                        "Num": 1,
+                        "Num": 5,
                         "Fiber_Content":
                             [-.3, .3]
                     },
                 "Circles":
                     {
-                        "Num": 0,
+                        "Num": 5,
                         "Fiber_Content": [-.3, 0]
                     }
             }

@@ -124,16 +124,16 @@ class SimCreator:
                 height = rounded_random(random.random() * (self.rect_height_bounds[1] - self.rect_height_bounds[0]) + self.rect_height_bounds[0], 0.125)
                 width =  rounded_random(random.random() * (self.rect_width_bounds[1] - self.rect_width_bounds[0]) + self.rect_width_bounds[0], 0.125)
 
-                list_of_indices_of_shape.append(self.get_coordinates_of_rectangle((x, y), height, width))
+                list_of_indices_of_shape = self.get_coordinates_of_rectangle((x, y), height, width)
 
             elif shape.__name__  == 'Circle':
                 fvc =       random.random() * (self.circ_fvc_bounds[1] - self.circ_fvc_bounds[0]) + self.circ_fvc_bounds[0]
                 radius =    rounded_random(random.random() * (self.circ_radius_bounds[1] - self.circ_radius_bounds[0]) + self.circ_radius_bounds[0], 0.125)
 
-                list_of_indices_of_shape.append(self.get_coordinates_of_circle((x, y), radius))
+                list_of_indices_of_shape = self.get_coordinates_of_circle((x, y), radius)
 
-        all_indices_of_elements.extend(self.get_elements_in_shape(list_of_indices_of_shape))
-        df.update(df.iloc[all_indices_of_elements]['Fiber_Content'] * (1 + fvc))
+            indices_of_elements = self.get_elements_in_shape(list_of_indices_of_shape)
+            df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
 
         # Apply function that gets k1 and k2 from FVC
         # FIXME should be different values for K1 and K", currently just the same
@@ -183,23 +183,12 @@ class SimCreator:
         #list that contains lists of the indices of circles
         return set(current_indices)
 
-    def get_elements_in_shape(self, shape):
-        indices_of_elements = []
-        for i in shape:
-            current_elements = list()
-            for index, t in enumerate(self.triangle_coords):
-                if t[0] in i and t[1] in i and t[2] in i:
-                    current_elements.append(index)
-            indices_of_elements.extend(current_elements)
-        return indices_of_elements
-
-    # def get_indices_of_elements_in_circles(self, filename, circles=(([-5, -5], 1.25), ([5, 5], 2), ([7, 0], 0.5))):
-    #
-    #     indices_of_circles = self.get_coordinates_of_circle(filename, circles)
-    #     indices_of_elements = self.get_elements_in_shape(filename, indices_of_circles)
-    #
-    #     return indices_of_elements
-
+    def get_elements_in_shape(self, indeces_nodes):
+        current_elements = list()
+        for index, t in enumerate(self.triangle_coords):
+            if t[0] in indeces_nodes and t[1] in indeces_nodes and t[2] in indeces_nodes:
+                current_elements.append(index)
+        return current_elements
 
     def write_solver_input(self):
         str = \
