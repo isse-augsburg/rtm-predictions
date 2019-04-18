@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import matplotlib
 import random 
-
+import time 
 
 def get_coordinates_of_rectangle(filename, sizes):
     """ lower_left =  [-5, -8]
@@ -28,8 +28,8 @@ def get_coordinates_of_rectangle(filename, sizes):
                 index = np.where((_all_coords[:,0] == [i]) & (_all_coords[:,1] == [j]))
                 index = index[0]
                 if index.size != 0:
-                    current_rect.append(index)
-        indices_of_rectangles.append(current_rect)
+                    current_rect.append(int(index))
+        indices_of_rectangles.append(set(current_rect))
     
     x_coords = _all_coords[:,0]
     y_coords = _all_coords[:,1]
@@ -58,12 +58,9 @@ def get_coordinates_of_circle(filename, circles):
                     index = np.where((_all_coords[:,0] == [i]) & (_all_coords[:,1] == [j]))
                     index = index[0]
                     if index.size != 0:
-                        current_indices.append(index)
-        indices_of_circles.append(current_indices)
-    
+                        current_indices.append(int(index))
+        indices_of_circles.append(set(current_indices))
 
-
- 
     #list that contains lists of the indices of circles
     return indices_of_circles
 def get_elements_in_shape(filename, shape):
@@ -161,9 +158,15 @@ def plot_triangles(filename, shapes):
 def get_rounded_random(value, minClip):
     return round(float(value)/ minClip) * minClip
 
+def rounded_normal_distributed(mu, sigma, minClip): 
+    value = np.random.normal(mu, sigma)
+    return abs(get_rounded_random(value, minClip))
+
+
+
 def get_elements_of_random_shapes(filename):
-    num_rectangles = 3
-    num_circles = 4
+    num_rectangles = 5
+    num_circles = 7
 
     rectangle_sizes = []
     circle_sizes = []
@@ -174,14 +177,21 @@ def get_elements_of_random_shapes(filename):
     pos_y_border = 24
 
     min_side_length = 0.25
-    max_side_length = 3
+    max_side_length = 4
+
+    mu_side_length = 2.5
+    sigma_side_length = 1.5
+
+    mu_radius = 1.0
+    sigma_radius = 1.5
 
     min_radius = 0.25
-    max_radius = 4
+    max_radius = 3
 
     for i in range(num_rectangles):
-        height = get_rounded_random(random.random() * (max_side_length - min_side_length) + min_side_length, 0.125)
-        width = get_rounded_random(random.random() * (max_side_length - min_side_length) + min_side_length, 0.125)
+        
+        height = rounded_normal_distributed(mu_side_length, sigma_side_length, 0.125)
+        width = rounded_normal_distributed(mu_side_length, sigma_side_length, 0.125)
         lower_left_x = get_rounded_random(random.random() * (pos_x_border - neg_x_border - width) + neg_x_border, 0.125)
         lower_left_y = get_rounded_random(random.random() * (pos_y_border - neg_y_border - height) + neg_y_border, 0.125)
         rectangle_sizes.append(((lower_left_x, lower_left_y), height, width))
@@ -190,9 +200,9 @@ def get_elements_of_random_shapes(filename):
 
 
     for i in range(num_circles):
-        radius = get_rounded_random(random.random() * (max_radius - min_radius) + min_radius, 0.125)
-        center_x = get_rounded_random(random.random() * (pos_x_border - neg_x_border - radius) + neg_x_border + radius, 0.125)
-        center_y = get_rounded_random(random.random() * (pos_y_border - neg_y_border - radius) + neg_y_border + radius, 0.125)
+        radius = rounded_normal_distributed(mu_radius, sigma_radius, 0.125)
+        center_x = get_rounded_random(random.random() * (pos_x_border - neg_x_border - 2*radius) + neg_x_border + radius, 0.125)
+        center_y = get_rounded_random(random.random() * (pos_y_border - neg_y_border - 2*radius) + neg_y_border + radius, 0.125)
         circle_sizes.append(((center_x, center_y), radius))
     
     circle_sizes = get_indices_of_elements_in_circles(filename, circle_sizes)
@@ -208,7 +218,6 @@ if __name__ == "__main__":
     #shapes = get_indices_of_elements_in_rectangle(path)
     #shapes = get_indices_of_elements_in_circles(path)
     #plot_weird_coordinates('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5')
-
     rects, circles = get_elements_of_random_shapes(path)
+    rects.extend(circles)
     plot_triangles(path, rects)
-    plot_triangles(path, circles)

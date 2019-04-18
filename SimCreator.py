@@ -69,8 +69,8 @@ class SimCreator:
         self.triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()][:, :-1]
         self.x_bounds = (-20, 20)
         self.y_bounds = (-20, 20)
-        self.circ_radius_bounds = (1, 2)
-        self.rect_width_bounds = self.rect_height_bounds = (1, 2)
+        self.circ_radius_bounds = (1, 3)
+        self.rect_width_bounds = self.rect_height_bounds = (1, 8)
 
         self.shapes = []
         [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
@@ -117,7 +117,6 @@ class SimCreator:
         all_indices_of_elements = []
         list_of_indices_of_shape = []
         for shape in self.shapes:
-            print(shape)
             y = rounded_random(random.random() * (self.y_bounds[1] - self.y_bounds[0]) + self.y_bounds[0], 0.125)
             x = rounded_random(random.random() * (self.x_bounds[1] - self.x_bounds[0]) + self.x_bounds[0], 0.125)
             if shape.__name__ == 'Rectangle':
@@ -140,12 +139,6 @@ class SimCreator:
         # FIXME should be different values for K1 and K", currently just the same
         df['K1'] = fvc_to_k1(df['Fiber_Content'])
         df['K2'] = fvc_to_k1(df['Fiber_Content'])
-        # TODO Handle many shapes
-        # df['K1'].update(fvc_to_k1(df['Fiber_Content']))
-        # df['K2'].update(fvc_to_k1(df['Fiber_Content']))
-
-            # sigma = self.perturbation_factors[k]
-            # df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, sigma, len(df))
 
         formatters = \
         {'\#Element_ID': '{:,i}'.format,
@@ -174,7 +167,7 @@ class SimCreator:
                 index = np.where((self.all_coords[:, 0] == [i]) & (self.all_coords[:, 1] == [j]))[0]
                 if index.size != 0:
                     current_rect.append(index[0])
-        return current_rect
+        return set(current_rect)
 
     def get_coordinates_of_circle(self, centre, radius):
         current_indices = []
@@ -188,7 +181,7 @@ class SimCreator:
                         current_indices.append(index[0])
 
         #list that contains lists of the indices of circles
-        return current_indices
+        return set(current_indices)
 
     def get_elements_in_shape(self, shape):
         indices_of_elements = []
