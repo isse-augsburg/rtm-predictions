@@ -5,7 +5,7 @@ from SimCreator import SimCreator
 
 if __name__== "__main__":
     if os.environ['Write_Simulation'] == '1':
-        count = 1
+        count = 100
         perturbation_factors = \
         {
         "General_Sigma": .001,
