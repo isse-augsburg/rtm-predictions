@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from os import listdir, walk
 from os.path import isdir
+import math 
 
 #returns a sequence of simulation steps as data and the filling percentage of the last step as label 
 def get_index_sequence(filename): 
@@ -140,11 +141,31 @@ def get_single_states_and_fillings(filename):
     
     return single_states
 
-def get_sensor_sequence(filename):
-    time_stamps = [10, 20, 30, 35, 40, 45]
+def get_sensordata_and_filling_percentage(file, until=250, frm = 50):
+    f = h5py.File(file, 'r')
+    try:
+        pressure_array = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
+        all_states = f['post']['singlestate']
+        _tmp = [state for state in all_states]
+        last_filling =  f['post']['singlestate'][_tmp[-1]]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+        non_zeros = np.count_nonzero(last_filling)
+        state_count = np.shape(last_filling)[0]
+        filling = np.floor(non_zeros/state_count)
+        filling_percentage = np.array((filling, 1 - filling), dtype=np.long)
 
-    f = h5py.File(filename, 'r')
-    sensor_values = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']
+    except KeyError:
+        return None
+
+    if(np.shape(pressure_array)[0] < until):
+        return None
+    pressure_array = pressure_array[frm:until,:,:]
+    pressure_array = np.squeeze(pressure_array)
+
+    #print(np.shape(pressure_array), filling_percentage)
+
+    return([(pressure_array,filling_percentage)])
+
+
 
 
     
@@ -203,15 +224,25 @@ def load_image( f_name ) :
 # Functions to gather data within a folder
 def get_filelist_within_folder(root_directory):
     dataset_filenames = []
-    for (dirpath, _, filenames) in walk(root_directory):
-        if filenames: 
-            filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
-            dataset_filenames.extend(filenames)
+    for dirs in root_directory:
+        
+        for (dirpath, _, filenames) in walk(dirs):
+            if filenames: 
+                filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
+                dataset_filenames.extend(filenames)
+    
     return dataset_filenames  
 
 def get_folders_within_folder(root_directory):
-    for (dirpath, dirnames, _) in walk(root_directory):
-        return [dirpath+ '/' + f for f in dirnames]
+    folders = list()
+
+    for dirs in root_directory:
+
+        for (dirpath, dirnames, _) in walk(root_directory):
+            l = [dirpath+ '/' + f for f in dirnames]
+            folders.extend(l)
+            break
+    return folders
 
 
 if __name__ == "__main__":

@@ -13,13 +13,15 @@ class Master_Trainer():
         self.eval_frequency = eval_frequency
         self.savepath = savepath
         self.loss_criterion = loss_criterion
-        self.loss_criterion = self.loss_criterion.cuda()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001)
+        #self.loss_criterion = self.loss_criterion.cuda()
+        self.loss_criterion = loss_criterion.cuda()
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0001)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
     def start_training(self):
         self.__train()
+        self.__eval()
         print(">>> INFO: MASTER PROCESS TERMINATED - TRAINING COMPLETE - MISSION SUCCESS ")
 
 
@@ -58,11 +60,14 @@ class Master_Trainer():
                     label = torch.unsqueeze(label,0)
                     data = torch.unsqueeze(data, 0)
                     output = self.model(data)
-                    loss = loss + self.loss_criterion(output, label).item()
+                    print(output,label)
+                    l = self.loss_criterion(output, label).item()
+                    loss = loss + l
+                    print("loss:", l)
                     #print(output.item(), label.item())
 
                 loss = loss / len(self.validationList)
-                print(">>>RMSE on Eval:", "{:8.4f}".format(np.sqrt(loss)))
+                print(">>>RMSE on Eval:", "{:8.4f}".format((loss)))
                 self.model.train()
 
     def saveModel(self):
