@@ -28,6 +28,16 @@ def get_paths_to_files(root_directory):
             dataset_filenames.extend(filenames)
     return dataset_filenames   
 
+
+def get_filelist_within_folder(root_directory):
+    dataset_filenames = []
+    for (dirpath, _, filenames) in walk(root_directory):
+        if filenames: 
+            filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
+            dataset_filenames.extend(filenames)
+    return dataset_filenames 
+
+
 def get_states_and_fillings(filename):
         
     f = h5py.File(filename, 'r')
@@ -55,7 +65,7 @@ def get_states_and_fillings(filename):
         except KeyError as e:
             #print("KeyError in file", filename)
             continue
-
+   
     plt.plot(labels, filling_percentages)
     plt.show()
     
@@ -80,6 +90,30 @@ def get_all_sequences_for_file(filename, t_begin, t_end, t_delta, t_target_offse
 
     return all_sequences
 
+
+def print_last_fillingstate(filename):
+    f = h5py.File(filename, 'r')
+
+    
+    all_states = f['post']['singlestate']
+    s_list = [state for state in all_states]
+    state = s_list[-1]
+
+    
+    
+    try:
+        last_filling_factor =  f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+        label = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
+        last_filling_factor = last_filling_factor.flatten()
+        non_zeros = np.count_nonzero(last_filling_factor)
+        state_count = np.shape(last_filling_factor)[0]
+        filling_percentage = np.array(non_zeros/state_count)
+        print(filename,filling_percentage)
+    except KeyError:
+        pass
+   
+  
+    
 
 def get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
     t_now = t_start
@@ -125,10 +159,10 @@ def get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
         
 
 
-paths = get_paths_to_files('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/')
+paths = get_filelist_within_folder('/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p/')
 
 for file in paths:
-    get_states_and_fillings(file)
+    print_last_fillingstate(file)
     #get_fillings_at_times(file,50,90,2,100)
     """ try:
         print(len(get_all_sequences_for_file(file,0,50,2,3,10,1000)))

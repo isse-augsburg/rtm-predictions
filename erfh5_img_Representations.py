@@ -15,7 +15,7 @@ def get_paths_to_files(root_directory):
     return dataset_filenames
 
 
-def create_images_for_file(filename, main_folder="/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images/"):
+def create_images_for_file(filename, main_folder="/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=home/s/c/schroeni/Data/Images_with_shapes/"):
     f = h5py.File(filename, 'r')
 
     
@@ -75,11 +75,15 @@ def create_img(target_shape = (264,264), norm_coords=None, data=None,folder ="",
         pixels[x,y] = (int(value*255))
     #img.show("test")
     img.save(str(folder)+"/"+str(filename)+".png")
+
+
 if __name__ == "__main__":
-    folder_path = "/cfs/share/data/RTM/Lautern/clean_erfh5"
+
+    create_images_for_file("/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p/91/2019-04-23_10-23-20_91_RESULT.erfh5")
+    """ folder_path = "/cfs/share/data/RTM/Lautern/clean_erfh5"
     #main_folder="Images/"
     data_list = get_paths_to_files(folder_path)
     p = Pool(5)
     p.map(create_images_for_file,data_list)
-"""  for file in data_list:
-        create_images_for_file(file) """
+    for file in data_list:
+        create_images_for_file(file) """ 
