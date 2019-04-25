@@ -1,5 +1,5 @@
 from os import listdir, walk
-from data_loaders import get_all_sequences_for_file, get_index_sequence, get_single_states_and_fillings, get_filelist_within_folder, get_folders_within_folder, get_image_state_sequence
+import data_loaders as dl
 import threading
 import time
 import random
@@ -62,7 +62,7 @@ class Thread_Safe_List():
 
 class ERFH5_DataGenerator():
 
-    def __init__(self, data_path='/home/', data_processing_function=None, data_gather_function=None, batch_size=64,  epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=2):
+    def __init__(self, data_path=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,  epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=2):
         self.data_path = data_path
         self.batch_size = batch_size
         self.epochs = epochs
@@ -78,6 +78,7 @@ class ERFH5_DataGenerator():
 
         self.data_dict = dict()
         self.paths = self.data_gather(self.data_path)
+        random.shuffle(self.paths)
 
         
         self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
@@ -111,8 +112,12 @@ class ERFH5_DataGenerator():
         return self.batch_queue.__len__()   
 
     def __fill_validation_list(self):
+        if len(self.paths) == 0:
+            raise Exception("No file paths found")
+
         while len(self.validation_list) < self.num_validation_samples:
 
+            #If IndexError here: files are all too short 
             sample = self.paths[0]			
             self.paths = self.paths[1:]
             instance = self.data_function(sample)
@@ -191,9 +196,11 @@ class ERFH5_DataGenerator():
 
 if __name__ == "__main__":
 
-    generator = ERFH5_DataGenerator(data_path= "/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images",
-                                    batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder)
-
-    
+    """ generator = ERFH5_DataGenerator(data_path= "/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images",
+                                    batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
+    #'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
+    #'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
+    generator = ERFH5_DataGenerator(data_path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/',
+        data_processing_function=dl.get_index_sequence, data_gather_function=dl.get_filelist_within_folder, batch_size=2, epochs=2, max_queue_length=16)
     for data, label in generator:
         print(data.size(), label.size())
