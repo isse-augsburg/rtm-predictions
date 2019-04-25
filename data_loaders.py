@@ -213,7 +213,7 @@ def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label
     return [(data, label)]
 
 
-def get_sensordata_and_filling_percentage(file, until=400, frm = 0):
+def get_sensordata_and_filling_percentage_v2(file, until=400, frm = 0):
     f = h5py.File(file, 'r')
     try:
         pressure_array = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
