@@ -27,6 +27,11 @@ class Thread_Safe_List():
         # self.lock.release()
         return length
 
+    def randomise(self):
+        self.lock.acquire()
+        random.shuffle(self.list)
+        self.lock.release()
+
     def put(self, element):
 
         while len(self.list) >= self.max_length and self.max_length != -1:

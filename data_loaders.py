@@ -141,6 +141,23 @@ def get_single_states_and_fillings(filename):
     
     return single_states
 
+
+def get_all_sensor_sequences(file, spacing=10, length=100):
+    print(file)
+    l = []
+    start = 0
+    finish = length
+    res = get_sensordata_and_filling_percentage(file, until=finish, frm=start)
+    while res is not None:
+        l.extend(res)
+        start += spacing
+        finish += spacing
+        res = get_sensordata_and_filling_percentage(file, until=finish, frm=start)
+        
+    if len(l) == 0:
+        return None
+    return l
+
 def get_sensordata_and_filling_percentage(file, until=250, frm = 50):
     f = h5py.File(file, 'r')
     try:
@@ -314,12 +331,12 @@ def get_folders_within_folder(root_directory):
 
 if __name__ == "__main__":
 
-    files = get_filelist_within_folder('/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/')
+    files = get_filelist_within_folder(['/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'])
     for f in files:
-        r = get_sensordata_and_flowfront(f)
+        r = get_all_sensor_sequences(f)
         if r is not None:
-            for d in r:
-                print(np.shape(d[0]), np.shape(d[1]))
+            print(len(r))
+        
         
     
     
