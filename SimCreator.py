@@ -77,8 +77,18 @@ def zip_folder(path, delete_after=True):
 
 class SimCreator:
     def __init__(self, perturbation_factors=None, count=20):
+        current_os = os.name
         self.save_to_h5_data = {}
-        self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat')
+        if os.name == 'nt':
+            self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat')
+            data_path = Path(r'Y:\data\RTM\Lautern')
+            self.solver_input_folder = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
+            self.perturbation_factors_str, self.initial_timestamp, self.count))
+            self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts')
+        else:
+            self.vebatch_exec = 'vebatch'
+        self.solved_sims = data_path / 'output'
+
         self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
         if perturbation_factors is None:
@@ -95,8 +105,7 @@ class SimCreator:
         self.max_sim_step = 1500
         self.max_injection_time = 800000
 
-        self.solved_sims            = Path(r'Y:\data\RTM\Lautern\output')
-        sources_path                = Path(r'Y:\data\RTM\Lautern\sources')
+        sources_path = data_path / 'sources'
         self.original_lperm         = sources_path / 'k1_k2_equal_one_layer.lperm'
         self.vdb_origin             = sources_path / 'flawless_one_layer.vdb'
         self.reference_erfh5        = sources_path / 'flawless_RESULT.erfh5'
@@ -117,8 +126,6 @@ class SimCreator:
             self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
             self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
 
-        self.solver_input_folder    = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (self.perturbation_factors_str, self.initial_timestamp, self.count))
-        self.slurm_scripts_folder   = Path(r'X:\s\t\stiebesi\slurm_scripts')
         self.slurm_partition        = "big-cpu"
 
         self.slurm_scripts = []
@@ -349,6 +356,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
                 copy2(str(e) + end, str(stem) + end)
                 if end == 'g.unf':
                     self.unf_files_on_storage.append(Path(str(stem) + 'g.unf').as_posix().replace('Y:', '/cfs/share'))
+                    #TODO fix for posix
 
     def run(self):
         self.create_folder_structure_and_perturbate_kN()
