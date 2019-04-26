@@ -79,6 +79,9 @@ class SimCreator:
     def __init__(self, perturbation_factors=None, count=20):
         current_os = os.name
         self.save_to_h5_data = {}
+        self.perturbation_factors_str = 'with_shapes'# re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
+        self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.count = count
         if os.name == 'nt':
             self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat')
             data_path = Path(r'Y:\data\RTM\Lautern')
@@ -86,17 +89,17 @@ class SimCreator:
             self.perturbation_factors_str, self.initial_timestamp, self.count))
             self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts')
         else:
-            self.vebatch_exec = 'vebatch'
+            self.vebatch_exec = '/usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh'
+            data_path = Path('/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=share/data/RTM/Lautern')
+            self.solver_input_folder = Path(r'/home/stieber/data/output/%s/%s_%dp' % (
+            self.perturbation_factors_str, self.initial_timestamp, self.count))
+            self.slurm_scripts_folder = Path(r'/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=home/s/t/stiebesi/slurm_scripts')
         self.solved_sims = data_path / 'output'
-
-        self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
         if perturbation_factors is None:
             self.perturbation_factors = {}
         else:
             self.perturbation_factors = perturbation_factors
-        self.perturbation_factors_str = 'with_shapes'# re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
-        self.count = count
         self.num_hosts = 10
         self.num_cpus = 32
 
