@@ -61,9 +61,13 @@ class SimCreator:
         self.max_injection_time = 800000
 
         self.solved_sims            = Path(r'Y:\data\RTM\Lautern\output')
-        self.original_lperm         = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\k1_k2_equal_one_layer.lperm')
-        self.vdb_origin             = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\flawless_one_layer.vdb')
-        self.reference_erfh5        = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless\flawless_RESULT.erfh5')
+        sources_path = Path(r'Y:\data\RTM\Lautern\sources')
+        self.original_lperm         = sources_path / 'k1_k2_equal_one_layer.lperm'
+        self.vdb_origin             = sources_path / 'flawless_one_layer.vdb'
+        self.reference_erfh5        = sources_path / 'flawless_RESULT.erfh5'
+        # self.original_lperm         = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\k1_k2_equal_one_layer.lperm')
+        # self.vdb_origin             = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\flawless_one_layer.vdb')
+        # self.reference_erfh5        = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless\flawless_RESULT.erfh5')
 
         f = h5py.File(self.reference_erfh5, 'r')
         self.all_coords= f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()][:, :-1]
