@@ -1,11 +1,11 @@
 import time
 import os
 import analizer
-from SimCreator import SimCreator
+from SimCreator import SimCreator, zip_folder
 
 if __name__== "__main__":
     if os.environ['Write_Simulation'] == '1':
-        count = 100
+        count = 1
         perturbation_factors = \
         {
         "General_Sigma": .001,
@@ -13,13 +13,13 @@ if __name__== "__main__":
             {
                 "Rectangles":
                     {
-                        "Num": 5,
+                        "Num": 10,
                         "Fiber_Content":
                             [-.3, .3]
                     },
                 "Circles":
                     {
-                        "Num": 5,
+                        "Num": 10,
                         "Fiber_Content": [-.3, 0]
                     }
             }

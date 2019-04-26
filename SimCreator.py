@@ -1,5 +1,7 @@
 import random
 import re
+import shutil
+import zipfile
 from functools import partial
 import os
 import h5py
@@ -32,6 +34,7 @@ def derive_k1k2_from_fvc(fvcs):
     z = np.polyfit(x, y, 3)
     f = np.poly1d(z)
 
+
 def fvc_to_k1(fvc):
     return 1.00000000e-06 * np.exp(-1.86478393e+01*fvc)
 
@@ -39,17 +42,49 @@ def fvc_to_k1(fvc):
 def rounded_random(value, minClip):
     return round(float(value)/ minClip) * minClip
 
-# def fit_func(x, a, b):
-#     return a*np.exp(b*x)
-# params = curve_fit(fit_func2, x, y)
+
+def create_vdbs_from_parent_folder(parent_folder):
+    s = SimCreator()
+    p = Path(parent_folder)
+    s.dirs_with_stems = [x.parent / x.stem for x in p.glob('**/*.lperm')]
+    s.create_vdbs()
+
+
+def create_unfs_from_parent_folder(parent_folder, folder_on_storage=r'Y:\data\RTM\Lautern\output'):
+    s = SimCreator()
+    p = Path(parent_folder)
+    s.dirs_with_stems = [x.parent / x.stem for x in p.glob('**/*.lperm')]
+    s.create_unfs_et_al()
+    s.alter_dat_files()
+    s.solved_sims = folder_on_storage
+    s.copy_simfiles_to_cluster()
+    s.write_slurm_scripts()
+
+
+def zip_folder(path, delete_after=True):
+    print(f'Zipping {path} ...')
+    t0 = time.time()
+    ps = [x for x in Path(path).glob('**/*') if x.is_file()]
+    zip_file = zipfile.ZipFile(path + '.zip', 'w')
+    with zip_file:
+        for file in ps:
+            zip_file.write(file, compress_type=zipfile.ZIP_DEFLATED)
+    print(f'Zipping took {time.time() - t0:.0f} seconds.')
+    if delete_after:
+        print(f'Deleting {path} ...')
+        shutil.rmtree(path)
+
 
 class SimCreator:
-    def __init__(self, perturbation_factors, count=20):
+    def __init__(self, perturbation_factors=None, count=20):
         self.save_to_h5_data = {}
         self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat')
         self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
-        self.perturbation_factors = perturbation_factors
+        if perturbation_factors is None:
+            self.perturbation_factors = {}
+        else:
+            self.perturbation_factors = perturbation_factors
         self.perturbation_factors_str = 'with_shapes'# re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
         self.count = count
         self.num_hosts = 10
@@ -61,13 +96,10 @@ class SimCreator:
         self.max_injection_time = 800000
 
         self.solved_sims            = Path(r'Y:\data\RTM\Lautern\output')
-        sources_path = Path(r'Y:\data\RTM\Lautern\sources')
+        sources_path                = Path(r'Y:\data\RTM\Lautern\sources')
         self.original_lperm         = sources_path / 'k1_k2_equal_one_layer.lperm'
         self.vdb_origin             = sources_path / 'flawless_one_layer.vdb'
         self.reference_erfh5        = sources_path / 'flawless_RESULT.erfh5'
-        # self.original_lperm         = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\k1_k2_equal_one_layer.lperm')
-        # self.vdb_origin             = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless_one_layer\flawless_one_layer.vdb')
-        # self.reference_erfh5        = Path(r'C:\Data\0_RTM_data\Data\Lautern\flawless\flawless_RESULT.erfh5')
 
         f = h5py.File(self.reference_erfh5, 'r')
         self.all_coords= f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()][:, :-1]
@@ -79,10 +111,11 @@ class SimCreator:
         self.grid_step = 0.125
 
         self.shapes = []
-        [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
-        [self.shapes.append(Circle) for x in range(self.perturbation_factors['Shapes']['Circles']['Num'])]
-        self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
-        self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
+        if len(self.perturbation_factors.keys()) > 0:
+            [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
+            [self.shapes.append(Circle) for x in range(self.perturbation_factors['Shapes']['Circles']['Num'])]
+            self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
+            self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
 
         self.solver_input_folder    = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (self.perturbation_factors_str, self.initial_timestamp, self.count))
         self.slurm_scripts_folder   = Path(r'X:\s\t\stiebesi\slurm_scripts')
@@ -149,7 +182,7 @@ class SimCreator:
                             "radius": radius,
                       }
                 }
-            self.save_to_h5_data['shapes'].apend(_dict)
+            self.save_to_h5_data['shapes'].append(_dict)
 
             indices_of_elements = self.get_elements_in_shape(list_of_indices_of_shape)
             df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
@@ -224,6 +257,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             py_vdb_lines = [resources.import_lperm % (var_count, var_count, f'{dir_stem}.lperm', var_count),
                             resources.export_file % f'{dir_stem}.vdb']
             py_vdb_blocks.append(''.join(py_vdb_lines))
+            var_count += 1
 
         self.fn_vdb_writer = os.path.join(self.solver_input_folder, 'vdb_writerpy2.py')
         py_vdb_for_one_call = ''.join(py_vdb_blocks)
@@ -324,3 +358,4 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         self.alter_dat_files()
         self.copy_simfiles_to_cluster()
         self.write_slurm_scripts()
+        zip_folder(self.solver_input_folder, delete_after=True)
