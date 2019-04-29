@@ -1,0 +1,145 @@
+Host Name: "swtse147"
+Host ID  : 901b0e179ee2
+Platform : amd64_linux
+VisualHost Framework Rev. 5678  
+VE PKG181130 
+Console output written in /home/stieber/data/output/with_shapes/2019-04-26_16-31-55_1p/VisualHostConsole-swtse147-190426-165545.log.
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_COMPOSER
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_COMPOSER
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_AM
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_ASSEMBLY
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_CADCLEAN
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_CAST
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_CEM
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_CFD
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_CRASH_DYNA
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_CRASH_PAM
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_CRASH_RAD
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+
+ERROR: FLEXnet Error:
+
+ERROR: Warning -18 = License server system does not support this feature.
+Feature:       VISUAL_DIEMAKER
+License path:  26000@swtlicense:
+FlexNet Licensing error:-18,147
+For further information, refer to the FlexNet Licensing documentation,
+available at "www.flexerasoftware.com".
+Current session is written in /home/stieber/VE/14_5/vsession_190426_165545_21735.py 
+Visual-Environment 14.5 (PKG181130) based on VisualHost framework 14.5  (Rev. 5678)
+License strategy is defined by the end-user FEATURE
+
+-exit detected in command line parameters.(base)
+
+Python 3.7.3 (default, Mar 27 2019, 22:11:17) 
+[GCC 7.3.0] :: Anaconda, Inc. on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> str = ''' /usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "/home/stieber/data/output/with_shapes/2019-04-26_16-31-55_1p/vdb_writerpy2.py" -nodisplay -exit'''
+>>> import subprocess
+>>> import shlex
+>>> subprocess.call(shlex.split(str), shell=True)
+
+Loading Visual-Environment 14.5   Please wait ...
+Toolkit: D-Cubed not availableToolkit: iCapp version: 'iCappNurbsLib 2016.300Sep 13 2016 09:56:24'.
+
+ ******************************************************************************
+ ******************************************************************************
+ **                                                                          **
+ **    If the application is slow in the debugger, try to set following      **
+ **    environment variable before launching the debugger:                   **
+ **                                                                          **
+ **    set _NO_DEBUG_HEAP=1                                                  **
+ **                                                                          **
+ ******************************************************************************
+ ******************************************************************************
+
+test
+0
+>>> 
