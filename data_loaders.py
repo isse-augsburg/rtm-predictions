@@ -253,11 +253,45 @@ def get_sensordata_and_filling_percentage_v2(file, until=400, frm = 0):
 
     return([(pressure_array,filling_percentage)])
 
+def normalize_coords(coords):
+    max_c = np.max(coords)
+    min_c = np.min(coords)
+    coords = coords - min_c
+    coords = coords /(max_c-min_c)
+    return coords
+
+def create_np_image(target_shape = (150,150), norm_coords=None, data=None,):
+    if norm_coords is None or data is None:
+        print("ERROR")
+        return
+    assert np.shape(norm_coords)[0] == np.shape(data)[0]
+    
+    arr = np.zeros(target_shape)
+
+
+    data = np.expand_dims(data, axis=1)
+    coords_value = np.append(norm_coords,data ,axis=1)
+    coords_value[:,0] = coords_value[:,0]*(target_shape[0]-1)
+    coords_value[:,1] = coords_value[:,1]*(target_shape[1]-1)
+    coords_value[:,2] = coords_value[:,2]*255
+    coords_value = coords_value.astype(np.int)
+    arr[coords_value[:,0],coords_value[:,1]] = coords_value[:,2] 
+    
+    
+    return arr
+
+
 
 def get_sensordata_and_flowfront(file):
     f = h5py.File(file, 'r')
     instances = []
     try:
+
+        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+        # Cut off last column (z), since it is filled with 1s anyway
+        _coords = coord_as_np_array[:, :-1]
+        _coords = normalize_coords(_coords)
+
         pressure_array = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
         all_states = f['post']['singlestate']
 
@@ -271,7 +305,8 @@ def get_sensordata_and_flowfront(file):
                 state_num = int(s)
                 sensordata = np.squeeze(pressure_array[state_num-1])
                 #print(state_num, np.shape(filling), np.shape(sensordata))
-                instances.append((sensordata, filling))
+                arr = create_np_image(norm_coords=_coords,data=filling)
+                instances.append((sensordata, arr))
             except IndexError:
                 continue
     if(len(instances) == 0):
