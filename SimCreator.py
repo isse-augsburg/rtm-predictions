@@ -18,13 +18,15 @@ import time
 import resources
 from enum import Enum
 
+from h5writer import create_h5, write_dict_to_Hdf5
 from shapes import Rectangle, Circle
 
 
 class OutputFrequencyType(Enum):
-    Step = "Step"
-    FillPercentage = "% Fill"
-    Time = "Time"
+    Step = "Step", 0
+    FillPercentage = "% Fill", 1
+    Time = "Time", 2
+
 
 
 def derive_k1k2_from_fvc(fvcs):
@@ -65,21 +67,26 @@ def zip_folder(path, delete_after=True):
     print(f'Zipping {path} ...')
     t0 = time.time()
     ps = [x for x in Path(path).glob('**/*') if x.is_file()]
-    zip_file = zipfile.ZipFile(path + '.zip', 'w')
+    zip_file = zipfile.ZipFile(str(path) + '.zip', 'w')
     with zip_file:
         for file in ps:
-            zip_file.write(file, compress_type=zipfile.ZIP_DEFLATED)
+            zip_file.write(str(file), compress_type=zipfile.ZIP_DEFLATED)
     print(f'Zipping took {time.time() - t0:.0f} seconds.')
     if delete_after:
         print(f'Deleting {path} ...')
         shutil.rmtree(path)
+    return str(path) + '.zip'
 
 
 class SimCreator:
     def __init__(self, perturbation_factors=None, count=20):
         current_os = os.name
-        self.save_to_h5_data = {}
-        self.perturbation_factors_str = 'with_shapes'# re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
+        self.output_frequency_type = OutputFrequencyType.Time
+        self.save_to_h5_data = {'output_frequency_type': self.output_frequency_type.value[1],
+                                'perturbation_factors': perturbation_factors}
+        self.perturbation_factors_str = 'with_shapes'
+        # f"with_{perturbation_factors['Shapes']['Rectangles']['Num']}_Rect_{perturbation_factors['Shapes']['Circles']['Num']}_Circ"
+        # + re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
         self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.count = count
         if os.name == 'nt':
@@ -94,8 +101,9 @@ class SimCreator:
             self.solver_input_folder = Path(r'/home/stieber/data/output/%s/%s_%dp' % (
             self.perturbation_factors_str, self.initial_timestamp, self.count))
             self.slurm_scripts_folder = Path(r'/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=home/s/t/stiebesi/slurm_scripts')
-        self.solved_sims = data_path / 'output'
 
+        self.solved_sims = data_path / 'output'
+        self.sim_files_data_heap = data_path / 'simulation_files'
         if perturbation_factors is None:
             self.perturbation_factors = {}
         else:
@@ -103,7 +111,6 @@ class SimCreator:
         self.num_hosts = 10
         self.num_cpus = 32
 
-        self.output_frequency_type = OutputFrequencyType.Time
         self.output_frequency = 0.5
         self.max_sim_step = 1500
         self.max_injection_time = 800000
@@ -219,6 +226,9 @@ class SimCreator:
         lperm_str = df.to_string(formatters=formatters, index=False)
         with open(fn, 'w') as f:
             f.write(lperm_str)
+        fn2 = f'{self.initial_timestamp}_{count}_meta_data'
+        f = create_h5(str(dir / fn2))
+        write_dict_to_Hdf5(f, self.save_to_h5_data)
         return Path(dir / f'{self.initial_timestamp}_{count}')
 
     def get_coordinates_of_rectangle(self, lower_left, height, width):
@@ -255,7 +265,7 @@ class SimCreator:
     def write_solver_input(self):
         str = \
 f'''
-VCmd.SetStringValue( var3, r"OutputFrequencyType", r"{self.output_frequency_type.name}" )
+VCmd.SetStringValue( var3, r"OutputFrequencyType", r"{self.output_frequency_type.value[0]}" )
 VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         py_script_str = resources.python2_script_X_vdbs % (self.vdb_origin, self.max_injection_time, str)
         used_var_nums_in_script = 3 + 1 # starts with 1
@@ -350,7 +360,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
                     f.writelines(lines)
 
     def copy_simfiles_to_cluster(self):
-        f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat']
+        f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat', '_meta_data.hdf5']
         for e in self.dirs_with_stems:
             p = Path(str(self.solved_sims) + '/' + '/'.join(e.parts[-4:-1]))
             p.mkdir(parents=True, exist_ok=True)
@@ -369,4 +379,5 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         self.alter_dat_files()
         self.copy_simfiles_to_cluster()
         self.write_slurm_scripts()
-        zip_folder(self.solver_input_folder, delete_after=True)
+        zip_fn = zip_folder(self.solver_input_folder, delete_after=True)
+        shutil.move(zip_fn, self.sim_files_data_heap)

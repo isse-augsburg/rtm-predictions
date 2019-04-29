@@ -25,7 +25,6 @@ if __name__== "__main__":
             }
         }
 
-
         sc = SimCreator(perturbation_factors, count)
         t00 = time.time()
         print(f'Creating {count} simulations.')

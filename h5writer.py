@@ -3,7 +3,7 @@ import numpy as np
 
 
 def create_h5(filename):
-    return h5py.File(filename+'.hdf5','a')
+    return h5py.File(filename+'.hdf5', 'a')
 
 
 # f - a h5py file or group, d - a dictionary
@@ -46,8 +46,6 @@ def dict_appendor(el, d):
                 d[k] = np.array(v)
             else:
                 d[k] = np.append(d[k], v)
-            
-           
 
 if __name__ == "__main__":
     d = {
