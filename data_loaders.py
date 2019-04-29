@@ -4,6 +4,7 @@ from PIL import Image
 from os import listdir, walk
 from os.path import isdir
 import random
+from tqdm import tqdm
 
 #returns a sequence of simulation steps as data and the filling percentage of the last step as label 
 def get_index_sequence(filename): 
@@ -300,15 +301,15 @@ def get_sensordata_and_flowfront(file):
     except KeyError:
         return None
     for state, filling in zip(all_states, flat_fillings):
-            try:
-                s = state.replace("state", '')
-                state_num = int(s)
-                sensordata = np.squeeze(pressure_array[state_num-1])
-                #print(state_num, np.shape(filling), np.shape(sensordata))
-                arr = create_np_image(norm_coords=_coords,data=filling)
-                instances.append((sensordata, arr))
-            except IndexError:
-                continue
+        try:
+            s = state.replace("state", '')
+            state_num = int(s)
+            sensordata = np.squeeze(pressure_array[state_num-1])
+            #print(state_num, np.shape(filling), np.shape(sensordata))
+            arr = create_np_image(norm_coords=_coords,data=filling)
+            instances.append((sensordata, arr))
+        except IndexError:
+            continue
     if(len(instances) == 0):
         return None
     return instances
@@ -368,7 +369,7 @@ if __name__ == "__main__":
 
     files = get_filelist_within_folder(['/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'])
     for f in files:
-        r = get_all_sensor_sequences(f)
+        r = get_sensordata_and_flowfront(f)
         if r is not None:
             print(len(r))
         
