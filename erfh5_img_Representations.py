@@ -7,6 +7,8 @@ from multiprocessing import Pool
 from tqdm import tqdm
 
 
+
+
 def get_paths_to_files(root_directory):
     dataset_filenames = []
     for (dirpath, dirnames, filenames) in walk(root_directory):
@@ -41,8 +43,8 @@ def create_images_for_file(filename, main_folder="/run/user/1002/gvfs/smb-share:
             
             f_name = "{:05d}".format(i) +"_"+'{:1.6f}'.format(filling_percentage)+"_" +'{:010.6f}'.format(time)
             #print(f_name)
-            #create_img(norm_coords=_coords, data=filling, folder=main_folder+folder_name, filename=f_name)
-            create_np_image(norm_coords=_coords, data=filling, folder=main_folder+folder_name, filename=f_name)
+            create_img(norm_coords=_coords, data=filling, folder=main_folder+folder_name, filename=f_name)
+            #create_np_image(norm_coords=_coords, data=filling, folder=main_folder+folder_name, filename=f_name)
         except KeyError as e:
             print(e)
             continue
@@ -80,24 +82,24 @@ def create_img(target_shape = (150,150), norm_coords=None, data=None,folder ="",
     img.save(str(folder)+"/"+str(filename)+".png")
 
 # WORK IN PROGRESS
-def create_np_image(target_shape = (150,150), norm_coords=None, data=None,folder ="", filename=""):
-    if norm_coords is None or data is None or folder is None or filename is None:
+def create_np_image(target_shape = (150,150), norm_coords=None, data=None,folder ="", ):
+    if norm_coords is None or data is None or folder is None:
         print("ERROR")
         return
     assert np.shape(norm_coords)[0] == np.shape(data)[0]
     
     arr = np.zeros(target_shape)
 
-    #coords_value = np.concatenate((norm_coords, data), axis=1)
 
-    for i, value in enumerate(data):
-        coord = norm_coords[i]
-        x,y = int(round(coord[0]*(target_shape[0]-1))), int(round(coord[1]*(target_shape[1]-1)))
-        #print(x,y)
-        #color = 'hsl(%d, 100%%,%d%%)' %(value*120, value*50)
-        #color = ImageColor.getrgb(color)
-        arr[x,y] = int(value*255)
-    #img.show("test")
+    data = np.expand_dims(data, axis=1)
+    coords_value = np.append(norm_coords,data ,axis=1)
+    coords_value[:,0] = coords_value[:,0]*(target_shape[0]-1)
+    coords_value[:,1] = coords_value[:,1]*(target_shape[1]-1)
+    coords_value[:,2] = coords_value[:,2]*255
+    coords_value = coords_value.astype(np.int)
+    arr[coords_value[:,0],coords_value[:,1]] = coords_value[:,2] 
+    
+    
     return arr
 
 
