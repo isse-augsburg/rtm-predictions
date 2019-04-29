@@ -24,8 +24,6 @@ def write_dict_to_Hdf5(f, d:dict):
             wrapped = wrap_list(v)
             write_dict_to_Hdf5(f,wrapped)
         else:
-            if type(v) is str:
-                f.create_dataset(str(k), data = v)
             f.create_dataset(str(k), data =  np.array(v))
 
 
@@ -49,7 +47,7 @@ def dict_appendor(el, d):
 
 if __name__ == "__main__":
     d = {
-    "output_frequency_type": 0,
+    "output_frequency_type": "time",
     "perturbation_factors": {
         "General_Sigma": 0.001,
         "Shapes": {
@@ -202,5 +200,5 @@ if __name__ == "__main__":
     ]
 }
 
-    f = create_h5("test8")
+    f = create_h5("test10")
     write_dict_to_Hdf5(f, d)
