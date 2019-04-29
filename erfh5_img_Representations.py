@@ -2,8 +2,9 @@ import h5py
 import numpy as np
 from os import listdir, walk
 import os
-from PIL import Image
+from PIL import Image, ImageColor
 from multiprocessing import Pool
+from tqdm import tqdm
 
 
 def get_paths_to_files(root_directory):
@@ -15,21 +16,20 @@ def get_paths_to_files(root_directory):
     return dataset_filenames
 
 
-def create_images_for_file(filename, main_folder="/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=home/s/c/schroeni/Data/Images_with_shapes/"):
+def create_images_for_file(filename, main_folder="/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=home/s/c/schroeni/Data/Images_Debug/"):
     f = h5py.File(filename, 'r')
 
     
     folder_name = filename.split('/')[-1].replace(".", "")
     print(folder_name)
     print(filename)
-    os.mkdir(main_folder+folder_name)
+    #os.mkdir(main_folder+folder_name)
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
     # Cut off last column (z), since it is filled with 1s anyway
     _coords = coord_as_np_array[:, :-1]
     _coords = normalize_coords(_coords)
     all_states = f['post']['singlestate']
-    filling_factors_at_certain_times = list()
-    for i,state in enumerate(all_states):
+    for i,state in tqdm(enumerate(all_states), total=np.shape(all_states)[0]):
         try:
             filling = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
             time = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()][0]
@@ -41,7 +41,8 @@ def create_images_for_file(filename, main_folder="/run/user/1002/gvfs/smb-share:
             
             f_name = "{:05d}".format(i) +"_"+'{:1.6f}'.format(filling_percentage)+"_" +'{:010.6f}'.format(time)
             #print(f_name)
-            create_img(norm_coords=_coords, data=filling, folder=main_folder+folder_name, filename=f_name)
+            #create_img(norm_coords=_coords, data=filling, folder=main_folder+folder_name, filename=f_name)
+            create_np_image(norm_coords=_coords, data=filling, folder=main_folder+folder_name, filename=f_name)
         except KeyError as e:
             print(e)
             continue
@@ -60,7 +61,7 @@ def normalize_coords(coords):
     coords = coords /(max_c-min_c)
     return coords
 
-def create_img(target_shape = (264,264), norm_coords=None, data=None,folder ="", filename=""):
+def create_img(target_shape = (150,150), norm_coords=None, data=None,folder ="", filename=""):
     if norm_coords is None or data is None or folder is None or filename is None:
         print("ERROR")
         return
@@ -72,9 +73,33 @@ def create_img(target_shape = (264,264), norm_coords=None, data=None,folder ="",
         coord = norm_coords[i]
         x,y = int(round(coord[0]*(target_shape[0]-1))), int(round(coord[1]*(target_shape[1]-1)))
         #print(x,y)
-        pixels[x,y] = (int(value*255))
+        #color = 'hsl(%d, 100%%,%d%%)' %(value*120, value*50)
+        #color = ImageColor.getrgb(color)
+        pixels[x,y] = int(value*255)
     #img.show("test")
     img.save(str(folder)+"/"+str(filename)+".png")
+
+# WORK IN PROGRESS
+def create_np_image(target_shape = (150,150), norm_coords=None, data=None,folder ="", filename=""):
+    if norm_coords is None or data is None or folder is None or filename is None:
+        print("ERROR")
+        return
+    assert np.shape(norm_coords)[0] == np.shape(data)[0]
+    
+    arr = np.zeros(target_shape)
+
+    #coords_value = np.concatenate((norm_coords, data), axis=1)
+
+    for i, value in enumerate(data):
+        coord = norm_coords[i]
+        x,y = int(round(coord[0]*(target_shape[0]-1))), int(round(coord[1]*(target_shape[1]-1)))
+        #print(x,y)
+        #color = 'hsl(%d, 100%%,%d%%)' %(value*120, value*50)
+        #color = ImageColor.getrgb(color)
+        arr[x,y] = int(value*255)
+    #img.show("test")
+    return arr
+
 
 
 if __name__ == "__main__":
