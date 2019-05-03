@@ -92,8 +92,12 @@ class SimCreator:
         if os.name == 'nt':
             self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat')
             data_path = Path(r'Y:\data\RTM\Lautern')
-            self.solver_input_folder = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
-            self.perturbation_factors_str, self.initial_timestamp, self.count))
+            self.solver_input_folder = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (self.perturbation_factors_str, self.initial_timestamp, self.count))
+            import socket
+            if socket.gethostname() == 'PC610-74-virtuos':
+                self.solver_input_folder = Path(r'D:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
+                self.perturbation_factors_str, self.initial_timestamp, self.count))
+
             self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts')
         else:
             self.vebatch_exec = '/usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh'
