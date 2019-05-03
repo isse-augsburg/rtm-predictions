@@ -71,7 +71,7 @@ def zip_folder(path, delete_after=True):
     with zip_file:
         for file in ps:
             zip_file.write(str(file), compress_type=zipfile.ZIP_DEFLATED)
-    print(f'Zipping took {time.time() - t0:.0f} seconds.')
+    print(f'Zipping took {(time.time() - t0)/60:.1f} minutes.')
     if delete_after:
         print(f'Deleting {path} ...')
         shutil.rmtree(path)
@@ -157,7 +157,7 @@ class SimCreator:
         with Pool() as p:
             self.dirs_with_stems = p.map(partial(self.perturbate_wrapper, keys, df), range(self.count))
         # self.dirs_with_stems =self.perturbate_wrapper(keys, df, 1)
-        print(f'Adding noise and writing all files took {time.time() - t0:.0f} seconds.')
+        print(f'Adding noise and writing all files took {(time.time() - t0)/60:.1f} minutes.')
 
     def perturbate_wrapper(self, keys, df, count, mu=0):
         new_stem = str(count)
@@ -300,7 +300,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             call_make_rest = fr'''"{self.vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -nodisplay -imp "{fn2}" -datacast -exit'''
             args2 = shlex.split(call_make_rest)
             subprocess.call(args2, shell=True, stdout=subprocess.PIPE)
-        print(f'Writing .unf files took {time.time()-t0:.0f} seconds.')
+        print(f'Writing .unf files took {(time.time()-t0)/60:.1f} minutes.')
 
     def create_vdbs(self):
         print(f'Writing .vdb files ...')
@@ -308,7 +308,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         call_make_vdb = fr''' "{self.vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{self.fn_vdb_writer}" -nodisplay -exit'''
         args = shlex.split(call_make_vdb)
         subprocess.call(args, shell=True, stdout=subprocess.PIPE)
-        print(f'Writing .vdbs took {time.time() - t0:.0f} seconds.')
+        print(f'Writing .vdbs took {(time.time() - t0)/60:.1f} minutes.')
 
     def write_slurm_scripts(self, timeout=15):
         print('Writing slurm script ...')
