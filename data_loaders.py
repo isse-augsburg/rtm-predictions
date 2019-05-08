@@ -6,6 +6,7 @@ from os.path import isdir
 import random
 import torch
 import torch.nn as nn 
+from tqdm import tqdm
 
 #returns a sequence of simulation steps as data and the filling percentage of the last step as label 
 def get_index_sequence(filename): 
@@ -257,11 +258,45 @@ def get_sensordata_and_filling_percentage_v2(file, until=400, frm = 0):
 
     return([(pressure_array,filling_percentage)])
 
+def normalize_coords(coords):
+    max_c = np.max(coords)
+    min_c = np.min(coords)
+    coords = coords - min_c
+    coords = coords /(max_c-min_c)
+    return coords
+
+def create_np_image(target_shape = (151,151), norm_coords=None, data=None,):
+    if norm_coords is None or data is None:
+        print("ERROR")
+        return
+    assert np.shape(norm_coords)[0] == np.shape(data)[0]
+    
+    arr = np.zeros(target_shape)
+
+
+    data = np.expand_dims(data, axis=1)
+    coords_value = np.append(norm_coords,data ,axis=1)
+    coords_value[:,0] = coords_value[:,0]*(target_shape[0]-1)
+    coords_value[:,1] = coords_value[:,1]*(target_shape[1]-1)
+    coords_value[:,2] = coords_value[:,2]
+    coords_value = coords_value.astype(np.int)
+    arr[coords_value[:,0],coords_value[:,1]] = coords_value[:,2] 
+    
+    
+    return arr
+
+
 
 def get_sensordata_and_flowfront(file):
     f = h5py.File(file, 'r')
     instances = []
     try:
+
+        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
+        # Cut off last column (z), since it is filled with 1s anyway
+        _coords = coord_as_np_array[:, :-1]
+        _coords = normalize_coords(_coords)
+
         pressure_array = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
         all_states = f['post']['singlestate']
 
@@ -270,14 +305,15 @@ def get_sensordata_and_flowfront(file):
     except KeyError:
         return None
     for state, filling in zip(all_states, flat_fillings):
-            try:
-                s = state.replace("state", '')
-                state_num = int(s)
-                sensordata = np.squeeze(pressure_array[state_num-1])
-                #print(state_num, np.shape(filling), np.shape(sensordata))
-                instances.append((sensordata, filling))
-            except IndexError:
-                continue
+        try:
+            s = state.replace("state", '')
+            state_num = int(s)
+            sensordata = np.squeeze(pressure_array[state_num-1])
+            #print(state_num, np.shape(filling), np.shape(sensordata))
+            arr = create_np_image(norm_coords=_coords,data=filling)
+            instances.append((sensordata, arr))
+        except IndexError:
+            continue
     if(len(instances) == 0):
         return None
     return instances
@@ -333,12 +369,21 @@ def get_folders_within_folder(root_directory):
     return folders
 
 
+def save_numpy_as_image( inputs, label, name,path="/cfs/home/s/c/schroeni/Data/Eval/",):
+    inputs = np.squeeze(inputs)
+    label = np.squeeze(label)
+    inp = Image.fromarray(np.uint8((inputs)*255))
+    lab = Image.fromarray(np.uint8((label)*255))
+    inp.save(path+"inp_"+str(name)+".bmp")
+    lab.save(path+"lab_"+str(name)+".bmp")
+
 if __name__ == "__main__":
 
     files = get_filelist_within_folder(['/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'])
     for f in files:
-        r = get_sensordata_and_filling_percentage(f)
-        
+        r = get_sensordata_and_flowfront(f)
+        if r is not None:
+            print(len(r))
         
         
     

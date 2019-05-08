@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 
 class Master_Trainer():
-    def __init__(self, model, generator:erfh5_pipeline.ERFH5_DataGenerator, loss_criterion = torch.nn.MSELoss(),train_print_frequency= 10, eval_frequency=100, savepath = "model.pth", comment="comment"):
+    def __init__(self, model, generator:erfh5_pipeline.ERFH5_DataGenerator, loss_criterion = torch.nn.MSELoss(),train_print_frequency= 10, eval_frequency=100, savepath = "model.pth" ,eval_func=None, comment="comment" ):
         self.validationList = generator.get_validation_samples()
         self.model = model
         self.generator = generator
@@ -19,6 +19,7 @@ class Master_Trainer():
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.comment = comment
+        self.eval_func = eval_func
 
 
     def start_training(self):
@@ -63,16 +64,18 @@ class Master_Trainer():
         with torch.no_grad():
                 self.model.eval()
                 loss = 0
-                for sample in self.validationList:
+                for i, sample in enumerate(self.validationList):
                     data = sample[0].to(self.device)
                     label = sample[1].to(self.device)
                     label = torch.unsqueeze(label,0)
                     data = torch.unsqueeze(data, 0)
                     output = self.model(data)
-                    print("out", output, "label", label)
+                    #print(output,label)
                     l = self.loss_criterion(output, label).item()
                     loss = loss + l
-                
+                    if (self.eval_func is not None):
+                        self.eval_func(output.cpu(),label.cpu(),str(i))
+                    #print("loss:", l)
                     #print(output.item(), label.item())
 
                 loss = loss / len(self.validationList)
