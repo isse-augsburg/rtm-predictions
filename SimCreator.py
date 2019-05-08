@@ -28,7 +28,6 @@ class OutputFrequencyType(Enum):
     Time = "Time", 2
 
 
-
 def derive_k1k2_from_fvc(fvcs):
     points = np.array([(0, 1e-6), (0.4669, 1.62609e-10), (0.5318, 5.14386e-11), (0.5518, 4.28494e-11)])
     x = points[:, 0]
@@ -89,8 +88,10 @@ class SimCreator:
         # + re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
         self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.count = count
+        self.visual_version = '14.5'
+        print(f'Using Visual Env {self.visual_version}.')
         if os.name == 'nt':
-            self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat')
+            self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\%s\Windows-x64\VEBatch.bat' % self.visual_version)
             data_path = Path(r'Y:\data\RTM\Lautern')
             self.solver_input_folder = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
             self.perturbation_factors_str, self.initial_timestamp, self.count))
@@ -285,6 +286,14 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         with open(self.fn_vdb_writer, 'w') as f:
             f.write(''.join(_str))
 
+    def create_vdbs(self):
+        print(f'Writing .vdb files ...')
+        t0 = time.time()
+        call_make_vdb = fr''' "{self.vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{self.fn_vdb_writer}" -nodisplay -exit'''
+        args = shlex.split(call_make_vdb)
+        subprocess.call(args, shell=True, stdout=subprocess.PIPE)
+        print(f'Writing .vdbs took {(time.time() - t0) / 60:.1f} minutes.')
+
     def create_unfs_et_al(self):
         print('Writing .unf files ...')
         t0 = time.time()
@@ -297,14 +306,6 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             args2 = shlex.split(call_make_rest)
             subprocess.call(args2, shell=True, stdout=subprocess.PIPE)
         print(f'Writing .unf files took {(time.time()-t0)/60:.1f} minutes.')
-
-    def create_vdbs(self):
-        print(f'Writing .vdb files ...')
-        t0 = time.time()
-        call_make_vdb = fr''' "{self.vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{self.fn_vdb_writer}" -nodisplay -exit'''
-        args = shlex.split(call_make_vdb)
-        subprocess.call(args, shell=True, stdout=subprocess.PIPE)
-        print(f'Writing .vdbs took {(time.time() - t0)/60:.1f} minutes.')
 
     def write_slurm_scripts(self, timeout=15):
         print('Writing slurm script ...')
