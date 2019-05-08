@@ -2,13 +2,15 @@ import erfh5_pipeline as pipeline
 from Generic_Trainer import Master_Trainer
 import data_loaders as dl
 import torch
+import traceback
 from torch import nn
 from erfh5_RNN_models import ERFH5_RNN
 from erfh5_autoencoder import erfh5_Distributed_Autoencoder
 from erfh5_ConvModel import erfh5_Conv3d
 from erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
+from erfh5_DeconvModel import DeconvModel
 
-batchsize = 512
+batchsize = 256
 max_Q_len= batchsize * 16
 epochs = 80
 #path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'
@@ -17,7 +19,7 @@ path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p
 
 def create_dataGenerator_pressure_flowfront():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_path= "/cfs/share/data/RTM/Lautern/",num_validation_samples=1000,
+        generator = pipeline.ERFH5_DataGenerator(data_path= path,num_validation_samples=100,
                                     batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, data_processing_function=dl.get_sensordata_and_flowfront, data_gather_function=dl.get_filelist_within_folder)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
@@ -27,7 +29,7 @@ def create_dataGenerator_pressure_flowfront():
 
 def create_dataGenerator_Pressure_percentage():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_path= "/cfs/share/data/RTM/Lautern/",num_validation_samples=10,
+        generator = pipeline.ERFH5_DataGenerator(data_path= path,num_validation_samples=10,
                                     batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, data_processing_function=dl.get_sensordata_and_filling_percentage, data_gather_function=dl.get_filelist_within_folder)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
@@ -94,11 +96,25 @@ if __name__ == "__main__":
     #generator = create_dataGenerator_IMG()
     #generator = create_dataGenerator_index_sequence()
     #generator = create_dataGenerator_single_state()
-    model = ERFH5_PressureSequence_Model()
-    generator = create_dataGenerator_pressure_sequence()
-    
-    model = nn.DataParallel(model).to('cuda:0')
+    #model = ERFH5_PressureSequence_Model()
+    #generator = create_dataGenerator_pressure_sequence()
 
-    train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss())
+
+    print(">>> INFO: Generating Model")
+    model = DeconvModel()
+    print(">>> INFO: Generating Generator")
+    generator = create_dataGenerator_pressure_flowfront()
+    print(">>> INFO: Model to GPU")
+    model = nn.DataParallel(model).to('cuda:0')
+    print(">>> INFO: Generating Trainer")
+    train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.MSELoss(), eval_func=dl.save_numpy_as_image)
+    print(">>> INFO: The Training Will Start Shortly")
+
+    
+   
+
+    
+
+   
 
     train_wrapper.start_training()

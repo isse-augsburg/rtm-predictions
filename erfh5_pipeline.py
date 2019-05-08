@@ -67,7 +67,7 @@ class Thread_Safe_List():
 
 class ERFH5_DataGenerator():
 
-    def __init__(self, data_path=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,  epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=2):
+    def __init__(self, data_path=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,  epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=4):
         self.data_path = data_path
         self.batch_size = batch_size
         self.epochs = epochs
@@ -82,6 +82,7 @@ class ERFH5_DataGenerator():
                 "No data processing or reading function specified!")
 
         self.data_dict = dict()
+        print(">>> Generator: Gathering Data...")
         self.paths = self.data_gather(self.data_path)
         random.shuffle(self.paths)
 
@@ -90,9 +91,10 @@ class ERFH5_DataGenerator():
         self.path_queue = Thread_Safe_List()
         self.validation_list = []
         self.barrier = threading.Barrier(self.num_workers)
-
+        print(">>> Generator: Filling Validation List...")
         self.__fill_validation_list()
 
+        print(">>> Generator: Filling Path Queue...")
         try:
             self.__fill_path_queue()
         except Exception as e:

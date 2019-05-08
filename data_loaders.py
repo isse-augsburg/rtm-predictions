@@ -261,7 +261,7 @@ def normalize_coords(coords):
     coords = coords /(max_c-min_c)
     return coords
 
-def create_np_image(target_shape = (150,150), norm_coords=None, data=None,):
+def create_np_image(target_shape = (151,151), norm_coords=None, data=None,):
     if norm_coords is None or data is None:
         print("ERROR")
         return
@@ -274,7 +274,7 @@ def create_np_image(target_shape = (150,150), norm_coords=None, data=None,):
     coords_value = np.append(norm_coords,data ,axis=1)
     coords_value[:,0] = coords_value[:,0]*(target_shape[0]-1)
     coords_value[:,1] = coords_value[:,1]*(target_shape[1]-1)
-    coords_value[:,2] = coords_value[:,2]*255
+    coords_value[:,2] = coords_value[:,2]
     coords_value = coords_value.astype(np.int)
     arr[coords_value[:,0],coords_value[:,1]] = coords_value[:,2] 
     
@@ -288,7 +288,7 @@ def get_sensordata_and_flowfront(file):
     instances = []
     try:
 
-        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
         _coords = normalize_coords(_coords)
@@ -364,6 +364,14 @@ def get_folders_within_folder(root_directory):
             break
     return folders
 
+
+def save_numpy_as_image( inputs, label, name,path="/cfs/home/s/c/schroeni/Data/Eval/",):
+    inputs = np.squeeze(inputs)
+    label = np.squeeze(label)
+    inp = Image.fromarray(np.uint8((inputs)*255))
+    lab = Image.fromarray(np.uint8((label)*255))
+    inp.save(path+"inp_"+str(name)+".bmp")
+    lab.save(path+"lab_"+str(name)+".bmp")
 
 if __name__ == "__main__":
 
