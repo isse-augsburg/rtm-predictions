@@ -4,6 +4,8 @@ from PIL import Image
 from os import listdir, walk
 from os.path import isdir
 import random
+import torch
+import torch.nn as nn 
 
 #returns a sequence of simulation steps as data and the filling percentage of the last step as label 
 def get_index_sequence(filename): 
@@ -37,6 +39,7 @@ def get_index_sequence(filename):
     return [(flat_fillings, filling_percentage)]
 
 def get_all_sequences_for_file(filename):
+    
     all_sequences = list()
     t_begin = 0
     t_end = 10
@@ -142,8 +145,8 @@ def get_single_states_and_fillings(filename):
     return single_states
 
 
-def get_all_sensor_sequences(file, spacing=10, length=100):
-    print(file)
+def get_all_sensor_sequences(file, spacing=25, length=150):
+  
     l = []
     start = 0
     finish = length
@@ -158,7 +161,7 @@ def get_all_sensor_sequences(file, spacing=10, length=100):
         return None
     return l
 
-def get_sensordata_and_filling_percentage(file, until=250, frm = 50):
+def get_sensordata_and_filling_percentage(file, until=-1, frm = 0):
     f = h5py.File(file, 'r')
     try:
         pressure_array = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
@@ -173,9 +176,10 @@ def get_sensordata_and_filling_percentage(file, until=250, frm = 50):
     except KeyError:
         return None
 
-    if(np.shape(pressure_array)[0] < until):
+    if(np.shape(pressure_array)[0] < frm):
         return None
     pressure_array = pressure_array[frm:until,:,:]
+    #pressure_array = pressure_array[-frm:,:,:]
     pressure_array = np.squeeze(pressure_array)
 
     #print(np.shape(pressure_array), filling_percentage)
@@ -333,9 +337,8 @@ if __name__ == "__main__":
 
     files = get_filelist_within_folder(['/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'])
     for f in files:
-        r = get_all_sensor_sequences(f)
-        if r is not None:
-            print(len(r))
+        r = get_sensordata_and_filling_percentage(f)
+        
         
         
     

@@ -17,14 +17,14 @@ class ERFH5_RNN(nn.Module):
 
        
         self.lstm = nn.LSTM(input_dim, hidden_dim,
-                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0)
+                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.2)
 
-        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 1024)
-        self.hidden2hidden2 = nn.Linear(1024, 512)
-        self.hidden2hidden3 = nn.Linear(512, 256)
-        self.hidden2hidden4 = nn.Linear(256, 128)
-        self.hidden2value = nn.Linear(128, 2)
-        self.drop = nn.Dropout(0.4)
+        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 600)
+        self.hidden2hidden2 = nn.Linear(600, 400)
+        self.hidden2hidden3 = nn.Linear(400, 200)
+        self.hidden2hidden4 = nn.Linear(200, 100)
+        self.hidden2value = nn.Linear(100, 2)
+        self.drop = nn.Dropout(0.30)
        
 
         self.init_weights()
@@ -76,10 +76,11 @@ class ERFH5_RNN(nn.Module):
 class ERFH5_Pressure_CNN(nn.Module):
     def __init__(self):
         super(ERFH5_Pressure_CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 8, (1, 7))
+        self.conv1 = nn.Conv2d(1, 8, (1, 7), dilation=1)
         self.conv2 = nn.Conv2d(8, 16, (1, 5))
-        self.conv3 = nn.Conv2d(16, 32, (1, 5))
-        self.pool = nn.MaxPool2d((1, 2), (1, 2))
+        self.conv3 = nn.Conv2d(16, 32, (1, 7))
+        self.conv4 = nn.Conv2d(32, 64, (1, 5))
+        self.pool = nn.MaxPool2d((2, 2), (2, 2))
         self.drop = nn.Dropout(0.4)
 
     def forward(self, x):
@@ -98,9 +99,10 @@ class ERFH5_PressureSequence_Model(nn.Module):
     def __init__(self):
         super(ERFH5_PressureSequence_Model, self).__init__()
         self.cnn = ERFH5_Pressure_CNN()
-        self.rnn = ERFH5_RNN(input_dim=32*82)
+        self.rnn = ERFH5_RNN(input_dim=2560)
 
     def forward(self, x):
+    
         out = self.cnn(x)
         out = out.permute(0, 2, 1, 3)
         out = out.reshape((out.size()[0], out.size()[1], -1))
@@ -111,15 +113,16 @@ class ERFH5_PressureSequence_Model(nn.Module):
 
 
 if __name__ == "__main__":
-    path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'
+    path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
     generator = pipeline.ERFH5_DataGenerator(
         path, data_processing_function = dl.get_sensordata_and_filling_percentage, data_gather_function = dl.get_filelist_within_folder,
-            batch_size=8, epochs=1 ,max_queue_length=32, num_validation_samples=1)
+            batch_size=1, epochs=1 ,max_queue_length=32, num_validation_samples=1)
     model = ERFH5_PressureSequence_Model()
     loss_criterion = torch.nn.MSELoss()
 
     for inputs, labels in generator: 
-        print("labels", labels)
+        
+        print("inputs", inputs.size())
         out = model(inputs)
         print(out)
         loss = loss_criterion(out, labels)

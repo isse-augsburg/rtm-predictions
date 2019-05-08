@@ -28,9 +28,12 @@ class Thread_Safe_List():
         return length
 
     def randomise(self):
-        self.lock.acquire()
-        random.shuffle(self.list)
-        self.lock.release()
+        while not self.finished:
+            self.lock.acquire()
+            random.shuffle(self.list)
+            print(">>>INFO: Successfully shuffeled batch queue")
+            self.lock.release()
+            time.sleep(10)
 
     def put(self, element):
 
@@ -92,17 +95,22 @@ class ERFH5_DataGenerator():
         self.barrier = threading.Barrier(self.num_workers)
 
         self.__fill_validation_list()
-
         try:
             self.__fill_path_queue()
         except Exception as e:
             raise e
-
-
-
+    
         for i in range(self.num_workers):
             t_batch = threading.Thread(target=self.__fill_batch_queue)
             t_batch.start()
+        self.t_shuffle = threading.Thread(target=self.__shuffle_batch_queue)
+        self.t_shuffle.start()
+   
+
+    def __shuffle_batch_queue(self):
+        
+        self.batch_queue.randomise()
+
 
     def __fill_path_queue(self):
         if len(self.paths) == 0:
@@ -126,6 +134,7 @@ class ERFH5_DataGenerator():
             sample = self.paths[0]			
             self.paths = self.paths[1:]
             instance = self.data_function(sample)
+            print(type(instance))
 
             # data_function must return [(data, label) ... (data, label)]
             if instance is None:
@@ -183,6 +192,7 @@ class ERFH5_DataGenerator():
     def __next__(self):
         try:
             batch = self.batch_queue.get(self.batch_size)
+            
         except StopIteration as e:
             raise e
 
@@ -201,11 +211,12 @@ class ERFH5_DataGenerator():
 
 if __name__ == "__main__":
 
-    """ generator = ERFH5_DataGenerator(data_path= "/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images",
+    """ generator = ERFH5_DataGenerator(data_path= ["/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images"],
                                     batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
     #'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
     #'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
-    generator = ERFH5_DataGenerator(data_path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/',
-        data_processing_function=dl.get_index_sequence, data_gather_function=dl.get_filelist_within_folder, batch_size=2, epochs=2, max_queue_length=16)
+    print("sers")
+    generator = ERFH5_DataGenerator(data_path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'],
+        data_processing_function=dl.get_sensordata_and_filling_percentage, data_gather_function=dl.get_filelist_within_folder, batch_size=2, epochs=2, max_queue_length=16)
     for data, label in generator:
         print(data.size(), label.size())

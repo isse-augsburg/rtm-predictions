@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 
 class Master_Trainer():
-    def __init__(self, model, generator:erfh5_pipeline.ERFH5_DataGenerator, loss_criterion = torch.nn.MSELoss(),train_print_frequency= 10, eval_frequency=100, savepath = "model.pth"):
+    def __init__(self, model, generator:erfh5_pipeline.ERFH5_DataGenerator, loss_criterion = torch.nn.MSELoss(),train_print_frequency= 10, eval_frequency=100, savepath = "model.pth", comment="comment"):
         self.validationList = generator.get_validation_samples()
         self.model = model
         self.generator = generator
@@ -16,17 +16,25 @@ class Master_Trainer():
         self.loss_criterion = loss_criterion
         #self.loss_criterion = self.loss_criterion.cuda()
         self.loss_criterion = loss_criterion.cuda()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0001)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.comment = comment
 
 
     def start_training(self):
+        self.__print_comment()
         self.__train()
         self.__eval()
         print(">>> INFO: MASTER PROCESS TERMINATED - TRAINING COMPLETE - MISSION SUCCESS ")
 
 
+    def __print_comment(self):
+        print("###########################################")
+        print(self.comment)
+        print("###########################################")
+
     def __train(self):
+        print(self.model)
         start_time = time.time()
         for i, (inputs, labels) in enumerate(self.generator):
             #inputs, labels = torch.FloatTensor(inputs), torch.FloatTensor(labels)
@@ -61,10 +69,10 @@ class Master_Trainer():
                     label = torch.unsqueeze(label,0)
                     data = torch.unsqueeze(data, 0)
                     output = self.model(data)
-                    print(output,label)
+                    print("out", output, "label", label)
                     l = self.loss_criterion(output, label).item()
                     loss = loss + l
-                    print("loss:", l)
+                
                     #print(output.item(), label.item())
 
                 loss = loss / len(self.validationList)
@@ -76,7 +84,7 @@ class Master_Trainer():
 
     
     def load_model(self):
-        state_dict = torch.load(self.savepath)
+        state_dict = torch.load(self.savepath, map_location='cpu')
         new_state_dict = OrderedDict()
         for k, v in state_dict.items():
             name = k[7:] # remove `module.`
