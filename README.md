@@ -1,5 +1,7 @@
 **Short Guide to the ERFH5 Data-Pipeline:**
 
+NOTE: The Pipeline is still work in progress and may has unexpected behaviour and/or some code flaws
+
 * Most of the work is done by the `Master_Trainer` class (defined in
 * Currently, `model_trainer.py` is used for training
 * Training can be started using the `run_model_trainer.sh` batch file (can be found in `/cfs/home/l/o/lodesluk/slurm/`, which calls `model_trainer.py` 
