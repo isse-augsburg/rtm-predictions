@@ -137,7 +137,6 @@ class ERFH5_DataGenerator():
             sample = self.paths[0]			
             self.paths = self.paths[1:]
             instance = self.data_function(sample)
-            print(type(instance))
 
             # data_function must return [(data, label) ... (data, label)]
             if instance is None:
