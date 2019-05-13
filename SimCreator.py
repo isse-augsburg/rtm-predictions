@@ -28,7 +28,6 @@ class OutputFrequencyType(Enum):
     Time = "Time", 2
 
 
-
 def derive_k1k2_from_fvc(fvcs):
     points = np.array([(0, 1e-6), (0.4669, 1.62609e-10), (0.5318, 5.14386e-11), (0.5518, 4.28494e-11)])
     x = points[:, 0]
@@ -79,7 +78,14 @@ def zip_folder(path, delete_after=True):
 
 
 class SimCreator:
-    def __init__(self, perturbation_factors=None, count=20):
+    def __init__(self, perturbation_factors=None, count=20, batch_num=1, run_on_cluster=True):
+        self.run_on_cluster = run_on_cluster
+        free_space = shutil.disk_usage(r'C:\\').free // (1024 ** 3)
+        estimated_used_space = count * 0.55 + 10
+        if not run_on_cluster and estimated_used_space > free_space:
+            print('Not enough free space on device. Finishing ...')
+            self.run_on_cluster = True
+            exit()
         current_os = os.name
         self.output_frequency_type = OutputFrequencyType.Time
         self.save_to_h5_data = {'output_frequency_type': self.output_frequency_type.value[1],
@@ -89,23 +95,33 @@ class SimCreator:
         # + re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
         self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.count = count
+        self.visual_version = '14.5'
+        print(f'Using Visual Env {self.visual_version}.')
         if os.name == 'nt':
-            self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\14.5\Windows-x64\VEBatch.bat')
+            self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\%s\Windows-x64\VEBatch.bat' % self.visual_version)
             data_path = Path(r'Y:\data\RTM\Lautern')
-            self.solver_input_folder = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (self.perturbation_factors_str, self.initial_timestamp, self.count))
-            import socket
+
+            if self.run_on_cluster:
+                self.solver_input_folder = Path(r'Y:\data\RTM\Lautern\output\%s\%s_%dp' % (
+                    self.perturbation_factors_str, self.initial_timestamp, self.count))
+                        import socket
             if socket.gethostname() == 'PC610-74-virtuos':
                 self.solver_input_folder = Path(r'D:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
                 self.perturbation_factors_str, self.initial_timestamp, self.count))
+            else:
+                self.solver_input_folder = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
+                self.perturbation_factors_str, self.initial_timestamp, self.count))
+                
+            self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
 
-            self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts')
         else:
             self.vebatch_exec = '/usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh'
             data_path = Path('/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=share/data/RTM/Lautern')
             self.solver_input_folder = Path(r'/home/stieber/data/output/%s/%s_%dp' % (
             self.perturbation_factors_str, self.initial_timestamp, self.count))
-            self.slurm_scripts_folder = Path(r'/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=home/s/t/stiebesi/slurm_scripts')
+            self.slurm_scripts_folder = Path(r'/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=home/s/t/stiebesi/slurm_scripts/%d_batch' % batch_num)
 
+        self.slurm_scripts_folder.mkdir(parents=True, exist_ok=True)
         self.solved_sims = data_path / 'output'
         self.sim_files_data_heap = data_path / 'simulation_files'
         if perturbation_factors is None:
@@ -140,7 +156,7 @@ class SimCreator:
             self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
             self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
 
-        self.slurm_partition        = "big-cpu"
+        self.slurm_partition = "big-cpu"
 
         self.slurm_scripts = []
         self.dirs_with_stems = []
@@ -289,6 +305,14 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         with open(self.fn_vdb_writer, 'w') as f:
             f.write(''.join(_str))
 
+    def create_vdbs(self):
+        print(f'Writing .vdb files ...')
+        t0 = time.time()
+        call_make_vdb = fr''' "{self.vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{self.fn_vdb_writer}" -nodisplay -exit'''
+        args = shlex.split(call_make_vdb)
+        subprocess.call(args, shell=True, stdout=subprocess.PIPE)
+        print(f'Writing .vdbs took {(time.time() - t0) / 60:.1f} minutes.')
+
     def create_unfs_et_al(self):
         print('Writing .unf files ...')
         t0 = time.time()
@@ -301,14 +325,6 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             args2 = shlex.split(call_make_rest)
             subprocess.call(args2, shell=True, stdout=subprocess.PIPE)
         print(f'Writing .unf files took {(time.time()-t0)/60:.1f} minutes.')
-
-    def create_vdbs(self):
-        print(f'Writing .vdb files ...')
-        t0 = time.time()
-        call_make_vdb = fr''' "{self.vebatch_exec}" -activeconfig Trade:CompositesandPlastics -activeapp VisualRTM -sessionrun "{self.fn_vdb_writer}" -nodisplay -exit'''
-        args = shlex.split(call_make_vdb)
-        subprocess.call(args, shell=True, stdout=subprocess.PIPE)
-        print(f'Writing .vdbs took {(time.time() - t0)/60:.1f} minutes.')
 
     def write_slurm_scripts(self, timeout=15):
         print('Writing slurm script ...')
@@ -381,7 +397,11 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         self.create_vdbs()
         self.create_unfs_et_al()
         self.alter_dat_files()
-        self.copy_simfiles_to_cluster()
+        if self.run_on_cluster:
+            self.unf_files_on_storage = [Path(str(x) + 'g.unf').as_posix().replace('Y:', '/cfs/share') for x in self.dirs_with_stems]
+        if not self.run_on_cluster:
+            self.copy_simfiles_to_cluster()
         self.write_slurm_scripts()
-        zip_fn = zip_folder(self.solver_input_folder, delete_after=True)
-        shutil.move(zip_fn, self.sim_files_data_heap)
+        if not self.run_on_cluster:
+            zip_fn = zip_folder(self.solver_input_folder, delete_after=True)
+            shutil.move(zip_fn, self.sim_files_data_heap)
