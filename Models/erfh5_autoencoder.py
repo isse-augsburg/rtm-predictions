@@ -1,19 +1,9 @@
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
 
 import torch.nn.functional as F
-import erfh5_pipeline as pipeline
-import time
-import numpy as np
-
-import data_loaders as dl
 
 from collections import OrderedDict
-import matplotlib.pyplot as plt 
-import matplotlib
-
-
 
 
 class stacked_FullyConnected(nn.Module):
@@ -51,9 +41,9 @@ class erfh5_Distributed_Autoencoder(nn.Module):
 
         if dgx_mode:
             self.encoder = nn.DataParallel(self.encoder, device_ids=[
-                                           0, 1, 2, 3]).to('cuda:0')
+                0, 1, 2, 3]).to('cuda:0')
             self.decoder = nn.DataParallel(self.decoder, device_ids=[
-                                           4, 5, 6, 7]).to('cuda:4')
+                4, 5, 6, 7]).to('cuda:4')
 
     def forward(self, x):
         x = self.encoder(x)
@@ -73,8 +63,8 @@ class erfh5_Autoencoder(nn.Module):
 
         self.__get_fc()
 
-        #self.weightList = nn.ParameterList([nn.Parameter(f.weight) for f in self.FCs])
-        #self.biasList = nn.ParameterList([nn.Parameter(f.bias) for f in self.FCs])
+        # self.weightList = nn.ParameterList([nn.Parameter(f.weight) for f in self.FCs])
+        # self.biasList = nn.ParameterList([nn.Parameter(f.bias) for f in self.FCs])
         [print(f) for f in self.FCs]
 
     def __get_fc(self):
@@ -96,7 +86,8 @@ class erfh5_Autoencoder(nn.Module):
         return x
 
     def get_encoding(self):
-        return self.FCs[int((self.FCs.__len__()-1)/2)]
+        return self.FCs[int((self.FCs.__len__() - 1) / 2)]
+
 
 # '/home/lodes/Sim_Results'
 # '/cfs/share/data/RTM/Lautern/clean_erfh5/'
@@ -108,20 +99,17 @@ def load_stacked_fc(path, list=[69366, 15000, 8192]):
     model = stacked_FullyConnected(list)
 
     for k, v in state_dict.items():
-        name = k[7:] # remove `module.`
+        name = k[7:]  # remove `module.`
         new_state_dict[name] = v
     # load params   
     model.load_state_dict(new_state_dict)
-    return model 
-
-
+    return model
 
 
 if __name__ == "__main__":
-    pass 
+    pass
 
-   # half_encoder = load_stacked_fc(path)
-
+    # half_encoder = load_stacked_fc(path)
 
     """ print(">>>INFO: Loading State dict finished.")  
     half_encoder.to(device)  
