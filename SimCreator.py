@@ -100,14 +100,20 @@ class SimCreator:
         if os.name == 'nt':
             self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\%s\Windows-x64\VEBatch.bat' % self.visual_version)
             data_path = Path(r'Y:\data\RTM\Lautern')
+
             if self.run_on_cluster:
                 self.solver_input_folder = Path(r'Y:\data\RTM\Lautern\output\%s\%s_%dp' % (
                     self.perturbation_factors_str, self.initial_timestamp, self.count))
+                        import socket
+            if socket.gethostname() == 'PC610-74-virtuos':
+                self.solver_input_folder = Path(r'D:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
+                self.perturbation_factors_str, self.initial_timestamp, self.count))
             else:
                 self.solver_input_folder = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
                 self.perturbation_factors_str, self.initial_timestamp, self.count))
-
+                
             self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
+
         else:
             self.vebatch_exec = '/usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh'
             data_path = Path('/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=share/data/RTM/Lautern')
