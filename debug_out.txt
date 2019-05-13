@@ -1,0 +1,62 @@
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-25_16-36-06_k1_pertubated_sigma1.310e-11_mu0.0/2019-03-25_16-36-06_k1_pertubated_sigma1.310e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.9801, 0.0199]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[1., 0.]])
+-------------------------------------------
+2019-03-25_16-36-06_k1_pertubated_sigma1310e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-25_16-36-06_k1_pertubated_sigma1.310e-11_mu0.0/2019-03-25_16-36-06_k1_pertubated_sigma1.310e-11_mu0.0_RESULT.erfh5
+/home/lodes/anaconda3/envs/pytorch_env/lib/python3.7/site-packages/h5py/_hl/dataset.py:313: H5pyDeprecationWarning: dataset.value has been deprecated. Use dataset[()] instead.
+  "Use dataset[()] instead.", H5pyDeprecationWarning)
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 42/42 [00:27<00:00,  1.55it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-18-11_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-18-11_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.5164, 0.4836]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[0., 1.]])
+-------------------------------------------
+2019-03-26_11-18-11_k1_pertubated_sigma1110e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-18-11_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-18-11_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 25/25 [00:16<00:00,  1.55it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-25_16-36-17_k1_pertubated_sigma1.410e-11_mu0.0/2019-03-25_16-36-17_k1_pertubated_sigma1.410e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.4901, 0.5099]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[0., 1.]])
+-------------------------------------------
+2019-03-25_16-36-17_k1_pertubated_sigma1410e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-25_16-36-17_k1_pertubated_sigma1.410e-11_mu0.0/2019-03-25_16-36-17_k1_pertubated_sigma1.410e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 49/49 [00:31<00:00,  1.55it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-16-14_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-16-14_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.4406, 0.5594]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[0., 1.]])
+-------------------------------------------
+2019-03-26_11-16-14_k1_pertubated_sigma1110e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-16-14_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-16-14_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:07<00:00,  1.55it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-18-33_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-18-33_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.9883, 0.0117]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[1., 0.]])
+-------------------------------------------
+2019-03-26_11-18-33_k1_pertubated_sigma1110e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-18-33_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-18-33_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 42/42 [00:27<00:00,  1.54it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-17-47_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-17-47_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.6112, 0.3888]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[0., 1.]])
+-------------------------------------------
+2019-03-26_11-17-47_k1_pertubated_sigma1110e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-17-47_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-17-47_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 28/28 [00:18<00:00,  1.55it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-18-22_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-18-22_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.7473, 0.2527]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[0., 1.]])
+-------------------------------------------
+2019-03-26_11-18-22_k1_pertubated_sigma1110e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-18-22_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-18-22_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 30/30 [00:19<00:00,  1.54it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-25_16-35-43_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-25_16-35-43_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.9884, 0.0116]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[1., 0.]])
+-------------------------------------------
+2019-03-25_16-35-43_k1_pertubated_sigma1110e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-25_16-35-43_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-25_16-35-43_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 42/42 [00:27<00:00,  1.54it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-17-01_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-17-01_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.4977, 0.5023]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[0., 1.]])
+-------------------------------------------
+2019-03-26_11-17-01_k1_pertubated_sigma1110e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-17-01_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-17-01_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 42/42 [00:27<00:00,  1.53it/s]
+Filename:  /run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-15-39_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-15-39_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+Output:  tensor([[0.8408, 0.1592]], grad_fn=<SoftmaxBackward>) || Label:  tensor([[1., 0.]])
+-------------------------------------------
+2019-03-26_11-15-39_k1_pertubated_sigma1110e-11_mu00_RESULTerfh5
+/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/2019-03-26_11-15-39_k1_pertubated_sigma1.110e-11_mu0.0/2019-03-26_11-15-39_k1_pertubated_sigma1.110e-11_mu0.0_RESULT.erfh5
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 42/42 [00:27<00:00,  1.54it/s]

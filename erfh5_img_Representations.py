@@ -25,12 +25,13 @@ def create_images_for_file(filename, main_folder="/run/user/1002/gvfs/smb-share:
     folder_name = filename.split('/')[-1].replace(".", "")
     print(folder_name)
     print(filename)
-    #os.mkdir(main_folder+folder_name)
+    os.mkdir(main_folder+folder_name)
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
     # Cut off last column (z), since it is filled with 1s anyway
     _coords = coord_as_np_array[:, :-1]
     _coords = normalize_coords(_coords)
     all_states = f['post']['singlestate']
+    print(">>> Num States: ", len(all_states))
     for i,state in tqdm(enumerate(all_states), total=np.shape(all_states)[0]):
         try:
             filling = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]

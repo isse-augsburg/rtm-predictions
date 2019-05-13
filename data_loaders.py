@@ -369,6 +369,7 @@ def get_folders_within_folder(root_directory):
     return folders
 
 
+
 def save_numpy_as_image( inputs, label, name,path="/cfs/home/s/c/schroeni/Data/Eval/",):
     inputs = np.squeeze(inputs)
     label = np.squeeze(label)
