@@ -13,6 +13,7 @@ import queue
 import threading 
 import random 
 from enum import Enum
+import data_loaders as dl
 
 
 class NoSequenceException(Exception):
@@ -90,6 +91,14 @@ def get_all_sequences_for_file(filename, t_begin, t_end, t_delta, t_target_offse
 
     return all_sequences
 
+def get_all_sensor_values(filename): 
+    f = h5py.File(filename, 'r')
+
+    pressure_array = f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
+
+    return pressure_array 
+
+
 
 def print_last_fillingstate(filename):
     f = h5py.File(filename, 'r')
@@ -156,15 +165,21 @@ def get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
    
     #print("Worked",len(filling_factors_at_certain_times), t_target, filling_percentage)
     return flat_fillings, filling_percentage    
+
+def plot_sensordata(): 
+    path = ['Y:/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs']
+    all_paths = dl.get_filelist_within_folder(path)
+
+    for p in all_paths: 
+        sensor_data = get_all_sensor_values(p)
         
+        for i, s in enumerate(sensor_data):
+            fig = plt.figure(str(p)) 
+            plt.plot(s)
+            plt.title("Step " + str(i) + " of " + str(len(sensor_data)))
+            plt.show()
+            
 
+if __name__ == "__main__":
+    plot_sensordata()
 
-paths = get_filelist_within_folder('/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p/')
-
-for file in paths:
-    print_last_fillingstate(file)
-    #get_fillings_at_times(file,50,90,2,100)
-    """ try:
-        print(len(get_all_sequences_for_file(file,0,50,2,3,10,1000)))
-    except NoSequenceException as E:
-        print("big oof.") """

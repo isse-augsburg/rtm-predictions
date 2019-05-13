@@ -183,7 +183,7 @@ class ERFH5_DataGenerator():
 
                     self.data_dict[file] = tensor_instances
 
-        # TODO
+        
         self.barrier.wait()
         self.batch_queue.kill()
         print(">>>INFO: Data loading complete. - SUCCESS")
