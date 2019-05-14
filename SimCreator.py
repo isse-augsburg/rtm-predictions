@@ -14,6 +14,7 @@ from shutil import copy2
 from pathlib import Path
 from multiprocessing import Pool
 import time
+import socket
 
 import resources
 from enum import Enum
@@ -62,11 +63,11 @@ def create_unfs_from_parent_folder(parent_folder, folder_on_storage=r'Y:\data\RT
     s.write_slurm_scripts()
 
 
-def zip_folder(path, delete_after=True):
+def zip_folder(path, batch_num, delete_after=True):
     print(f'Zipping {path} ...')
     t0 = time.time()
     ps = [x for x in Path(path).glob('**/*') if x.is_file()]
-    zip_file = zipfile.ZipFile(str(path) + '.zip', 'w')
+    zip_file = zipfile.ZipFile(str(path) + f'_{batch_num}.zip', 'w')
     with zip_file:
         for file in ps:
             zip_file.write(str(file), compress_type=zipfile.ZIP_DEFLATED)
@@ -74,11 +75,14 @@ def zip_folder(path, delete_after=True):
     if delete_after:
         print(f'Deleting {path} ...')
         shutil.rmtree(path)
-    return str(path) + '.zip'
+    return str(path) + f'_{batch_num}.zip'
 
 
 class SimCreator:
-    def __init__(self, perturbation_factors=None, count=20, batch_num=1, run_on_cluster=True):
+    def __init__(self, perturbation_factors=None, initial_timestamp='', count=20, batch_num=1, run_on_cluster=True):
+        self.batch_num = batch_num
+        self.initial_timestamp = initial_timestamp
+        self.start_index = batch_num * count
         self.run_on_cluster = run_on_cluster
         free_space = shutil.disk_usage(r'C:\\').free // (1024 ** 3)
         estimated_used_space = count * 0.55 + 10
@@ -93,7 +97,7 @@ class SimCreator:
         self.perturbation_factors_str = 'with_shapes'
         # f"with_{perturbation_factors['Shapes']['Rectangles']['Num']}_Rect_{perturbation_factors['Shapes']['Circles']['Num']}_Circ"
         # + re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
-        self.initial_timestamp = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+
         self.count = count
         self.visual_version = '14.5'
         print(f'Using Visual Env {self.visual_version}.')
@@ -104,7 +108,7 @@ class SimCreator:
             if self.run_on_cluster:
                 self.solver_input_folder = Path(r'Y:\data\RTM\Lautern\output\%s\%s_%dp' % (
                     self.perturbation_factors_str, self.initial_timestamp, self.count))
-                        import socket
+
             if socket.gethostname() == 'PC610-74-virtuos':
                 self.solver_input_folder = Path(r'D:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
                 self.perturbation_factors_str, self.initial_timestamp, self.count))
@@ -128,8 +132,9 @@ class SimCreator:
             self.perturbation_factors = {}
         else:
             self.perturbation_factors = perturbation_factors
-        self.num_hosts = 10
         self.num_cpus = 32
+        self.num_big_hosts = 9
+        self.num_small_hosts = 1
 
         self.output_frequency = 0.5
         self.max_sim_step = 1500
@@ -171,7 +176,7 @@ class SimCreator:
         keys = list(df.keys())
 
         with Pool() as p:
-            self.dirs_with_stems = p.map(partial(self.perturbate_wrapper, keys, df), range(self.count))
+            self.dirs_with_stems = p.map(partial(self.perturbate_wrapper, keys, df), range(self.start_index, self.start_index + self.count))
         # self.dirs_with_stems =self.perturbate_wrapper(keys, df, 1)
         print(f'Adding noise and writing all files took {(time.time() - t0)/60:.1f} minutes.')
 
@@ -328,35 +333,38 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
 
     def write_slurm_scripts(self, timeout=15):
         print('Writing slurm script ...')
-        calls = []
-        line_before_unf = f'srun -t {timeout} singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np {self.num_cpus}'
-        for e in self.unf_files_on_storage:
-            call = '%s %s' % (line_before_unf, e)
-            calls.append(call)
 
-        if len(calls) > 1:
-            delim = int(np.round(len(calls) / self.num_hosts))
+        line_before_unf = 'srun -t %d singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np %d'
+        path_to_unf = self.solved_sims / self.perturbation_factors_str / f'{self.initial_timestamp}_{self.count}p' / f'${{SLURM_ARRAY_TASK_ID}}/{self.initial_timestamp}_${{SLURM_ARRAY_TASK_ID}}g.unf'
+        path_to_unf = path_to_unf.as_posix().replace('Y:', '/cfs/share')
+
+        if self.count < 10:
+            calls_on_small_partition = 1
         else:
-            delim = 1
-        sublist_calls = [calls[x:x + delim] for x in range(0, len(calls), delim)]
-        for i in range(self.num_hosts):
+            calls_on_small_partition = int(self.count * 0.1)
+
+        for i in range(2):
             slurm_partition = self.slurm_partition
             num_cpus = self.num_cpus
-            calls_str = '\n'.join(sublist_calls[i])
+            array = f'#SBATCH --array={calls_on_small_partition}-{self.count - 1}%{self.num_big_hosts}'
+            n = f'solve_pam_rtm_auto_big.sh'
             if i == 0:
                 slurm_partition = 'small-cpu'
                 num_cpus = 8
-                calls_str = calls_str.replace(f'-np {self.num_cpus}', f'-np {num_cpus}')
+                array = f'#SBATCH --array=0-{calls_on_small_partition - 1}%{self.num_small_hosts}'
+                n = f'solve_pam_rtm_auto_small.sh'
 
-            script_str = '%s\n%s' % (f'''#!/bin/sh
+            script_str = f'''#!/bin/sh
 #SBATCH --partition={slurm_partition}
 #SBATCH --mem=24000
 #SBATCH --time=100:00:00
 #SBATCH --job-name=PAM_RTM
 #SBATCH --cpus-per-task={num_cpus}
-#SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%x.out
-''', calls_str)
-            n = f'0{i}_solve_pam_rtm_auto.sh'
+#SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%a.out
+{array}
+    
+{line_before_unf % (timeout, num_cpus) + ' '  + str(path_to_unf)}
+'''
             self.slurm_scripts.append(n)
             filename = self.slurm_scripts_folder / n
 
@@ -366,8 +374,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             f = open(filename,"w", newline="\n")
             f.write(fileContents)
             f.close()
-            if len(calls) == 1:
-                break
+
 
     def alter_dat_files(self):
         for i, e in enumerate(self.dirs_with_stems):
@@ -403,5 +410,5 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             self.copy_simfiles_to_cluster()
         self.write_slurm_scripts()
         if not self.run_on_cluster:
-            zip_fn = zip_folder(self.solver_input_folder, delete_after=True)
+            zip_fn = zip_folder(self.solver_input_folder, self.batch_num, delete_after=True)
             shutil.move(zip_fn, self.sim_files_data_heap)
