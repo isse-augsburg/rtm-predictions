@@ -1,3 +1,4 @@
+
 from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader_sensor as dls, data_loaders_IMG as dli, \
     data_gather as dg
 from Trainier.Generic_Trainer import Master_Trainer
@@ -6,12 +7,13 @@ import traceback
 from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 
+
 batchsize = 1
 max_Q_len = 512
 epochs = 80
 # path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'
-# path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/', '/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p']
-path = ['/cfs/share/data/RTM/Lautern/output/with_shapes']
+path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/', '/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p']
+#path = ['/cfs/share/data/RTM/Lautern/output/with_shapes']
 
 
 def create_dataGenerator_pressure_flowfront():
@@ -109,7 +111,7 @@ def create_dataGenerator_pressure_sequence():
 
 
 def get_comment():
-    comment = "Tried lower learning rate and slightly different dropout and fc configs."
+    comment = "Job started for testing purposes"
     return comment
 
 
@@ -129,7 +131,7 @@ if __name__ == "__main__":
     model = nn.DataParallel(model).to('cuda:0')
     print(">>> INFO: Generating Trainer")
     train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
-                                   savepath='/cfs/home/l/o/lodesluk/models/crnn_1305_930.pt')
+                                   savepath='/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt', learning_rate=0.00001)
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()

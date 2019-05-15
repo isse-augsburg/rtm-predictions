@@ -1,8 +1,10 @@
-from Pipeline import data_loaders as dl
+from Pipeline import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
+#import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
 import threading
 import time
 import random
 import torch
+import sys
 
 
 class Thread_Safe_List():
@@ -63,6 +65,9 @@ class Thread_Safe_List():
         self.lock.release()
         return items
 
+def clear_last_line(): 
+    sys.stdout.write("\033[F") #hack for deleting the last printed console line
+
 
 class ERFH5_DataGenerator():
 
@@ -85,20 +90,29 @@ class ERFH5_DataGenerator():
         print(">>> Generator: Gathering Data...")
         self.paths = self.data_gather(self.data_path)
         random.shuffle(self.paths)
-
+        clear_last_line()
+        print(">>> Generator: Gathering Data... Done.")
         self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
         self.path_queue = Thread_Safe_List()
         self.validation_list = []
         self.barrier = threading.Barrier(self.num_workers)
+        
         print(">>> Generator: Filling Validation List...")
         self.__fill_validation_list()
+        clear_last_line()
+        print(">>> Generator: Filling Validation List... Done.")
 
         print(">>> Generator: Filling Path Queue...")
         try:
             self.__fill_path_queue()
         except Exception as e:
             raise e
-
+        clear_last_line()
+        
+        print(">>> Generator: Filling Path Queue... Done.")
+        
+        self.__print_info()
+        
         for i in range(self.num_workers):
             t_batch = threading.Thread(target=self.__fill_batch_queue)
             t_batch.start()
@@ -120,6 +134,21 @@ class ERFH5_DataGenerator():
 
     def get_current_queue_length(self):
         return self.batch_queue.__len__()
+
+    def __print_info(self):
+        print("###########################################")
+        print(">>> Generator INFO <<<")
+        print("Used data folders:", self.data_path)
+        print("Used data gather function:", self.data_gather)
+        print("Used data processing function:", self.data_function)
+        print("Number of epochs:", self.epochs)
+        print("Batchsize:", self.batch_size)
+        print("Number of unique samples:", len(self.paths))
+        print("Number of total samples:", self.__len__())
+        print("Number of validation samples:", self.num_validation_samples)
+        print("###########################################")
+
+
 
     def __fill_validation_list(self):
         if len(self.paths) == 0:
@@ -210,11 +239,11 @@ if __name__ == "__main__":
                                     batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
-    print("sers")
     generator = ERFH5_DataGenerator(data_path=[
         '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'],
-                                    data_processing_function=dl.get_sensordata_and_filling_percentage,
-                                    data_gather_function=dl.get_filelist_within_folder, batch_size=2, epochs=2,
+                                    data_processing_function=dls.get_sensordata_and_filling_percentage,
+                                    data_gather_function=dg.get_filelist_within_folder, batch_size=1, epochs=2,
                                     max_queue_length=16)
     for data, label in generator:
         print(data.size(), label.size())
+        

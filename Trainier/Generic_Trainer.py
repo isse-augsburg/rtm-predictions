@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 class Master_Trainer():
     def __init__(self, model, generator: erfh5_pipeline.ERFH5_DataGenerator, loss_criterion=torch.nn.MSELoss(),
-                 train_print_frequency=10, eval_frequency=100, savepath="model.pth", eval_func=None, comment="comment"):
+                 train_print_frequency=10, eval_frequency=100, savepath="model.pth", eval_func=None, comment="No custom comment added.", learning_rate=0.00001):
         self.validationList = generator.get_validation_samples()
         self.model = model
         self.generator = generator
@@ -15,17 +15,33 @@ class Master_Trainer():
         self.savepath = savepath
         self.loss_criterion = loss_criterion
         # self.loss_criterion = self.loss_criterion.cuda()
+        self.learning_rate = learning_rate
         self.loss_criterion = loss_criterion.cuda()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.00001)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.comment = comment
         self.eval_func = eval_func
 
     def start_training(self):
+        self.__print_info()
         self.__print_comment()
         self.__train()
         self.__eval()
-        print(">>> INFO: MASTER PROCESS TERMINATED - TRAINING COMPLETE - MISSION SUCCESS ")
+        #print(">>> INFO: MASTER PROCESS TERMINATED - TRAINING COMPLETE - MISSION SUCCESS ")
+        print(">>> INFO: TRAINING COMPLETE.")
+    
+    def __print_info(self): 
+        print("###########################################")
+        print(">>> Model Trainer INFO <<<")
+        print("Loss criterion:", self.loss_criterion)
+        print("Optimizer:", self.optimizer)
+        print("Learning rate:", self.learning_rate)
+        print("Evaluation frequency:", self.eval_frequency)
+        print("Model:", self.model)
+        print("Model savepath (may not be used):", self.savepath)
+        print("Evaluation function (optional):", self.eval_func)
+        print("###########################################")
+
 
     def __print_comment(self):
         print("###########################################")
@@ -33,7 +49,7 @@ class Master_Trainer():
         print("###########################################")
 
     def __train(self):
-        print(self.model)
+        
         start_time = time.time()
         for i, (inputs, labels) in enumerate(self.generator):
             # inputs, labels = torch.FloatTensor(inputs), torch.FloatTensor(labels)
@@ -67,7 +83,7 @@ class Master_Trainer():
                 label = torch.unsqueeze(label, 0)
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
-                # print(output,label)
+                print(output,label)
                 l = self.loss_criterion(output, label).item()
                 loss = loss + l
                 if (self.eval_func is not None):
@@ -79,7 +95,7 @@ class Master_Trainer():
             print(">>> Mean Loss on Eval:", "{:8.4f}".format(loss))
             self.model.train()
 
-    def saveModel(self):
+    def save_model(self):
         torch.save(self.model.state_dict(), self.savepath)
 
     def load_model(self):

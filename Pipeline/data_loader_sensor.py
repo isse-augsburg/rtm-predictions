@@ -42,6 +42,7 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=0):
     if (np.shape(pressure_array)[0] < frm):
         return None
     pressure_array = pressure_array[frm:until, :, :]
+    pressure_array = pressure_array / 1000000
     # pressure_array = pressure_array[-frm:,:,:]
     pressure_array = np.squeeze(pressure_array)
 
