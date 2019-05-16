@@ -79,13 +79,15 @@ def zip_folder(path, batch_num, delete_after=True):
 
 
 class SimCreator:
-    def __init__(self, perturbation_factors=None, initial_timestamp='', count=20, batch_num=1, run_on_cluster=True):
+    def __init__(self, perturbation_factors=None, initial_timestamp='', count=20, batch_num=1, run_on_cluster=True, overall_count=20):
+        self.overall_count = overall_count
         self.batch_num = batch_num
         self.initial_timestamp = initial_timestamp
         self.start_index = batch_num * count
         self.run_on_cluster = run_on_cluster
         free_space = shutil.disk_usage(r'C:\\').free // (1024 ** 3)
         estimated_used_space = count * 0.55 + 10
+        print(f'Going to use {estimated_used_space} of {free_space} GB.')
         if not run_on_cluster and estimated_used_space > free_space:
             print('Not enough free space on device. Finishing ...')
             self.run_on_cluster = True
@@ -104,30 +106,25 @@ class SimCreator:
         if os.name == 'nt':
             self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\%s\Windows-x64\VEBatch.bat' % self.visual_version)
             data_path = Path(r'Y:\data\RTM\Lautern')
-
+            str_sip = r'\data\RTM\Lautern\output\%s\%s_%dp'
             if self.run_on_cluster:
-                self.solver_input_folder = Path(r'Y:\data\RTM\Lautern\output\%s\%s_%dp' % (
-                    self.perturbation_factors_str, self.initial_timestamp, self.count))
-
-            if socket.gethostname() == 'PC610-74-virtuos':
-                self.solver_input_folder = Path(r'D:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
-                self.perturbation_factors_str, self.initial_timestamp, self.count))
+                disk = r'Y:'
+            elif socket.gethostname() == 'PC610-74-virtuos':
+                disk = r'D:'
             else:
-                self.solver_input_folder = Path(r'C:\Data\0_RTM_data\Data\output\%s\%s_%dp' % (
-                self.perturbation_factors_str, self.initial_timestamp, self.count))
-                
+                disk = r'C:'
+            str_sip = disk + str_sip
             self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
-
         else:
             self.vebatch_exec = '/usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh'
             data_path = Path('/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=share/data/RTM/Lautern')
-            self.solver_input_folder = Path(r'/home/stieber/data/output/%s/%s_%dp' % (
-            self.perturbation_factors_str, self.initial_timestamp, self.count))
+            str_sip = r'/home/stieber/data/output/%s/%s_%dp'
             self.slurm_scripts_folder = Path(r'/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=home/s/t/stiebesi/slurm_scripts/%d_batch' % batch_num)
 
+        self.solver_input_folder = Path(str_sip % (self.perturbation_factors_str, self.initial_timestamp, self.overall_count))
         self.slurm_scripts_folder.mkdir(parents=True, exist_ok=True)
-        self.solved_sims = data_path / 'output'
-        self.sim_files_data_heap = data_path / 'simulation_files'
+        self.solved_sims            = data_path / 'output'
+        self.sim_files_data_heap    = data_path / 'simulation_files'
         if perturbation_factors is None:
             self.perturbation_factors = {}
         else:
@@ -335,7 +332,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         print('Writing slurm script ...')
 
         line_before_unf = 'srun -t %d singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np %d'
-        path_to_unf = self.solved_sims / self.perturbation_factors_str / f'{self.initial_timestamp}_{self.count}p' / f'${{SLURM_ARRAY_TASK_ID}}/{self.initial_timestamp}_${{SLURM_ARRAY_TASK_ID}}g.unf'
+        path_to_unf = self.solved_sims / self.perturbation_factors_str / f'{self.initial_timestamp}_{self.overall_count}p' / f'${{SLURM_ARRAY_TASK_ID}}/{self.initial_timestamp}_${{SLURM_ARRAY_TASK_ID}}g.unf'
         path_to_unf = path_to_unf.as_posix().replace('Y:', '/cfs/share')
 
         if self.count < 10:
@@ -357,7 +354,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             script_str = f'''#!/bin/sh
 #SBATCH --partition={slurm_partition}
 #SBATCH --mem=24000
-#SBATCH --time=100:00:00
+#SBATCH --time=1000:00:00
 #SBATCH --job-name=PAM_RTM
 #SBATCH --cpus-per-task={num_cpus}
 #SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%a.out
@@ -375,6 +372,43 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             f.write(fileContents)
             f.close()
 
+        if self.count < 10:
+            calls_on_small_partition = 1
+        else:
+            calls_on_small_partition = int(self.overall_count * 0.1)
+
+        for i in range(2):
+            slurm_partition = self.slurm_partition
+            num_cpus = self.num_cpus
+            array = f'#SBATCH --array={calls_on_small_partition}-{self.overall_count - 1}%{self.num_big_hosts}'
+            n = f'complete_solve_pam_rtm_auto_big.sh'
+            if i == 0:
+                slurm_partition = 'small-cpu'
+                num_cpus = 8
+                array = f'#SBATCH --array=0-{calls_on_small_partition - 1}%{self.num_small_hosts}'
+                n = f'complete_solve_pam_rtm_auto_small.sh'
+
+            script_str = f'''#!/bin/sh
+#SBATCH --partition={slurm_partition}
+#SBATCH --mem=24000
+#SBATCH --time=1000:00:00
+#SBATCH --job-name=PAM_RTM
+#SBATCH --cpus-per-task={num_cpus}
+#SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%a.out
+{array}
+
+{line_before_unf % (timeout, num_cpus) + ' ' + str(path_to_unf)}
+'''
+            self.slurm_scripts.append(n)
+            filename = self.slurm_scripts_folder.parent / n
+
+            with open(filename, 'w') as f:
+                f.write(script_str)
+            fileContents = open(filename, "r").read()
+            f = open(filename, "w", newline="\n")
+            f.write(fileContents)
+            f.close()
+
 
     def alter_dat_files(self):
         for i, e in enumerate(self.dirs_with_stems):
@@ -387,7 +421,8 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
                     f.writelines(lines)
 
     def copy_simfiles_to_cluster(self):
-        f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat', '_meta_data.hdf5']
+        print('Copying simfiles to cluster ...')
+        f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat', '_meta_data.hdf5', '.lperm']
         for e in self.dirs_with_stems:
             p = Path(str(self.solved_sims) + '/' + '/'.join(e.parts[-4:-1]))
             p.mkdir(parents=True, exist_ok=True)
