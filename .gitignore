@@ -273,3 +273,14 @@ dmypy.json
 .pyre/
 
 # End of https://www.gitignore.io/api/python,images,pycharm
+
+# From HiWis:
+
+*.png
+*.vscode
+*.pyc
+__pycache__/
+Output/
+Images/
+*.out
+*.sh
