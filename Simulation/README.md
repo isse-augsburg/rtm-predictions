@@ -1,5 +1,5 @@
 Data can be found on the storage at 
-`/cfs/share/data/RTM/Lautern`
+`/cfs/share/data/RTM/Lautern/[output, simulation_files]`
 
 Brainstorming on what to store in the .h5 data file:
 * [x]  Sigmas etc. 

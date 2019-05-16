@@ -1,5 +1,4 @@
 import random
-import re
 import shutil
 import zipfile
 from functools import partial
@@ -7,7 +6,6 @@ import os
 import h5py
 import shlex
 import pandas
-import datetime
 import numpy as np
 import subprocess
 from shutil import copy2
@@ -16,11 +14,11 @@ from multiprocessing import Pool
 import time
 import socket
 
-import resources
+from Simulation import resources
 from enum import Enum
 
-from h5writer import create_h5, write_dict_to_Hdf5
-from shapes import Rectangle, Circle
+from Simulation.h5writer import create_h5, write_dict_to_Hdf5
+from Simulation.shapes import Rectangle, Circle
 
 
 class OutputFrequencyType(Enum):
