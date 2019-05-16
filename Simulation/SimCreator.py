@@ -392,7 +392,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
 #SBATCH --time=1000:00:00
 #SBATCH --job-name=PAM_RTM
 #SBATCH --cpus-per-task={num_cpus}
-#SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%a.out
+#SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/pam-rtm-%A-%a.out
 {array}
 
 {line_before_unf % (timeout, num_cpus) + ' ' + str(path_to_unf)}
