@@ -84,7 +84,7 @@ class SimCreator:
         self.start_index = batch_num * count
         self.run_on_cluster = run_on_cluster
         free_space = shutil.disk_usage(r'C:\\').free // (1024 ** 3)
-        estimated_used_space = count * 0.55 + 10
+        estimated_used_space = count * 0.55 + 8
         print(f'Going to use {estimated_used_space} of {free_space} GB.')
         if not run_on_cluster and estimated_used_space > free_space:
             print('Not enough free space on device. Finishing ...')
@@ -418,30 +418,54 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
                 with open(fn, 'w') as f:
                     f.writelines(lines)
 
-    def copy_simfiles_to_cluster(self):
+    def copy_simfiles_to_cluster(self, move=True):
         print('Copying simfiles to cluster ...')
-        f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat', '_meta_data.hdf5', '.lperm']
+        t0 = time.time()
+        f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat', '_meta_data.hdf5', '.lperm', '.vdb.zip']
         for e in self.dirs_with_stems:
             p = Path(str(self.solved_sims) + '/' + '/'.join(e.parts[-4:-1]))
             p.mkdir(parents=True, exist_ok=True)
             stem = Path(str(self.solved_sims) + '/' + '/'.join(e.parts[-4:]))
             for end in f_endings:
-                copy2(str(e) + end, str(stem) + end)
+                if not move:
+                    copy2(str(e) + end, str(stem) + end)
+                else:
+                    shutil.move(str(e) + end, str(stem) + end)
                 if end == 'g.unf':
                     self.unf_files_on_storage.append(Path(str(stem) + 'g.unf').as_posix().replace('Y:', '/cfs/share'))
                     #TODO fix for posix
+        print(f'Copying took {(time.time() - t0) / 60:.1f} minutes.')
+
+    def zip_vdbs(self):
+        print('Zipping .vdbs ...')
+        t0 = time.time()
+        vdbs = [str(x) + '.vdb' for x in self.dirs_with_stems]
+        with Pool() as p:
+            p.map(partial(self.zip_file, True), vdbs)
+        print(f'Zipping took {(time.time() - t0) / 60:.1f} minutes.')
+
+    def zip_file(self, delete_after=True, path=''):
+        zip_filename = path + '.zip'
+        zip_file = zipfile.ZipFile(zip_filename, 'w')
+        zip_file.write(path, compress_type=zipfile.ZIP_DEFLATED)
+        if delete_after:
+            os.remove(path)
+        return zip_filename
 
     def run(self):
         self.create_folder_structure_and_perturbate_kN()
         self.write_solver_input()
         self.create_vdbs()
+        exit()
         self.create_unfs_et_al()
+        self.zip_vdbs()
         self.alter_dat_files()
         if self.run_on_cluster:
             self.unf_files_on_storage = [Path(str(x) + 'g.unf').as_posix().replace('Y:', '/cfs/share') for x in self.dirs_with_stems]
         if not self.run_on_cluster:
             self.copy_simfiles_to_cluster()
         self.write_slurm_scripts()
-        if not self.run_on_cluster:
-            zip_fn = zip_folder(self.solver_input_folder, self.batch_num, delete_after=True)
-            shutil.move(zip_fn, self.sim_files_data_heap)
+        # if not self.run_on_cluster:
+        #     zip_fn = zip_folder(self.solver_input_folder, self.batch_num, delete_after=True)
+        #     shutil.move(zip_fn, self.sim_files_data_heap)
+

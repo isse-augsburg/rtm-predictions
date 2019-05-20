@@ -7,7 +7,7 @@ from Simulation.SimCreator import SimCreator
 if __name__== "__main__":
     if os.environ['Write_Simulation'] == '1':
         n_batches = 1
-        count = 1
+        count = 2
         overall_count = n_batches * count
         perturbation_factors = \
         {
@@ -18,12 +18,12 @@ if __name__== "__main__":
                     {
                         "Num": 1,
                         "Fiber_Content":
-                            [-.3, .3]
+                            [.7, .8]
                     },
                 "Circles":
                     {
                         "Num": 1,
-                        "Fiber_Content": [-.3, 0]
+                        "Fiber_Content": [.7, .8]
                     }
             }
         }
