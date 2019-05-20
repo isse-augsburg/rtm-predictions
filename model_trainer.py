@@ -1,3 +1,4 @@
+from pathlib import Path
 
 from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader_sensor as dls, data_loaders_IMG as dli, \
     data_gather as dg
@@ -6,22 +7,26 @@ import torch
 import traceback
 from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
-
+import os
 
 batchsize = 1
 max_Q_len = 512
 epochs = 70
-#path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
-path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/', '/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p']
-#path = ['/cfs/share/data/RTM/Lautern/output/with_shapes']
+if os.name == 'nt':
+    data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
+else:
+    data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
+
+
+paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
 
 
 def create_dataGenerator_pressure_flowfront():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_path=path, num_validation_samples=100,
+        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=100,
                                                  batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
                                                  data_processing_function=dli.get_sensordata_and_flowfront,
-                                                 data_gather_function=dg.get_filelist_within_folder)
+                                                 data_gather_function=dg.get_filelist_within_folder2)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -31,7 +36,7 @@ def create_dataGenerator_pressure_flowfront():
 
 def create_dataGenerator_Pressure_percentage():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_path=path, num_validation_samples=10,
+        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=10,
                                                  batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
                                                  data_processing_function=dls.get_sensordata_and_filling_percentage,
                                                  data_gather_function=dg.get_filelist_within_folder)
@@ -44,7 +49,7 @@ def create_dataGenerator_Pressure_percentage():
 
 def create_dataGenerator_IMG_percentage():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_path="/cfs/home/s/c/schroeni/Data/Images",
+        generator = pipeline.ERFH5_DataGenerator(data_paths="/cfs/home/s/c/schroeni/Data/Images",
                                                  num_validation_samples=100,
                                                  batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
                                                  data_processing_function=dli.get_image_percentage,
@@ -58,7 +63,7 @@ def create_dataGenerator_IMG_percentage():
 
 def create_dataGenerator_IMG():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_path="/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images",
+        generator = pipeline.ERFH5_DataGenerator(data_paths="/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images",
                                                  batch_size=batchsize, epochs=epochs, max_queue_length=2048,
                                                  data_processing_function=dli.get_image_state_sequence,
                                                  data_gather_function=dg.get_folders_within_folder)
@@ -83,7 +88,7 @@ def create_dataGenerator_index_sequence():
 
 def create_dataGenerator_single_state():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_path='/cfs/share/data/RTM/Lautern/clean_erfh5/',
+        generator = pipeline.ERFH5_DataGenerator(data_paths='/cfs/share/data/RTM/Lautern/clean_erfh5/',
                                                  data_processing_function=dl.get_single_states_and_fillings,
                                                  data_gather_function=dg.get_filelist_within_folder,
                                                  batch_size=batchsize, epochs=epochs, max_queue_length=2048,
@@ -97,9 +102,9 @@ def create_dataGenerator_single_state():
 def create_dataGenerator_pressure_sequence():
     try:
         generator = pipeline.ERFH5_DataGenerator(
-            path, data_processing_function=dls.get_sensordata_and_filling_percentage,
+            paths, data_processing_function=dls.get_sensordata_and_filling_percentage,
             data_gather_function=dg.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=70)
+            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=5)
         """ generator = pipeline.ERFH5_DataGenerator(
         path, data_processing_function = dl.get_all_sensor_sequences, data_gather_function = dl.get_filelist_within_folder,
             batch_size=batchsize, epochs=epochs ,max_queue_length=4096, num_validation_samples=250) """

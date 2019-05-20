@@ -71,9 +71,9 @@ def clear_last_line():
 
 class ERFH5_DataGenerator():
 
-    def __init__(self, data_path=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,
+    def __init__(self, data_paths=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,
                  epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=4):
-        self.data_path = data_path
+        self.data_paths = [str(x) for x in data_paths]
         self.batch_size = batch_size
         self.epochs = epochs
         self.max_queue_length = max_queue_length
@@ -88,7 +88,7 @@ class ERFH5_DataGenerator():
 
         self.data_dict = dict()
         print(">>> Generator: Gathering Data...")
-        self.paths = self.data_gather(self.data_path)
+        self.paths = self.data_gather(self.data_paths)
         random.shuffle(self.paths)
         clear_last_line()
         print(">>> Generator: Gathering Data... Done.")
@@ -138,7 +138,7 @@ class ERFH5_DataGenerator():
     def __print_info(self):
         print("###########################################")
         print(">>> Generator INFO <<<")
-        print("Used data folders:", self.data_path)
+        print("Used data folders:", self.data_paths)
         print("Used data gather function:", self.data_gather)
         print("Used data processing function:", self.data_function)
         print("Number of epochs:", self.epochs)
@@ -155,7 +155,7 @@ class ERFH5_DataGenerator():
             raise Exception("No file paths found")
 
         while len(self.validation_list) < self.num_validation_samples:
-
+            print(len(self.validation_list), self.num_validation_samples)
             # If IndexError here: files are all too short
             sample = self.paths[0]
             self.paths = self.paths[1:]
@@ -166,8 +166,7 @@ class ERFH5_DataGenerator():
                 continue
             else:
                 for i in instance:
-                    data, label = torch.FloatTensor(
-                        i[0]), torch.FloatTensor(i[1])
+                    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                     self.validation_list.append((data, label))
 
     def __fill_batch_queue(self):
@@ -239,7 +238,7 @@ if __name__ == "__main__":
                                     batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
-    generator = ERFH5_DataGenerator(data_path=[
+    generator = ERFH5_DataGenerator(data_paths=[
         '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'],
                                     data_processing_function=dls.get_sensordata_and_filling_percentage,
                                     data_gather_function=dg.get_filelist_within_folder, batch_size=1, epochs=2,

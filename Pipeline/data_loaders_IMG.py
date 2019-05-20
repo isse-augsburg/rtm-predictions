@@ -1,7 +1,7 @@
 import numpy as np
 import h5py
 import random
-from PIL import Image
+# from PIL import Image
 from Pipeline.data_gather import get_filelist_within_folder
 
 def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label_offset=3):
@@ -126,8 +126,8 @@ def get_image_percentage(folder):
     return ret_list
 
 
-def load_image(f_name):
-    img = Image.open(f_name)
-    img.load()
-    data = np.asarray(img, dtype="float32")
-    return data
+# def load_image(f_name):
+#     img = Image.open(f_name)
+#     img.load()
+#     data = np.asarray(img, dtype="float32")
+#     return data

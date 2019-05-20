@@ -30,7 +30,6 @@ class Master_Trainer():
         self.__print_comment()
         self.__train()
         self.__eval()
-        #print(">>> INFO: MASTER PROCESS TERMINATED - TRAINING COMPLETE - MISSION SUCCESS ")
         print(">>> INFO: TRAINING COMPLETE.")
     
     def __print_info(self): 

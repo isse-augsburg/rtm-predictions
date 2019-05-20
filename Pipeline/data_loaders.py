@@ -1,13 +1,6 @@
 import h5py
 import numpy as np
-from PIL import Image
-from os import listdir, walk
-from os.path import isdir
-import random
-import torch
-import torch.nn as nn
-from tqdm import tqdm
-
+# from PIL import Image
 
 # returns a sequence of simulation steps as data and the filling percentage of the last step as label
 def get_index_sequence(filename):
@@ -159,16 +152,13 @@ def get_single_states_and_fillings(filename):
     return single_states
 
 
-
-
-
-def save_numpy_as_image(inputs, label, name, path="/cfs/home/s/c/schroeni/Data/Eval/", ):
-    inputs = np.squeeze(inputs)
-    label = np.squeeze(label)
-    inp = Image.fromarray(np.uint8((inputs) * 255))
-    lab = Image.fromarray(np.uint8((label) * 255))
-    inp.save(path + "inp_" + str(name) + ".bmp")
-    lab.save(path + "lab_" + str(name) + ".bmp")
+# def save_numpy_as_image(inputs, label, name, path="/cfs/home/s/c/schroeni/Data/Eval/", ):
+#     inputs = np.squeeze(inputs)
+#     label = np.squeeze(label)
+#     inp = Image.fromarray(np.uint8((inputs) * 255))
+#     lab = Image.fromarray(np.uint8((label) * 255))
+#     inp.save(path + "inp_" + str(name) + ".bmp")
+#     lab.save(path + "lab_" + str(name) + ".bmp")
 
 
 if __name__ == "__main__":

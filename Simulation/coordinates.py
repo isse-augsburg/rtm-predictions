@@ -63,6 +63,8 @@ def get_coordinates_of_circle(filename, circles):
 
     #list that contains lists of the indices of circles
     return indices_of_circles
+
+
 def get_elements_in_shape(filename, shape):
     f = h5py.File(filename, 'r')
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
@@ -82,6 +84,7 @@ def get_elements_in_shape(filename, shape):
         indices_of_elements.append(current_elements)
     return indices_of_elements
 
+
 def get_indices_of_elements_in_circles(filename, circles=(([-24, -5], 5), ([5, 5], 2), ([7, 0], 0.5))):
     f = h5py.File(filename, 'r')
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
@@ -98,7 +101,6 @@ def get_indices_of_elements_in_circles(filename, circles=(([-24, -5], 5), ([5, 5
 
     return indices_of_elements
 
-    
 
 def get_indices_of_elements_in_rectangle(filename, sizes=[((-5, -8), 3, 0.5), ((5, 0), 1, 1)] ):
     f = h5py.File(filename, 'r')
