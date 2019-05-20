@@ -111,10 +111,59 @@ def get_indices_of_elements_in_rectangle(filename, sizes=[((-5, -8), 3, 0.5), ((
     indices_of_rectangle = get_coordinates_of_rectangle(filename, sizes)
     indices_of_elements = get_elements_in_shape(filename, indices_of_rectangle)
     
-        
+    return indices_of_elements
+
+def get_coordinates_of_runner(filename, sizes): 
+    f = h5py.File(filename, 'r')
+
+    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
+    # Cut off last column (z), since it is filled with 1s anyway
+    _all_coords = coord_as_np_array[:, :-1]
+
+    indices_of_runner = []
+
+    current_runner = []
+    for s in sizes:
+        lower_left = s[0]
+        width = s[1]
+        height = s[2]
+        runner_lower_left = s[3]
+        runner_width = s[4]
+        runner_height = s[5]
+
+        for i in np.arange(lower_left[0], lower_left[0]+width, 0.125):
+            for j in np.arange(lower_left[1], lower_left[1]+height, 0.125):
+                if((i > runner_lower_left[0] and i < runner_lower_left[0]+runner_width) and  
+                (j > runner_lower_left[1] and j < runner_lower_left[1] + runner_height)):
+                    continue
+
+                index = np.where((_all_coords[:,0] == [i]) & (_all_coords[:,1] == [j]))
+                index = index[0]
+                if index.size != 0:
+                    current_runner.append(int(index))
+        indices_of_runner.append(set(current_runner))
+    
+    x_coords = _all_coords[:,0]
+    y_coords = _all_coords[:,1]
     
 
+    return indices_of_runner
+
+
+
+#sizes = [((lower_left_x, lower_left_y), width, height, (runner_lower_left_x, runner_lower_left_y), runner_width, runner_height)]
+def get_indices_of_elements_in_runner(filename, sizes=[((-5, -8), 3, 10, (-4, -6), 1, 20)]):
+    f = h5py.File(filename, 'r')
+    triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
+    triangle_coords = triangle_coords[:, :-1]
+    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
+    # Cut off last column (z), since it is filled with 1s anyway
+    _all_coords = coord_as_np_array[:, :-1]
+
+    indices_of_runner = get_coordinates_of_runner(filename, sizes)
+    indices_of_elements = get_elements_in_shape(filename, indices_of_runner)
     return indices_of_elements
+
 
 
 
@@ -214,10 +263,12 @@ def get_elements_of_random_shapes(filename):
 
 
 if __name__ == "__main__":
-    path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5'
+    path = 'Y:/data/RTM/Lautern/clean_erfh5/2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5'
+    #path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5'
     #shapes = get_indices_of_elements_in_rectangle(path)
     #shapes = get_indices_of_elements_in_circles(path)
     #plot_weird_coordinates('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5')
-    rects, circles = get_elements_of_random_shapes(path)
-    rects.extend(circles)
-    plot_triangles(path, rects)
+    #rects, circles = get_elements_of_random_shapes(path)
+    #rects.extend(circles)
+    runners = get_indices_of_elements_in_runner(path)
+    plot_triangles(path, runners)

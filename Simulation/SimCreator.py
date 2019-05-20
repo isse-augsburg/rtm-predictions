@@ -14,11 +14,14 @@ from multiprocessing import Pool
 import time
 import socket
 
-from Simulation import resources
+#from Simulation import resources
+import resources
 from enum import Enum
 
-from Simulation.h5writer import create_h5, write_dict_to_Hdf5
-from Simulation.shapes import Rectangle, Circle
+#from Simulation.h5writer import create_h5, write_dict_to_Hdf5
+from h5writer import create_h5, write_dict_to_Hdf5
+#from Simulation.shapes import Rectangle, Circle
+from shapes import Rectangle, Circle, Runner
 
 
 class OutputFrequencyType(Enum):
@@ -112,7 +115,8 @@ class SimCreator:
             else:
                 disk = r'C:'
             str_sip = disk + str_sip
-            self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
+            self.slurm_scripts_folder = Path("")
+            # self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
         else:
             self.vebatch_exec = '/usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh'
             data_path = Path('/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=share/data/RTM/Lautern')
@@ -153,8 +157,11 @@ class SimCreator:
         if len(self.perturbation_factors.keys()) > 0:
             [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
             [self.shapes.append(Circle) for x in range(self.perturbation_factors['Shapes']['Circles']['Num'])]
+            [self.shapes.append(Runner) for x in range(self.perturbation_factors['Shapes']['Runners']['Num'])]
             self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
             self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
+            self.runner_fvc_bounds = self.perturbation_factors['Shapes']['Runners']['Fiber_Content']
+
 
         self.slurm_partition = "big-cpu"
 
@@ -219,9 +226,29 @@ class SimCreator:
                             "radius": radius,
                       }
                 }
+
+            elif shape.__name__ == 'Runner':
+                fvc =    random.random() * (self.runner_fvc_bounds[1] - self.runner_fvc_bounds[0]) + self.runner_fvc_bounds[0]
+                lower_left_x, lower_left_y = -5, -8
+                overall_width, overall_height = 3, 10 
+                runner_x, runner_y = -4, -6
+                runner_width, runner_height = 1, 20 
+                print("Creating runner")
+                list_of_indices_of_shape = self.get_coordinates_of_runner(((lower_left_x, lower_left_y), overall_width, overall_height, (runner_x, runner_y), runner_width, runner_height))
+                print(list_of_indices_of_shape)
+                _dict = {"Runner":
+                            {"fvc": fvc,
+                            "height": overall_height,
+                            "width": overall_width,
+                            "inner_height": runner_height,
+                            "inner_width": runner_width
+                      }
+                }
+
             self.save_to_h5_data['shapes'].append(_dict)
 
             indices_of_elements = self.get_elements_in_shape(list_of_indices_of_shape)
+            print(indices_of_elements)
             df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
 
         # Apply function that gets k1 and k2 from FVC
@@ -250,6 +277,31 @@ class SimCreator:
         f = create_h5(str(dir / fn2))
         write_dict_to_Hdf5(f, self.save_to_h5_data)
         return Path(dir / f'{self.initial_timestamp}_{count}')
+
+    def get_coordinates_of_runner(self, s): 
+        indices_of_runner = []
+
+        current_runner = []
+        lower_left = s[0]
+        width = s[1]
+        height = s[2]
+        runner_lower_left = s[3]
+        runner_width = s[4]
+        runner_height = s[5]
+
+        for i in np.arange(lower_left[0], lower_left[0]+width, 0.125):
+            for j in np.arange(lower_left[1], lower_left[1]+height, 0.125):
+                if((i > runner_lower_left[0] and i < runner_lower_left[0]+runner_width) and  
+                (j > runner_lower_left[1] and j < runner_lower_left[1] + runner_height)):
+                    continue
+
+                index = np.where((self.all_coords[:,0] == [i]) & (self.all_coords[:,1] == [j]))
+                index = index[0]
+                if index.size != 0:
+                    current_runner.append(int(index))
+
+        return set(current_runner)
+       
 
     def get_coordinates_of_rectangle(self, lower_left, height, width):
         current_rect = []
@@ -454,6 +506,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
 
     def run(self):
         self.create_folder_structure_and_perturbate_kN()
+        exit()
         self.write_solver_input()
         self.create_vdbs()
         exit()
