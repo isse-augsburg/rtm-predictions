@@ -79,7 +79,8 @@ class Master_Trainer():
             print(">>> Mean Loss on Eval:", "{:8.4f}".format(loss))
             self.model.train()
 
-    def saveModel(self):
+
+    def save_model(self):
         torch.save(self.model.state_dict(), self.savepath)
 
     def load_model(self):
