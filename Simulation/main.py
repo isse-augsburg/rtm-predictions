@@ -30,7 +30,7 @@ if __name__== "__main__":
             "Runners":
             {
                 "Num": 1,
-                "Fiber_Content": [.7, .9]
+                "Fiber_Content": [-.7, -.9]
             }
         }
     }
