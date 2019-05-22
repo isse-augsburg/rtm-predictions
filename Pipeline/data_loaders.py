@@ -160,17 +160,6 @@ def get_single_states_and_fillings(filename):
 
 
 
-
-
-def save_numpy_as_image(inputs, label, name, path="/cfs/home/s/c/schroeni/Data/Eval/", ):
-    inputs = np.squeeze(inputs)
-    label = np.squeeze(label)
-    inp = Image.fromarray(np.uint8((inputs) * 255))
-    lab = Image.fromarray(np.uint8((label) * 255))
-    inp.save(path + "inp_" + str(name) + ".bmp")
-    lab.save(path + "lab_" + str(name) + ".bmp")
-
-
 if __name__ == "__main__":
     # files = get_filelist_within_folder([
     #   '/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'])
