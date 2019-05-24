@@ -2,6 +2,8 @@ import h5py
 import numpy as np
 # from PIL import Image
 
+# data_function must return [(data, label) ... (data, label)]
+
 # returns a sequence of simulation steps as data and the filling percentage of the last step as label
 def get_index_sequence(filename):
     indices = [10, 20, 30, 40, 50]
@@ -118,12 +120,10 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
             continue
 
     if t_target != 9999999 or filling_factors_at_certain_times.__len__() != (t_finish - t_start) / t_delta:
-        # print("Didn't",len(filling_factors_at_certain_times), t_target, filling_percentage)
         return None
 
     flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
 
-    # print("Worked",len(filling_factors_at_certain_times), t_target, filling_percentage)
     return (flat_fillings, filling_percentage)
 
 

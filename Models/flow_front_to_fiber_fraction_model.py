@@ -1,13 +1,16 @@
-import torch
+import os
+from pathlib import Path
+
 from torch.autograd import Variable
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl
 
+from Pipeline import erfh5_pipeline as pipeline, data_loaders_IMG as dli, data_gather as dg
 
-class ERFH5_RNN(nn.Module):
+class FlowfrontFeatures_RNN(nn.Module):
     def __init__(self, input_dim, hidden_dim=512, batch_size=8, num_layers=3):
-        super(ERFH5_RNN, self).__init__()
+        super(FlowfrontFeatures_RNN, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.nlayers = num_layers
@@ -16,10 +19,10 @@ class ERFH5_RNN(nn.Module):
                             batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.2)
 
         self.hidden2hidden1 = nn.Linear(int(hidden_dim), 600)
-        self.hidden2hidden2 = nn.Linear(600, 400)
-        self.hidden2hidden3 = nn.Linear(400, 200)
-        self.hidden2hidden4 = nn.Linear(200, 100)
-        self.hidden2value = nn.Linear(100, 2)
+        self.hidden2hidden2 = nn.Linear(600, 1000)
+        self.hidden2hidden3 = nn.Linear(1000, 5000)
+        self.hidden2hidden4 = nn.Linear(5000, 216225)
+        # self.hidden2value = nn.Linear(100, 2)
         self.drop = nn.Dropout(0.30)
 
         self.init_weights()
@@ -35,8 +38,8 @@ class ERFH5_RNN(nn.Module):
         self.hidden2hidden3.weight.data.uniform_(-initrange, initrange)
         self.hidden2hidden4.bias.data.fill_(0)
         self.hidden2hidden4.weight.data.uniform_(-initrange, initrange)
-        self.hidden2value.bias.data.fill_(0)
-        self.hidden2value.weight.data.uniform_(-initrange, initrange)
+        # self.hidden2value.bias.data.fill_(0)
+        # self.hidden2value.weight.data.uniform_(-initrange, initrange)
 
     def init_hidden(self):
         return [
@@ -63,15 +66,16 @@ class ERFH5_RNN(nn.Module):
         out = self.drop(out)
         out = F.relu(self.hidden2hidden4(out))
         out = self.drop(out)
-        out = self.hidden2value(out)
-        out = F.softmax(out)
+        # out = self.hidden2value(out)
+        # print('Model: Shape', out.shape)
+        out = F.softmax(out, dim=1)
         return out
 
 
-class ERFH5_Pressure_CNN(nn.Module):
+class Flowfront_CNN(nn.Module):
     def __init__(self):
-        super(ERFH5_Pressure_CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 8, (1, 7), dilation=1)
+        super(Flowfront_CNN, self).__init__()
+        self.conv1 = nn.Conv2d(1, 8, kernel_size=(1, 7), stride=(1, 1))
         self.conv2 = nn.Conv2d(8, 16, (1, 5))
         self.conv3 = nn.Conv2d(16, 32, (1, 7))
         self.conv4 = nn.Conv2d(32, 64, (1, 5))
@@ -91,33 +95,38 @@ class ERFH5_Pressure_CNN(nn.Module):
         return out
 
 
-class ERFH5_PressureSequence_Model(nn.Module):
+class FlowfrontToFiberfractionModel(nn.Module):
     def __init__(self):
-        super(ERFH5_PressureSequence_Model, self).__init__()
-        self.cnn = ERFH5_Pressure_CNN()
-        self.rnn = ERFH5_RNN(input_dim=2560)
+        super(FlowfrontToFiberfractionModel, self).__init__()
+        self.cnn = Flowfront_CNN()
+        self.rnn = FlowfrontFeatures_RNN(input_dim=3392)
 
     def forward(self, x):
-        out = self.cnn(x)
+        out = self.cnn.forward(x)
         out = out.permute(0, 2, 1, 3)
         out = out.reshape((out.size()[0], out.size()[1], -1))
-        out = self.rnn(out)
+        out = self.rnn.forward(out)
         return out
 
 
 if __name__ == "__main__":
-    path = [
-        '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
-    generator = pipeline.ERFH5_DataGenerator(
-        path, data_processing_function=dl.get_sensordOata_and_filling_percentage,
-        data_gather_function=dl.get_filelist_within_folder,
-        batch_size=1, epochs=1, max_queue_length=32, num_validation_samples=1)
-    model = ERFH5_PressureSequence_Model()
-    loss_criterion = torch.nn.MSELoss()
+    if os.name == 'nt':
+        data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
+    else:
+        data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
 
-    for inputs, labels in generator:
-        print("inputs", inputs.size())
-        out = model(inputs)
-        print(out)
-        loss = loss_criterion(out, labels)
-        print("loss", loss)
+    # path = data_root / '2019-05-17_16-45-57_3000p'
+    # paths = [path]
+    # generator = pipeline.ERFH5_DataGenerator(
+    #     paths, data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
+    #     data_gather_function=dg.get_filelist_within_folder,
+    #     batch_size=1, epochs=1, max_queue_length=1, num_validation_samples=1)
+    # model = FlowfrontToFiberfractionModel()
+    # loss_criterion = nn.MSELoss()
+    #
+    # for inputs, labels in generator:
+    #     print("inputs", inputs.size())
+    #     out = model(inputs)
+    #     print(out)
+    #     loss = loss_criterion(out, labels)
+    #     print("loss", loss)

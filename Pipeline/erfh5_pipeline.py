@@ -29,7 +29,7 @@ class Thread_Safe_List():
         while not self.finished:
             self.lock.acquire()
             random.shuffle(self.list)
-            print(">>>INFO: Successfully shuffeled batch queue")
+            # print(">>>INFO: Successfully shuffeled batch queue")
             self.lock.release()
             time.sleep(10)
 
@@ -70,8 +70,7 @@ def clear_last_line():
 
 
 class ERFH5_DataGenerator():
-
-    def __init__(self, data_paths=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,
+    def __init__(self, data_paths, data_processing_function=None, data_gather_function=None, batch_size=64,
                  epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=4):
         self.data_paths = [str(x) for x in data_paths]
         self.batch_size = batch_size
@@ -89,12 +88,15 @@ class ERFH5_DataGenerator():
         self.data_dict = dict()
         print(">>> Generator: Gathering Data...")
         self.paths = self.data_gather(self.data_paths)
+        # print('!!! Using only small part of the dataset, remove the following line for real training !!!')
+        # self.paths = self.paths[:100]
         random.shuffle(self.paths)
         clear_last_line()
         print(">>> Generator: Gathering Data... Done.")
         self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
         self.path_queue = Thread_Safe_List()
         self.validation_list = []
+        self.test_list = []
         self.barrier = threading.Barrier(self.num_workers)
         
         print(">>> Generator: Filling Validation List...")
@@ -120,7 +122,6 @@ class ERFH5_DataGenerator():
         self.t_shuffle.start()
 
     def __shuffle_batch_queue(self):
-
         self.batch_queue.randomise()
 
     def __fill_path_queue(self):
@@ -148,37 +149,15 @@ class ERFH5_DataGenerator():
         print("Number of validation samples:", self.num_validation_samples)
         print("###########################################")
 
-
-
-    def __fill_validation_list(self):
-        if len(self.paths) == 0:
-            raise Exception("No file paths found")
-
-        while len(self.validation_list) < self.num_validation_samples:
-            print(len(self.validation_list), self.num_validation_samples)
-            # If IndexError here: files are all too short
-            sample = self.paths[0]
-            self.paths = self.paths[1:]
-            instance = self.data_function(sample)
-
-            # data_function must return [(data, label) ... (data, label)]
-            if instance is None:
-                continue
-            else:
-                for i in instance:
-                    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-                    self.validation_list.append((data, label))
-
     def __fill_batch_queue(self):
-
         while len(self.path_queue) > 0:
+            if len(self.path_queue) == 0:
+                self.path_queue.kill()
+
             try:
                 file = self.path_queue.get(1)[0]
             except StopIteration as si:
                 break
-
-            if (len(self.path_queue) == 0):
-                self.path_queue.kill()
 
             if file in self.data_dict:
                 instance = self.data_dict[file]
@@ -198,8 +177,7 @@ class ERFH5_DataGenerator():
                     tensor_instances = list()
 
                     for i in instance:
-                        data, label = torch.FloatTensor(
-                            i[0]), torch.FloatTensor(i[1])
+                        data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                         self.batch_queue.put((data, label))
                         tensor_instances.append((data, label))
 
@@ -208,6 +186,26 @@ class ERFH5_DataGenerator():
         self.barrier.wait()
         self.batch_queue.kill()
         print(">>>INFO: Data loading complete. - SUCCESS")
+
+    def __fill_validation_list(self):
+        if len(self.paths) == 0:
+            raise Exception("No file paths found")
+
+        while len(self.validation_list) < self.num_validation_samples:
+            # print(len(self.validation_list), self.num_validation_samples)
+            # If IndexError here: files are all too short
+            sample = self.paths[0]
+            self.paths = self.paths[1:]
+
+            # data_function must return [(data, label) ... (data, label)]
+            instance = self.data_function(sample)
+
+            if instance is None:
+                continue
+            else:
+                for i in instance:
+                    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
+                    self.validation_list.append((data, label))
 
     def __iter__(self):
         return self

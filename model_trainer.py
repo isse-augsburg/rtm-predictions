@@ -7,18 +7,22 @@ import torch
 import traceback
 from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
+from Models.flow_front_to_fiber_fraction_model import FlowfrontToFiberfractionModel
 import os
 
-batchsize = 1
+batchsize = 10
 max_Q_len = 512
-epochs = 70
+epochs = 50
 if os.name == 'nt':
     data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
+    savepath = Path(r'C:\Users\stiebesi\code\saved_models')
 else:
     data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
+    savepath = Path('/cfs/home/s/t/stiebesi/code/saved_models')
 
-
-paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
+# paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
+path = data_root / '2019-05-17_16-45-57_3000p'
+paths = [path]
 
 
 def create_dataGenerator_pressure_flowfront():
@@ -26,7 +30,7 @@ def create_dataGenerator_pressure_flowfront():
         generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=100,
                                                  batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
                                                  data_processing_function=dli.get_sensordata_and_flowfront,
-                                                 data_gather_function=dg.get_filelist_within_folder2)
+                                                 data_gather_function=dg.get_filelist_within_folder)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -115,9 +119,20 @@ def create_dataGenerator_pressure_sequence():
     return generator
 
 
+def create_datagenerator_flow_front_to_permeabilities():
+    try:
+        generator = pipeline.ERFH5_DataGenerator(
+            paths, data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
+            data_gather_function=dg.get_filelist_within_folder,
+            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=5)
+    except Exception as e:
+        print(">>>ERROR: Fatal Error:", e)
+        exit()
+
+    return generator
+
 def get_comment():
-    comment = "Sensor values are now correctly scaled"
-    return comment
+    return "Sensor values are now correctly scaled"
 
 
 if __name__ == "__main__":
@@ -128,14 +143,30 @@ if __name__ == "__main__":
     # model = ERFH5_PressureSequence_Model()
     # generator = create_dataGenerator_pressure_sequence()
 
-    print(">>> INFO: Generating Model")
-    model = ERFH5_PressureSequence_Model()
+    # print(">>> INFO: Generating Model")
+    # model = ERFH5_PressureSequence_Model()
+    # print(">>> INFO: Generating Generator")
+    # generator = create_dataGenerator_pressure_sequence()
+    # print(">>> INFO: Model to GPU")
+    # model = nn.DataParallel(model).to('cuda:0')
+    # train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
+    #                                savepath='/cfs/home/s/t/stiebesi/models/flow_front_perm.pt', learning_rate=0.0001,
+    #                                calc_metrics=True)
+    # print(">>> INFO: The Training Will Start Shortly")
+    #
+    # train_wrapper.start_training()
+    # train_wrapper.save_model()
+    # print("Model saved.")
+
     print(">>> INFO: Generating Generator")
-    generator = create_dataGenerator_pressure_sequence()
+    generator = create_datagenerator_flow_front_to_permeabilities()
+    print(">>> INFO: Generating Model")
+    model = FlowfrontToFiberfractionModel()
     print(">>> INFO: Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
+
     train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
-                                   savepath='/cfs/home/s/t/stiebesi/models/flow_front_perm.pt', learning_rate=0.0001,
+                                   savepath=savepath / 'flow_front_perm.pt', learning_rate=0.0001,
                                    calc_metrics=True)
     print(">>> INFO: The Training Will Start Shortly")
 

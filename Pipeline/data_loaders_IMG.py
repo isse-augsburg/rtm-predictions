@@ -1,8 +1,18 @@
+import colorsys
+import time
+from functools import partial
+from multiprocessing.pool import Pool
+from pathlib import Path
+
 import numpy as np
 import h5py
 import random
 # from PIL import Image
+from PIL import Image, ImageDraw
+
 from Pipeline.data_gather import get_filelist_within_folder
+
+# data_function must return [(data, label) ... (data, label)]
 
 def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label_offset=3):
     filelist = get_filelist_within_folder(folder)
@@ -45,7 +55,6 @@ def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label
     return [(data, label)]
 
 
-
 def normalize_coords(coords):
     max_c = np.max(coords)
     min_c = np.min(coords)
@@ -71,6 +80,76 @@ def create_np_image(target_shape=(151, 151), norm_coords=None, data=None, ):
     arr[coords_value[:, 0], coords_value[:, 1]] = coords_value[:, 2]
 
     return arr
+
+
+def get_images_of_flow_front_and_permeability_map(filename, caching=True):
+    cache_dir = ''
+    if caching:
+        cache_dir = filename.absolute().parent / 'img_cache'
+        cache_dir.mkdir(parents=True, exist_ok=True)
+    f = h5py.File(filename, 'r')
+    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
+    _all_coords = coord_as_np_array[:, :-1]
+    scaled_coords = (_all_coords + 23.25) * 10
+
+    triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
+    triangle_coords = triangle_coords[:, :-1] - 1
+
+    data = f['post/constant/entityresults/SHELL/']
+
+    states = list(f['post']['singlestate'].keys())
+    fillings = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in states]
+    if not(Path(cache_dir) / 'fiber_fraction.png').exists() and caching:
+        im = create_local_properties_map(data, scaled_coords, triangle_coords, 'FIBER_FRACTION')
+        im.save(Path(cache_dir) / 'fiber_fraction.png')
+    else:
+        im = Image.open(Path(cache_dir) / 'fiber_fraction.png')
+    label = np.asarray(im)
+    with Pool() as p:
+        images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir), range(len(fillings)))
+    # array of all images, array of the same permeability map
+    images = [x[0] for x in images_and_indices]
+
+    return zip(images, [label] * len(images))
+
+
+def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIBER_FRACTION'):
+    values_for_triangles = data[_type]['ZONE1_set1']['erfblock']['res'][()]
+    im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords)
+    return im
+
+
+def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, index):
+    im_fn = cache_dir / f'{index}.png'
+    if cache_dir != '' and not im_fn.exists():
+        filling = fillings[index]
+        means_of_neighbour_nodes = filling[triangle_coords].reshape(len(triangle_coords), 3).mean(axis=1)
+        im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
+        im.save(im_fn)
+    else:
+        im = Image.open(im_fn)
+
+    return np.asarray(im), index
+
+
+def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords, colored=False, cache_dir=''):
+    mode = 'RGB' if colored else 'L'
+    im = Image.new(mode, (465, 465))
+    draw = ImageDraw.Draw(im)
+    for i in range(len(triangle_coords)):
+        val = values_for_triangles[i]
+        if not colored:
+            draw.polygon(scaled_coords[triangle_coords[i]], fill=(int(val * 255)))
+        else:
+            if val == 0.0:
+                draw.polygon(scaled_coords[triangle_coords[i]], fill=(255, 0, 0))
+            elif val == 1.0:
+                draw.polygon(scaled_coords[triangle_coords[i]], fill=(0, 102, 255))
+            else:
+                h = 3.6 * val
+                col = tuple(int(round(i * 255)) for i in colorsys.hsv_to_rgb(h, 1, 1))
+                draw.polygon(scaled_coords[triangle_coords[i]], fill=col)
+    return im
 
 
 def get_sensordata_and_flowfront(file):
@@ -126,8 +205,5 @@ def get_image_percentage(folder):
     return ret_list
 
 
-# def load_image(f_name):
-#     img = Image.open(f_name)
-#     img.load()
-#     data = np.asarray(img, dtype="float32")
-#     return data
+if __name__ == "__main__":
+    get_images_of_flow_front_and_permeability_map(Path(r'Debugging/2019-05-17_16-45-57_0_RESULT.erfh5'))
