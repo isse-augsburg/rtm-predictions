@@ -11,6 +11,16 @@ class NoSequenceException(Exception):
 
 # returns a list of all file paths in a root directory including sub-directories
 def get_paths_to_files(root_directory):
+    """This is a test. 
+    Extended description 
+
+    Args: 
+        filename (string): filename 
+        lower_left (int(): lowe left coordinate
+
+    Returns:
+        indices 
+    """
     dataset_filenames = []
     for (dirpath, dirnames, filenames) in walk(root_directory):
         if filenames:

@@ -1,13 +1,28 @@
+""" coordinates.py
+Small playground file for experiments. 
+"""
+
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
 
+
+
 def get_coordinates_of_rectangle(filename, lower_left, height, width):
-    """ lower_left =  [-5, -8]
-    height = 15
-    width = 0.125 """
+
+    """This is a test. 
+    Extended description 
+
+    Args: 
+        filename (string): filename 
+        lower_left (int(): lower left coordinate
+
+    Returns:
+        indices 
+    """
+
     f = h5py.File(filename, 'r')
 
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
