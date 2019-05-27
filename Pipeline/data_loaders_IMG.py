@@ -10,7 +10,7 @@ import random
 # from PIL import Image
 from PIL import Image, ImageDraw
 
-from Pipeline.data_gather import get_filelist_within_folder
+#from Pipeline.data_gather import get_filelist_within_folder
 
 # data_function must return [(data, label) ... (data, label)]
 
@@ -85,12 +85,14 @@ def create_np_image(target_shape=(151, 151), norm_coords=None, data=None, ):
 def get_images_of_flow_front_and_permeability_map(filename, caching=True):
     cache_dir = ''
     if caching:
-        cache_dir = filename.absolute().parent / 'img_cache'
+        cache_dir = Path(f'/cfs/home/s/c/schroeni/Images/Cache/{filename.parts[-2]}/img_cache')
+        print(cache_dir)
         cache_dir.mkdir(parents=True, exist_ok=True)
     f = h5py.File(filename, 'r')
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
     _all_coords = coord_as_np_array[:, :-1]
     scaled_coords = (_all_coords + 23.25) * 10
+    norm_cords = normalize_coords(_all_coords)
 
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
     triangle_coords = triangle_coords[:, :-1] - 1
@@ -98,7 +100,14 @@ def get_images_of_flow_front_and_permeability_map(filename, caching=True):
     data = f['post/constant/entityresults/SHELL/']
 
     states = list(f['post']['singlestate'].keys())
-    fillings = [f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()] for state in states]
+    fillings =[]
+    for state in states:
+        try:
+            filling_factor = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+        except KeyError:
+            continue
+        fillings.append(filling_factor)
+
     if not(Path(cache_dir) / 'fiber_fraction.png').exists() and caching:
         im = create_local_properties_map(data, scaled_coords, triangle_coords, 'FIBER_FRACTION')
         im.save(Path(cache_dir) / 'fiber_fraction.png')
@@ -108,9 +117,13 @@ def get_images_of_flow_front_and_permeability_map(filename, caching=True):
     with Pool() as p:
         images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir), range(len(fillings)))
     # array of all images, array of the same permeability map
+   
+    
     images = [x[0] for x in images_and_indices]
-
-    return zip(images, [label] * len(images))
+    img_stack = np.stack(images)
+    print(np.shape(images))
+    print(np.shape(img_stack))
+    return  [(img_stack, label)]
 
 
 def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIBER_FRACTION'):
@@ -120,11 +133,16 @@ def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIB
 
 
 def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, index):
+    fillings = np.squeeze(fillings)
+    filling = fillings[index]
     im_fn = cache_dir / f'{index}.png'
     if cache_dir != '' and not im_fn.exists():
-        filling = fillings[index]
+    
+
         means_of_neighbour_nodes = filling[triangle_coords].reshape(len(triangle_coords), 3).mean(axis=1)
         im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
+        #im = create_np_image((465,465), scaled_coords, filling)
+        #im_t = Image.fromarray(im,mode='L')
         im.save(im_fn)
     else:
         im = Image.open(im_fn)
@@ -206,4 +224,4 @@ def get_image_percentage(folder):
 
 
 if __name__ == "__main__":
-    get_images_of_flow_front_and_permeability_map(Path(r'Debugging/2019-05-17_16-45-57_0_RESULT.erfh5'))
+    get_images_of_flow_front_and_permeability_map(Path(r'/home/niklas/Desktop/2019-05-17_16-45-57_0_RESULT.erfh5'))

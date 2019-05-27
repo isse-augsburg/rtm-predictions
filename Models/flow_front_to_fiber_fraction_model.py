@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from Pipeline import erfh5_pipeline as pipeline, data_loaders_IMG as dli, data_gather as dg
 
+
 class FlowfrontFeatures_RNN(nn.Module):
     def __init__(self, input_dim, hidden_dim=512, batch_size=8, num_layers=3):
         super(FlowfrontFeatures_RNN, self).__init__()
@@ -75,11 +76,11 @@ class FlowfrontFeatures_RNN(nn.Module):
 class Flowfront_CNN(nn.Module):
     def __init__(self):
         super(Flowfront_CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 8, kernel_size=(1, 7), stride=(1, 1))
-        self.conv2 = nn.Conv2d(8, 16, (1, 5))
-        self.conv3 = nn.Conv2d(16, 32, (1, 7))
-        self.conv4 = nn.Conv2d(32, 64, (1, 5))
-        self.pool = nn.MaxPool2d((2, 2), (2, 2))
+        self.conv1 = nn.Conv3d(1, 8, kernel_size=(1, 7, 7), stride=(1, 1, 1))
+        self.conv2 = nn.Conv3d(8, 16, (1, 5, 5))
+        self.conv3 = nn.Conv3d(16, 32, (1, 7, 7))
+        self.conv4 = nn.Conv3d(32, 1, (1, 5, 5))
+        self.pool = nn.MaxPool3d((1 ,2, 2), (1, 2, 2))
         self.drop = nn.Dropout(0.4)
 
     def forward(self, x):
@@ -92,6 +93,7 @@ class Flowfront_CNN(nn.Module):
         out = self.drop(out)
         out = self.conv3(out)
         out = self.drop(out)
+        out = self.conv4(out)
         return out
 
 
@@ -99,21 +101,26 @@ class FlowfrontToFiberfractionModel(nn.Module):
     def __init__(self):
         super(FlowfrontToFiberfractionModel, self).__init__()
         self.cnn = Flowfront_CNN()
-        self.rnn = FlowfrontFeatures_RNN(input_dim=3392)
+        self.rnn = FlowfrontFeatures_RNN(input_dim=10404)
 
     def forward(self, x):
         out = self.cnn.forward(x)
-        out = out.permute(0, 2, 1, 3)
-        out = out.reshape((out.size()[0], out.size()[1], -1))
+       
+        out = torch.squeeze(out, dim=1)
+        
+        out = out.permute(1, 0, 2, 3)
+       
+        out = out.reshape((out.size()[0], out.size()[1], -1)).contiguous() 
         out = self.rnn.forward(out)
         return out
 
 
 if __name__ == "__main__":
-    if os.name == 'nt':
-        data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
-    else:
-        data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
+    pass
+    # if os.name == 'nt':
+    #     data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
+    # else:
+    #     data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
 
     # path = data_root / '2019-05-17_16-45-57_3000p'
     # paths = [path]
@@ -123,7 +130,7 @@ if __name__ == "__main__":
     #     batch_size=1, epochs=1, max_queue_length=1, num_validation_samples=1)
     # model = FlowfrontToFiberfractionModel()
     # loss_criterion = nn.MSELoss()
-    #
+    
     # for inputs, labels in generator:
     #     print("inputs", inputs.size())
     #     out = model(inputs)

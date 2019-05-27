@@ -69,7 +69,7 @@ class Master_Trainer():
             #    scaled_loss.backward()
             loss.backward()
             self.optimizer.step()
-
+            print(loss.item())
             if i % self.train_print_frequency == 0 and i != 0:
                 time_delta = time.time() - start_time
                 print(f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds || Q: {self.generator.get_current_queue_length()}")

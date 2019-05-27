@@ -10,7 +10,7 @@ from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Models.flow_front_to_fiber_fraction_model import FlowfrontToFiberfractionModel
 import os
 
-batchsize = 10
+batchsize = 1
 max_Q_len = 512
 epochs = 50
 if os.name == 'nt':
@@ -21,7 +21,7 @@ else:
     savepath = Path('/cfs/home/s/t/stiebesi/code/saved_models')
 
 # paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
-path = data_root / '2019-05-17_16-45-57_3000p'
+path = data_root / '2019-04-23_13-00-58_200p' #'2019-05-17_16-45-57_3000p'
 paths = [path]
 
 
@@ -124,9 +124,10 @@ def create_datagenerator_flow_front_to_permeabilities():
         generator = pipeline.ERFH5_DataGenerator(
             paths, data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
             data_gather_function=dg.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=5)
+            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=1)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
+        traceback.print_exc()
         exit()
 
     return generator
@@ -158,6 +159,14 @@ if __name__ == "__main__":
     # train_wrapper.save_model()
     # print("Model saved.")
 
+
+
+
+
+
+
+
+
     print(">>> INFO: Generating Generator")
     generator = create_datagenerator_flow_front_to_permeabilities()
     print(">>> INFO: Generating Model")
@@ -165,9 +174,9 @@ if __name__ == "__main__":
     print(">>> INFO: Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
 
-    train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
+    train_wrapper = Master_Trainer(model, generator, comment=get_comment(),
                                    savepath=savepath / 'flow_front_perm.pt', learning_rate=0.0001,
-                                   calc_metrics=True)
+                                   calc_metrics=False,train_print_frequency=1, eval_frequency = 10)
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()
