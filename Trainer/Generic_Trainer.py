@@ -8,7 +8,9 @@ import math
 
 class Master_Trainer():
     def __init__(self, model, generator: erfh5_pipeline.ERFH5_DataGenerator, loss_criterion=torch.nn.MSELoss(),
-                 train_print_frequency=10, eval_frequency=100, savepath="model.pth", eval_func=None, comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False):
+                 train_print_frequency=10, eval_frequency=100, savepath="model.pth", eval_func=None,
+                 comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False,
+                 imsize=(155, 155)):
         self.validationList = generator.get_validation_samples()
         self.model = model
         self.generator = generator
@@ -22,6 +24,7 @@ class Master_Trainer():
         self.comment = comment
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
+        self.imsize = imsize
 
     def start_training(self):
         self.__print_info()
@@ -50,33 +53,30 @@ class Master_Trainer():
 
     def __train(self):
         start_time = time.time()
-        print('TRAIN')
         for i, (inputs, labels) in enumerate(self.generator):
             # print(f'{i}/{len(self.generator)}')
+            print('Putting inputs to device')
             inputs = inputs.to(self.device, non_blocking=True)
-            labels = labels.to(self.device, non_blocking=True)
-            labels = labels.reshape((1, 465*465))
+            print('Putting labels to device')
+            label = label.to(self.device, non_blocking=True)
+            label = label.reshape((self.imsize[0]*self.imsize[1]))
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
-
-            # print('Shapes')
-            # print('outputs', outputs.shape)
-            # print('input', inputs.shape)
-            # print('label', labels.shape)
-            # outputs = outputs.to(device, non_blocking=True)
-            loss = self.loss_criterion(outputs, labels)
+            # print('STACKING')
+            # print(labels.shape)
+            # label = torch.stack([labels] * len(outputs))
+            # print(labels.shape)
+            loss = self.loss_criterion(outputs, label)
             # with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
             #    scaled_loss.backward()
             loss.backward()
             self.optimizer.step()
-            print(loss.item())
             if i % self.train_print_frequency == 0 and i != 0:
                 time_delta = time.time() - start_time
                 print(f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds || Q: {self.generator.get_current_queue_length()}")
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
-                print('EVAL')
                 self.__eval()
 
     def __eval(self):
@@ -86,33 +86,36 @@ class Master_Trainer():
             tp, fp, tn, fn = 0, 0, 0, 0
             # confusion_matrix = np.zeros((2, 2), dtype=int)
             for i, sample in enumerate(self.validationList):
-                print('EVAL', len(self.validationList))
                 data = sample[0].to(self.device)
                 label = sample[1].to(self.device)
-                labels = labels.reshape((1, 465 * 465))
-                label = torch.unsqueeze(label, 0)
+                # print('Label', label.shape)
+                label = label.reshape((self.imsize[0] * self.imsize[1]))
+                # print('Label', label.shape)
+                # label = torch.stack([label] * len(data))
+                # label = torch.unsqueeze(label, 0)
+                # print('Label', label.shape)
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
+                # print('Output', output.shape)
                 # print(output,label)
                 l = self.loss_criterion(output, label).item()
                 # loss = loss + l
                 if (self.eval_func is not None):
                     self.eval_func(output.cpu(), label.cpu(), str(i))
                 
-                # if self.calc_metrics:
-                #     prediction = np.around(output.cpu())
-                #     # confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] +=1
-                #
-                #     if np.array_equal(prediction.cpu(), label.cpu()):
-                #         if prediction[0][0] == 1:
-                #             tp += 1
-                #         else: tn += 1
-                #     else:
-                #         if prediction[0][0] == 1:
-                #             fp += 1
-                #         else: fn += 1
+                if self.calc_metrics:
+                    prediction = np.around(output.cpu())
+                    # confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] +=1
 
-                
+                    if np.array_equal(prediction.cpu(), label.cpu()):
+                        if prediction[0][0] == 1:
+                            tp += 1
+                        else: tn += 1
+                    else:
+                        if prediction[0][0] == 1:
+                            fp += 1
+                        else: fn += 1
+
                 # print("loss:", l)
                 # print(output.item(), label.item())
 

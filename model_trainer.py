@@ -136,6 +136,16 @@ def get_comment():
     return "Sensor values are now correctly scaled"
 
 
+def pixel_wise_loss_multi_input_single_label(input, target):
+    print('Loss')
+    loss = 0
+    for el in input:
+        out = el - target
+        # out = out * weights.expand_as(out)
+        loss += out.sum(0)
+    return loss
+
+
 if __name__ == "__main__":
     # torch.cuda.set_device(0)
     # generator = create_dataGenerator_IMG()
@@ -160,13 +170,6 @@ if __name__ == "__main__":
     # print("Model saved.")
 
 
-
-
-
-
-
-
-
     print(">>> INFO: Generating Generator")
     generator = create_datagenerator_flow_front_to_permeabilities()
     print(">>> INFO: Generating Model")
@@ -175,8 +178,9 @@ if __name__ == "__main__":
     model = nn.DataParallel(model).to('cuda:0')
 
     train_wrapper = Master_Trainer(model, generator, comment=get_comment(),
+                                   # loss_criterion=pixel_wise_loss_multi_input_single_label,
                                    savepath=savepath / 'flow_front_perm.pt', learning_rate=0.0001,
-                                   calc_metrics=False,train_print_frequency=1, eval_frequency = 10)
+                                   calc_metrics=False, train_print_frequency=1, eval_frequency=10)
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()

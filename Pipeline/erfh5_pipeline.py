@@ -204,6 +204,7 @@ class ERFH5_DataGenerator():
                 continue
             else:
                 for i in instance:
+                    print(i)
                     data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                     self.validation_list.append((data, label))
 

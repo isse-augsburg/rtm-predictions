@@ -12,33 +12,46 @@ from Pipeline import erfh5_pipeline as pipeline, data_loaders_IMG as dli, data_g
 class FlowfrontFeatures_RNN(nn.Module):
     def __init__(self, input_dim, hidden_dim=512, batch_size=8, num_layers=3):
         super(FlowfrontFeatures_RNN, self).__init__()
+        print('Start')
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.nlayers = num_layers
 
+        print('LSTM start')
         self.lstm = nn.LSTM(input_dim, hidden_dim,
                             batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.2)
+        print('LSTM end')
 
         self.hidden2hidden1 = nn.Linear(int(hidden_dim), 600)
+        print('1')
         self.hidden2hidden2 = nn.Linear(600, 1000)
+        print('2')
         self.hidden2hidden3 = nn.Linear(1000, 5000)
-        self.hidden2hidden4 = nn.Linear(5000, 216225)
+        print('3')
+        self.hidden2hidden4 = nn.Linear(5000, 24025)
+        print('4')
         # self.hidden2value = nn.Linear(100, 2)
         self.drop = nn.Dropout(0.30)
+        print('Init weights')
 
         self.init_weights()
+        print('End')
 
     def init_weights(self):
         initrange = 0.1
-
+        print('A1')
         self.hidden2hidden1.bias.data.fill_(0)
         self.hidden2hidden1.weight.data.uniform_(-initrange, initrange)
+        print('A2')
         self.hidden2hidden2.bias.data.fill_(0)
         self.hidden2hidden2.weight.data.uniform_(-initrange, initrange)
+        print('A3')
         self.hidden2hidden3.bias.data.fill_(0)
         self.hidden2hidden3.weight.data.uniform_(-initrange, initrange)
+        print('A4')
         self.hidden2hidden4.bias.data.fill_(0)
         self.hidden2hidden4.weight.data.uniform_(-initrange, initrange)
+        print('A5')
         # self.hidden2value.bias.data.fill_(0)
         # self.hidden2value.weight.data.uniform_(-initrange, initrange)
 
@@ -68,8 +81,9 @@ class FlowfrontFeatures_RNN(nn.Module):
         out = F.relu(self.hidden2hidden4(out))
         out = self.drop(out)
         # out = self.hidden2value(out)
-        # print('Model: Shape', out.shape)
+        # print('RNN Model: Shape before softmax', out.shape)
         out = F.softmax(out, dim=1)
+        # print('RNN Model: Shape after', out.shape)
         return out
 
 
@@ -80,7 +94,7 @@ class Flowfront_CNN(nn.Module):
         self.conv2 = nn.Conv3d(8, 16, (1, 5, 5))
         self.conv3 = nn.Conv3d(16, 32, (1, 7, 7))
         self.conv4 = nn.Conv3d(32, 1, (1, 5, 5))
-        self.pool = nn.MaxPool3d((1 ,2, 2), (1, 2, 2))
+        self.pool = nn.MaxPool3d((1, 2, 2), (1, 2, 2))
         self.drop = nn.Dropout(0.4)
 
     def forward(self, x):
@@ -100,17 +114,18 @@ class Flowfront_CNN(nn.Module):
 class FlowfrontToFiberfractionModel(nn.Module):
     def __init__(self):
         super(FlowfrontToFiberfractionModel, self).__init__()
+        print('>>> INFO: Generating CNN')
         self.cnn = Flowfront_CNN()
+        print('>>> INFO: Generating RNN')
         self.rnn = FlowfrontFeatures_RNN(input_dim=10404)
 
     def forward(self, x):
+        print('>>> INFO: Forward pass CNN')
         out = self.cnn.forward(x)
-       
         out = torch.squeeze(out, dim=1)
-        
         out = out.permute(1, 0, 2, 3)
-       
-        out = out.reshape((out.size()[0], out.size()[1], -1)).contiguous() 
+        out = out.reshape((out.size()[0], out.size()[1], -1)).contiguous()
+        print('>>> INFO: Forward pass RNN')
         out = self.rnn.forward(out)
         return out
 

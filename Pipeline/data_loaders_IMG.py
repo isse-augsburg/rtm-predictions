@@ -82,11 +82,12 @@ def create_np_image(target_shape=(151, 151), norm_coords=None, data=None, ):
     return arr
 
 
-def get_images_of_flow_front_and_permeability_map(filename, caching=True):
+def get_images_of_flow_front_and_permeability_map(filename, imsize=(155, 155), caching=True):
     cache_dir = ''
     if caching:
-        cache_dir = Path(f'/cfs/home/s/c/schroeni/Images/Cache/{filename.parts[-2]}/img_cache')
-        print(cache_dir)
+        #cache_dir = Path(f'/cfs/home/s/c/schroeni/Images/Cache/{filename.parts[-2]}/img_cache')
+        cache_dir = filename.absolute().parent / 'img_cache'
+        # print(cache_dir)
         cache_dir.mkdir(parents=True, exist_ok=True)
     f = h5py.File(filename, 'r')
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
@@ -101,7 +102,8 @@ def get_images_of_flow_front_and_permeability_map(filename, caching=True):
 
     states = list(f['post']['singlestate'].keys())
     fillings =[]
-    for state in states:
+    # print('!!! Using only 10 images --- DEBUG !!!')
+    for state in states[:10]:
         try:
             filling_factor = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
         except KeyError:
@@ -113,17 +115,21 @@ def get_images_of_flow_front_and_permeability_map(filename, caching=True):
         im.save(Path(cache_dir) / 'fiber_fraction.png')
     else:
         im = Image.open(Path(cache_dir) / 'fiber_fraction.png')
+    print(im.size)
+    if im.size != imsize:
+        im = im.resize(imsize)
+    print(im.size)
     label = np.asarray(im)
+    # label = np.resize(label, imsize)
+    # print(label.shape)
     with Pool() as p:
-        images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir), range(len(fillings)))
+        images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize), range(len(fillings)))
     # array of all images, array of the same permeability map
-   
-    
     images = [x[0] for x in images_and_indices]
     img_stack = np.stack(images)
-    print(np.shape(images))
-    print(np.shape(img_stack))
-    return  [(img_stack, label)]
+    # print(np.shape(images))
+    # print(np.shape(img_stack))
+    return [(img_stack, label)]
 
 
 def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIBER_FRACTION'):
@@ -132,21 +138,24 @@ def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIB
     return im
 
 
-def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, index):
+def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, index):
     fillings = np.squeeze(fillings)
     filling = fillings[index]
     im_fn = cache_dir / f'{index}.png'
     if cache_dir != '' and not im_fn.exists():
-    
-
         means_of_neighbour_nodes = filling[triangle_coords].reshape(len(triangle_coords), 3).mean(axis=1)
         im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
         #im = create_np_image((465,465), scaled_coords, filling)
         #im_t = Image.fromarray(im,mode='L')
+        # print('IMG Created')
         im.save(im_fn)
     else:
         im = Image.open(im_fn)
+        # print('IMG Loaded')
 
+    if im.size != imsize:
+        im = im.resize(imsize)
+    print('Plot wrapper', np.asarray(im), index)
     return np.asarray(im), index
 
 
@@ -174,7 +183,6 @@ def get_sensordata_and_flowfront(file):
     f = h5py.File(file, 'r')
     instances = []
     try:
-
         coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
@@ -192,6 +200,7 @@ def get_sensordata_and_flowfront(file):
         flat_fillings = np.squeeze(filling_factors_at_certain_times)
     except KeyError:
         return None
+
     for state, filling in zip(all_states, flat_fillings):
         try:
             s = state.replace("state", '')
