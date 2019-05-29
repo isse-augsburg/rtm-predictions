@@ -1,10 +1,8 @@
 Trainer package
 ===============
+Package for model training related files. 
 
-Submodules
-----------
-
-Trainer.Generic\_Trainer module
+Trainer.Generic\_Trainer
 -------------------------------
 
 .. automodule:: Trainer.Generic_Trainer
@@ -12,14 +10,13 @@ Trainer.Generic\_Trainer module
     :undoc-members:
     :show-inheritance:
 
-Trainer.evaluation module
+Trainer.evaluation
 -------------------------
 
 .. automodule:: Trainer.evaluation
     :members:
     :undoc-members:
     :show-inheritance:
-
 
 Module contents
 ---------------

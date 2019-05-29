@@ -1,10 +1,8 @@
 Models package
 ==============
+Package for (PyTorch) models of all types. 
 
-Submodules
-----------
-
-Models.erfh5\_ConvModel module
+Models.erfh5\_ConvModel
 ------------------------------
 
 .. automodule:: Models.erfh5_ConvModel
@@ -12,7 +10,7 @@ Models.erfh5\_ConvModel module
     :undoc-members:
     :show-inheritance:
 
-Models.erfh5\_DeconvModel module
+Models.erfh5\_DeconvModel 
 --------------------------------
 
 .. automodule:: Models.erfh5_DeconvModel
@@ -20,7 +18,7 @@ Models.erfh5\_DeconvModel module
     :undoc-members:
     :show-inheritance:
 
-Models.erfh5\_RNN\_models module
+Models.erfh5\_RNN\_models
 --------------------------------
 
 .. automodule:: Models.erfh5_RNN_models
@@ -28,7 +26,7 @@ Models.erfh5\_RNN\_models module
     :undoc-members:
     :show-inheritance:
 
-Models.erfh5\_autoencoder module
+Models.erfh5\_autoencoder
 --------------------------------
 
 .. automodule:: Models.erfh5_autoencoder
@@ -36,7 +34,7 @@ Models.erfh5\_autoencoder module
     :undoc-members:
     :show-inheritance:
 
-Models.erfh5\_fullyConnected module
+Models.erfh5\_fullyConnected 
 -----------------------------------
 
 .. automodule:: Models.erfh5_fullyConnected
@@ -44,7 +42,7 @@ Models.erfh5\_fullyConnected module
     :undoc-members:
     :show-inheritance:
 
-Models.erfh5\_pressuresequence\_CRNN module
+Models.erfh5\_pressuresequence\_CRNN
 -------------------------------------------
 
 .. automodule:: Models.erfh5_pressuresequence_CRNN
@@ -52,9 +50,6 @@ Models.erfh5\_pressuresequence\_CRNN module
     :undoc-members:
     :show-inheritance:
 
-
-Module contents
----------------
 
 .. automodule:: Models
     :members:

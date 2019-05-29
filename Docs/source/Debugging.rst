@@ -1,10 +1,11 @@
 Debugging package
 =================
+Contains a collection of files that are used to debug models and test things.
 
-Submodules
-----------
+.. warning:: For internal use only.
 
-Debugging.coordinates module
+
+Debugging.coordinates 
 ----------------------------
 
 .. automodule:: Debugging.coordinates
@@ -12,7 +13,7 @@ Debugging.coordinates module
     :undoc-members:
     :show-inheritance:
 
-Debugging.crnn\_debug module
+Debugging.crnn\_debug 
 ----------------------------
 
 .. automodule:: Debugging.crnn_debug
@@ -20,7 +21,7 @@ Debugging.crnn\_debug module
     :undoc-members:
     :show-inheritance:
 
-Debugging.datamining module
+Debugging.datamining 
 ---------------------------
 
 .. automodule:: Debugging.datamining
@@ -28,7 +29,7 @@ Debugging.datamining module
     :undoc-members:
     :show-inheritance:
 
-Debugging.erfh5\_img\_Representations module
+Debugging.erfh5\_img\_Representations 
 --------------------------------------------
 
 .. automodule:: Debugging.erfh5_img_Representations
@@ -36,9 +37,6 @@ Debugging.erfh5\_img\_Representations module
     :undoc-members:
     :show-inheritance:
 
-
-Module contents
----------------
 
 .. automodule:: Debugging
     :members:

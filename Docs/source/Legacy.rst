@@ -1,10 +1,8 @@
 Legacy package
 ==============
+.. Warning:: This package contains files that should no longer be used!
 
-Submodules
-----------
-
-Legacy.erfh5\_Editor module
+Legacy.erfh5\_Editor
 ---------------------------
 
 .. automodule:: Legacy.erfh5_Editor
@@ -12,7 +10,7 @@ Legacy.erfh5\_Editor module
     :undoc-members:
     :show-inheritance:
 
-Legacy.old\_erfh5\_pipeline module
+Legacy.old\_erfh5\_pipeline
 ----------------------------------
 
 .. automodule:: Legacy.old_erfh5_pipeline
@@ -20,9 +18,6 @@ Legacy.old\_erfh5\_pipeline module
     :undoc-members:
     :show-inheritance:
 
-
-Module contents
----------------
 
 .. automodule:: Legacy
     :members:

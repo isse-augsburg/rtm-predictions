@@ -2,7 +2,7 @@ TU Kaiserslautern
 ======================
 Project for working with simulated data.
 
-.. note:: 
+.. warning:: 
     The Pipeline is still work in progress and may has unexpected behaviour and/or some code flaws
 
 Tutorial for training models

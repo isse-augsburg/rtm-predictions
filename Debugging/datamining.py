@@ -2,7 +2,7 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from os import walk
-from Pipeline import data_loaders as dl
+
 
 
 class NoSequenceException(Exception):
@@ -164,6 +164,16 @@ def get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
     # print("Worked",len(filling_factors_at_certain_times), t_target, filling_percentage)
     return flat_fillings, filling_percentage
 
+def doctest_test(a, b): 
+
+    """
+    Example: 
+        >>> doctest_test(3, 4)
+        7
+    """
+
+    #print("this is a test")
+    return a + b
 
 def plot_sensordata():
     path = ['Y:/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs']
@@ -171,6 +181,7 @@ def plot_sensordata():
 
     for p in all_paths:
         sensor_data = get_all_sensor_values(p)
+
 
         for i, s in enumerate(sensor_data):
             fig = plt.figure(str(p))
@@ -180,4 +191,6 @@ def plot_sensordata():
 
 
 if __name__ == "__main__":
-    plot_sensordata()
+    #plot_sensordata()
+    import doctest
+    doctest.testmod()

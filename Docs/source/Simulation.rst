@@ -1,10 +1,8 @@
 Simulation package
 ==================
+Contains the files for creating a PAM-RTM Simulation.
 
-Submodules
-----------
-
-Simulation.SimCreator module
+Simulation.SimCreator
 ----------------------------
 
 .. automodule:: Simulation.SimCreator
@@ -12,7 +10,7 @@ Simulation.SimCreator module
     :undoc-members:
     :show-inheritance:
 
-Simulation.analizer module
+Simulation.analizer
 --------------------------
 
 .. automodule:: Simulation.analizer
@@ -20,7 +18,7 @@ Simulation.analizer module
     :undoc-members:
     :show-inheritance:
 
-Simulation.coordinates module
+Simulation.coordinates
 -----------------------------
 
 .. automodule:: Simulation.coordinates
@@ -28,7 +26,7 @@ Simulation.coordinates module
     :undoc-members:
     :show-inheritance:
 
-Simulation.h5writer module
+Simulation.h5writer
 --------------------------
 
 .. automodule:: Simulation.h5writer
@@ -36,7 +34,7 @@ Simulation.h5writer module
     :undoc-members:
     :show-inheritance:
 
-Simulation.main module
+Simulation.main
 ----------------------
 
 .. automodule:: Simulation.main
@@ -44,7 +42,7 @@ Simulation.main module
     :undoc-members:
     :show-inheritance:
 
-Simulation.plotter module
+Simulation.plotter
 -------------------------
 
 .. automodule:: Simulation.plotter
@@ -52,7 +50,7 @@ Simulation.plotter module
     :undoc-members:
     :show-inheritance:
 
-Simulation.resources module
+Simulation.resources
 ---------------------------
 
 .. automodule:: Simulation.resources
@@ -60,7 +58,7 @@ Simulation.resources module
     :undoc-members:
     :show-inheritance:
 
-Simulation.shapes module
+Simulation.shapes
 ------------------------
 
 .. automodule:: Simulation.shapes
@@ -68,9 +66,6 @@ Simulation.shapes module
     :undoc-members:
     :show-inheritance:
 
-
-Module contents
----------------
 
 .. automodule:: Simulation
     :members:
