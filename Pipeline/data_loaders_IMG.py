@@ -10,7 +10,8 @@ import random
 # from PIL import Image
 from PIL import Image, ImageDraw
 
-#from Pipeline.data_gather import get_filelist_within_folder
+
+# from Pipeline.data_gather import get_filelist_within_folder
 
 # data_function must return [(data, label) ... (data, label)]
 
@@ -82,10 +83,10 @@ def create_np_image(target_shape=(151, 151), norm_coords=None, data=None, ):
     return arr
 
 
-def get_images_of_flow_front_and_permeability_map(filename, imsize=(155, 155), caching=True):
+def get_images_of_flow_front_and_permeability_map(filename, step_size=4, imsize=(155, 155), caching=True):
     cache_dir = ''
     if caching:
-        #cache_dir = Path(f'/cfs/home/s/c/schroeni/Images/Cache/{filename.parts[-2]}/img_cache')
+        # cache_dir = Path(f'/cfs/home/s/c/schroeni/Images/Cache/{filename.parts[-2]}/img_cache')
         cache_dir = filename.absolute().parent / 'img_cache'
         # print(cache_dir)
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -100,35 +101,45 @@ def get_images_of_flow_front_and_permeability_map(filename, imsize=(155, 155), c
 
     data = f['post/constant/entityresults/SHELL/']
 
-    states = list(f['post']['singlestate'].keys())
-    fillings =[]
-    # print('!!! Using only 10 images --- DEBUG !!!')
-    for state in states[:10]:
-        try:
-            filling_factor = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
-        except KeyError:
-            continue
-        fillings.append(filling_factor)
-
-    if not(Path(cache_dir) / 'fiber_fraction.png').exists() and caching:
+    if not (Path(cache_dir) / 'fiber_fraction.png').exists() and caching:
         im = create_local_properties_map(data, scaled_coords, triangle_coords, 'FIBER_FRACTION')
         im.save(Path(cache_dir) / 'fiber_fraction.png')
     else:
         im = Image.open(Path(cache_dir) / 'fiber_fraction.png')
-    print(im.size)
+
     if im.size != imsize:
         im = im.resize(imsize)
-    print(im.size)
+
+    states = list(f['post']['singlestate'].keys())
+    fillings = []
+    # print('!!! Using only 10 images --- DEBUG !!!')
+    for state in states[::step_size]:
+        try:
+            filling_factor = \
+            f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][
+                ()]
+        except KeyError:
+            continue
+        fillings.append(filling_factor)
+
+    # print(im.size)
     label = np.asarray(im)
     # label = np.resize(label, imsize)
     # print(label.shape)
-    with Pool() as p:
-        images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize), range(len(fillings)))
+    with Pool(4) as p:
+        images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize),
+                                   range(len(fillings)))
     # array of all images, array of the same permeability map
+    # trues, falses = 0, 0
+    #
+    # for i in images_and_indices:
+    #     if i[2]:
+    #         trues += 1
+    #     else:
+    #         falses += 1
+    # print(f'Loaded {trues}/{len(images_and_indices)}\t{filename.absolute().parent}')
     images = [x[0] for x in images_and_indices]
     img_stack = np.stack(images)
-    # print(np.shape(images))
-    # print(np.shape(img_stack))
     return [(img_stack, label)]
 
 
@@ -142,21 +153,24 @@ def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, in
     fillings = np.squeeze(fillings)
     filling = fillings[index]
     im_fn = cache_dir / f'{index}.png'
+    load_image = True
     if cache_dir != '' and not im_fn.exists():
         means_of_neighbour_nodes = filling[triangle_coords].reshape(len(triangle_coords), 3).mean(axis=1)
         im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
-        #im = create_np_image((465,465), scaled_coords, filling)
-        #im_t = Image.fromarray(im,mode='L')
+        # im = create_np_image((465,465), scaled_coords, filling)
+        # im_t = Image.fromarray(im,mode='L')
         # print('IMG Created')
         im.save(im_fn)
+        load_image = False
     else:
         im = Image.open(im_fn)
         # print('IMG Loaded')
 
     if im.size != imsize:
         im = im.resize(imsize)
-    print('Plot wrapper', np.asarray(im), index)
-    return np.asarray(im), index
+    dat = np.asarray(im)
+    im.close()
+    return dat, index, load_image
 
 
 def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords, colored=False, cache_dir=''):

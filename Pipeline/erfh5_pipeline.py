@@ -8,7 +8,6 @@ import sys
 
 
 class Thread_Safe_List():
-
     def __init__(self, max_length=-1):
         self.list = []
         self.lock = threading.Lock()
@@ -153,7 +152,6 @@ class ERFH5_DataGenerator():
         while len(self.path_queue) > 0:
             if len(self.path_queue) == 0:
                 self.path_queue.kill()
-
             try:
                 file = self.path_queue.get(1)[0]
             except StopIteration as si:
@@ -204,7 +202,6 @@ class ERFH5_DataGenerator():
                 continue
             else:
                 for i in instance:
-                    print(i)
                     data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                     self.validation_list.append((data, label))
 

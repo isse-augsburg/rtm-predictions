@@ -28,7 +28,7 @@ class Master_Trainer():
 
     def start_training(self):
         self.__print_info()
-        self.__print_comment()
+        # self.__print_comment()
         self.__train()
         print('Test set missing. So no testing.')
         # self.__eval()
@@ -53,22 +53,14 @@ class Master_Trainer():
 
     def __train(self):
         start_time = time.time()
-        for i, (inputs, labels) in enumerate(self.generator):
-            # print(f'{i}/{len(self.generator)}')
-            print('Putting inputs to device')
+        for i, (inputs, label) in enumerate(self.generator):
             inputs = inputs.to(self.device, non_blocking=True)
-            print('Putting labels to device')
             label = label.to(self.device, non_blocking=True)
             label = label.reshape((self.imsize[0]*self.imsize[1]))
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
-            # print('STACKING')
-            # print(labels.shape)
-            # label = torch.stack([labels] * len(outputs))
-            # print(labels.shape)
+            label = torch.stack([label] * len(outputs))
             loss = self.loss_criterion(outputs, label)
-            # with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
-            #    scaled_loss.backward()
             loss.backward()
             self.optimizer.step()
             if i % self.train_print_frequency == 0 and i != 0:
@@ -80,41 +72,37 @@ class Master_Trainer():
                 self.__eval()
 
     def __eval(self):
+        # print('EVAL')
         with torch.no_grad():
             self.model.eval()
             loss = 0
             tp, fp, tn, fn = 0, 0, 0, 0
-            # confusion_matrix = np.zeros((2, 2), dtype=int)
             for i, sample in enumerate(self.validationList):
                 data = sample[0].to(self.device)
                 label = sample[1].to(self.device)
-                # print('Label', label.shape)
                 label = label.reshape((self.imsize[0] * self.imsize[1]))
-                # print('Label', label.shape)
-                # label = torch.stack([label] * len(data))
-                # label = torch.unsqueeze(label, 0)
-                # print('Label', label.shape)
+                label = torch.stack([label] * len(data))
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
-                # print('Output', output.shape)
-                # print(output,label)
                 l = self.loss_criterion(output, label).item()
-                # loss = loss + l
-                if (self.eval_func is not None):
+                print(f"Validation --- Loss: {l:12.4f}")
+
+                if self.eval_func is not None:
                     self.eval_func(output.cpu(), label.cpu(), str(i))
                 
-                if self.calc_metrics:
-                    prediction = np.around(output.cpu())
-                    # confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] +=1
+                if not self.calc_metrics:
+                    continue
+                prediction = np.around(output.cpu())
+                # confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] +=1
 
-                    if np.array_equal(prediction.cpu(), label.cpu()):
-                        if prediction[0][0] == 1:
-                            tp += 1
-                        else: tn += 1
-                    else:
-                        if prediction[0][0] == 1:
-                            fp += 1
-                        else: fn += 1
+                if np.array_equal(prediction.cpu(), label.cpu()):
+                    if prediction[0][0] == 1:
+                        tp += 1
+                    else: tn += 1
+                else:
+                    if prediction[0][0] == 1:
+                        fp += 1
+                    else: fn += 1
 
                 # print("loss:", l)
                 # print(output.item(), label.item())
