@@ -215,11 +215,15 @@ class ERFH5_DataGenerator():
             sample = self.paths[0]
             self.paths = self.paths[1:]
             instance = self.data_function(sample)
-
+            
             # data_function must return [(data, label) ... (data, label)]
             if instance is None:
                 continue
             else:
+                assert isinstance(instance, list), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
+                for i in instance:
+                    assert isinstance(i, tuple) and len(i) == 2,"The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
+        
                 for i in instance:
                     data, label = torch.FloatTensor(
                         i[0]), torch.FloatTensor(i[1])
@@ -246,11 +250,16 @@ class ERFH5_DataGenerator():
             else:
                 # data_function must return [(data, label) ... (data, label)]
                 instance = self.data_function(file)
+                
 
                 if instance is None:
                     self.data_dict[file] = None
                     continue
                 else:
+                    assert isinstance(instance, list), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
+                    for i in instance:
+                        assert isinstance(i, tuple) and len(i) == 2,"The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
+        
                     tensor_instances = list()
 
                     for i in instance:

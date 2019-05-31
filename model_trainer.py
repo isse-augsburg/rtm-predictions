@@ -132,9 +132,9 @@ if __name__ == "__main__":
     model = nn.DataParallel(model).to('cuda:0')
     print(">>> INFO: Generating Trainer")
     train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
-                                   savepath='/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt', learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
+                                  learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()
-    train_wrapper.save_model()
+    train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
     print("Model saved.")

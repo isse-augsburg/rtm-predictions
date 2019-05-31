@@ -3,6 +3,13 @@ import h5py
 
 
 def get_all_sensor_sequences(file, spacing=25, length=150):
+    """
+    Args: 
+        file (string): File from which the data should be extracted.
+
+    Returns: 
+            [(data, label)]: all sequences of sensordata of a file as data and the filling percentage at the last sequence state as labels
+    """
     l = []
     start = 0
     finish = length
@@ -19,6 +26,13 @@ def get_all_sensor_sequences(file, spacing=25, length=150):
 
 
 def get_sensordata_and_filling_percentage(file, until=-1, frm=0):
+    """
+     Args: 
+        file (string): File from which the data should be extracted.
+
+    Returns: 
+        [(data, label)]: sequence of sensordata as data and the filling percentage at the last sequence state as label
+    """
     f = h5py.File(file, 'r')
     try:
         pressure_array = \
@@ -52,6 +66,9 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=0):
 
 
 def get_sensordata_and_filling_percentage_v2(file, until=400, frm=0):
+    """
+     Duplicate version of get_sensordata_and_fillingpercentage, should be deleted but might break something if so...."
+    """
     f = h5py.File(file, 'r')
     try:
         pressure_array = \
