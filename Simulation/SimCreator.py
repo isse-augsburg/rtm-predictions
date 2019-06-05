@@ -18,8 +18,10 @@ from Pipeline.data_loaders_IMG import create_local_properties_map, draw_polygon_
 from Simulation import resources
 from enum import Enum
 
-from Simulation.h5writer import create_h5, write_dict_to_Hdf5
-from Simulation.shapes import Rectangle, Circle
+#from Simulation.h5writer import create_h5, write_dict_to_Hdf5
+from h5writer import create_h5, write_dict_to_Hdf5
+#from Simulation.shapes import Rectangle, Circle
+from shapes import Rectangle, Circle, Runner
 
 
 class OutputFrequencyType(Enum):
@@ -85,7 +87,7 @@ class SimCreator:
         self.start_index = batch_num * count
         self.run_on_cluster = run_on_cluster
         free_space = shutil.disk_usage(r'C:\\').free // (1024 ** 3)
-        estimated_used_space = count * 0.55 + 10
+        estimated_used_space = count * 0.55 + 8
         print(f'Going to use {estimated_used_space} of {free_space} GB.')
         if not run_on_cluster and estimated_used_space > free_space:
             print('Not enough free space on device. Finishing ...')
@@ -113,7 +115,8 @@ class SimCreator:
             else:
                 disk = r'C:'
             str_sip = disk + str_sip
-            self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
+            self.slurm_scripts_folder = Path("")
+            # self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
         else:
             self.vebatch_exec = '/usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh'
             data_path = Path('/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=share/data/RTM/Lautern')
@@ -154,8 +157,11 @@ class SimCreator:
         if len(self.perturbation_factors.keys()) > 0:
             [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
             [self.shapes.append(Circle) for x in range(self.perturbation_factors['Shapes']['Circles']['Num'])]
+            [self.shapes.append(Runner) for x in range(self.perturbation_factors['Shapes']['Runners']['Num'])]
             self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
             self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
+            self.runner_fvc_bounds = self.perturbation_factors['Shapes']['Runners']['Fiber_Content']
+
 
         self.slurm_partition = "big-cpu"
 
@@ -221,6 +227,25 @@ class SimCreator:
                             "radius": radius,
                       }
                 }
+
+            elif shape.__name__ == 'Runner':
+                fvc =    random.random() * (self.runner_fvc_bounds[1] - self.runner_fvc_bounds[0]) + self.runner_fvc_bounds[0]
+                lower_left_x, lower_left_y = -5, -8
+                overall_width, overall_height = 3, 10 
+                runner_x, runner_y = -4, -6
+                runner_width, runner_height = 1, 6
+                print("Creating runner")
+                list_of_indices_of_shape = self.get_coordinates_of_runner(((lower_left_x, lower_left_y), overall_width, overall_height, (runner_x, runner_y), runner_width, runner_height))
+                print(list_of_indices_of_shape)
+                _dict = {"Runner":
+                            {"fvc": fvc,
+                            "height": overall_height,
+                            "width": overall_width,
+                            "inner_height": runner_height,
+                            "inner_width": runner_width
+                      }
+                }
+
             self.save_to_h5_data['shapes'].append(_dict)
 
             indices_of_elements = self.get_elements_in_shape(set_of_indices_of_shape)
@@ -266,6 +291,31 @@ class SimCreator:
         f = create_h5(str(dir / fn2))
         write_dict_to_Hdf5(f, self.save_to_h5_data)
         return Path(dir / f'{self.initial_timestamp}_{count}')
+
+    def get_coordinates_of_runner(self, s): 
+        indices_of_runner = []
+
+        current_runner = []
+        lower_left = s[0]
+        width = s[1]
+        height = s[2]
+        runner_lower_left = s[3]
+        runner_width = s[4]
+        runner_height = s[5]
+
+        for i in np.arange(lower_left[0], lower_left[0]+width, 0.125):
+            for j in np.arange(lower_left[1], lower_left[1]+height, 0.125):
+                if((i > runner_lower_left[0] and i < runner_lower_left[0]+runner_width) and  
+                (j > runner_lower_left[1] and j < runner_lower_left[1] + runner_height)):
+                    continue
+
+                index = np.where((self.all_coords[:,0] == [i]) & (self.all_coords[:,1] == [j]))
+                index = index[0]
+                if index.size != 0:
+                    current_runner.append(int(index))
+
+        return set(current_runner)
+       
 
     def get_coordinates_of_rectangle(self, lower_left, height, width):
         current_rect = set()
@@ -433,18 +483,39 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
                 with open(fn, 'w') as f:
                     f.writelines(lines)
 
-    def copy_simfiles_to_cluster(self):
+    def copy_simfiles_to_cluster(self, move=True):
         print('Copying simfiles to cluster ...')
-        f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat', '_meta_data.hdf5', '.lperm']
+        t0 = time.time()
+        f_endings = ['g.unf', 'ff.unf', '.elrnm', '.ndrnm', '.ptrnm', 'd.out', 'p.dat', '_meta_data.hdf5', '.lperm', '.vdb.zip']
         for e in self.dirs_with_stems:
             p = Path(str(self.solved_sims) + '/' + '/'.join(e.parts[-4:-1]))
             p.mkdir(parents=True, exist_ok=True)
             stem = Path(str(self.solved_sims) + '/' + '/'.join(e.parts[-4:]))
             for end in f_endings:
-                copy2(str(e) + end, str(stem) + end)
+                if not move:
+                    copy2(str(e) + end, str(stem) + end)
+                else:
+                    shutil.move(str(e) + end, str(stem) + end)
                 if end == 'g.unf':
                     self.unf_files_on_storage.append(Path(str(stem) + 'g.unf').as_posix().replace('Y:', '/cfs/share'))
                     #TODO fix for posix
+        print(f'Copying took {(time.time() - t0) / 60:.1f} minutes.')
+
+    def zip_vdbs(self):
+        print('Zipping .vdbs ...')
+        t0 = time.time()
+        vdbs = [str(x) + '.vdb' for x in self.dirs_with_stems]
+        with Pool() as p:
+            p.map(partial(self.zip_file, True), vdbs)
+        print(f'Zipping took {(time.time() - t0) / 60:.1f} minutes.')
+
+    def zip_file(self, delete_after=True, path=''):
+        zip_filename = path + '.zip'
+        zip_file = zipfile.ZipFile(zip_filename, 'w')
+        zip_file.write(path, compress_type=zipfile.ZIP_DEFLATED)
+        if delete_after:
+            os.remove(path)
+        return zip_filename
 
     def run(self):
         self.create_folder_structure_and_perturbate_kN()
@@ -452,12 +523,14 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         self.write_solver_input()
         self.create_vdbs()
         self.create_unfs_et_al()
+        self.zip_vdbs()
         self.alter_dat_files()
         if self.run_on_cluster:
             self.unf_files_on_storage = [Path(str(x) + 'g.unf').as_posix().replace('Y:', '/cfs/share') for x in self.dirs_with_stems]
         if not self.run_on_cluster:
             self.copy_simfiles_to_cluster()
         self.write_slurm_scripts()
-        if not self.run_on_cluster:
-            zip_fn = zip_folder(self.solver_input_folder, self.batch_num, delete_after=True)
-            shutil.move(zip_fn, self.sim_files_data_heap)
+        # if not self.run_on_cluster:
+        #     zip_fn = zip_folder(self.solver_input_folder, self.batch_num, delete_after=True)
+        #     shutil.move(zip_fn, self.sim_files_data_heap)
+

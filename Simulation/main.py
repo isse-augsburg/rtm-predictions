@@ -18,12 +18,17 @@ if __name__== "__main__":
                     {
                         "Num": 1,
                         "Fiber_Content":
-                            [-.3, .3]
+                            [.7, .8]
                     },
                 "Circles":
                     {
                         "Num": 1,
-                        "Fiber_Content": [-.3, 0]
+                        "Fiber_Content": [.7, .8]
+                    },
+                "Runners":
+                    {
+                        "Num": 0,
+                        "Fiber_Content": [-.7, -.8]
                     }
             }
         }
