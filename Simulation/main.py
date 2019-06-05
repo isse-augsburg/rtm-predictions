@@ -7,7 +7,7 @@ from Simulation.SimCreator import SimCreator
 if __name__== "__main__":
     if os.environ['Write_Simulation'] == '1':
         n_batches = 1
-        count = 1
+        count = 100
         overall_count = n_batches * count
         perturbation_factors = \
         {
@@ -41,6 +41,6 @@ if __name__== "__main__":
 
     # Run an analysis over the new simulations
     elif os.environ['Analysis'] == '1':
-        path = r'Y:\data\RTM\Lautern\output\with_shapes'
+        path = r'Y:\data\RTM\Lautern\output\with_shapes\2019-05-17_16-45-57_3000p'
         print_options = ['all', 'fails_only', 'success_only']
         analizer.analize_subdirs(path, print_options='all')

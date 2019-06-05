@@ -88,13 +88,12 @@ def get_images_of_flow_front_and_permeability_map(filename, step_size=4, imsize=
     if caching:
         # cache_dir = Path(f'/cfs/home/s/c/schroeni/Images/Cache/{filename.parts[-2]}/img_cache')
         cache_dir = filename.absolute().parent / 'img_cache'
-        # print(cache_dir)
         cache_dir.mkdir(parents=True, exist_ok=True)
     f = h5py.File(filename, 'r')
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
     _all_coords = coord_as_np_array[:, :-1]
     scaled_coords = (_all_coords + 23.25) * 10
-    norm_cords = normalize_coords(_all_coords)
+    # norm_cords = normalize_coords(_all_coords)
 
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
     triangle_coords = triangle_coords[:, :-1] - 1
@@ -122,10 +121,7 @@ def get_images_of_flow_front_and_permeability_map(filename, step_size=4, imsize=
             continue
         fillings.append(filling_factor)
 
-    # print(im.size)
     label = np.asarray(im)
-    # label = np.resize(label, imsize)
-    # print(label.shape)
     with Pool(4) as p:
         images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize),
                                    range(len(fillings)))
@@ -137,7 +133,6 @@ def get_images_of_flow_front_and_permeability_map(filename, step_size=4, imsize=
     #         trues += 1
     #     else:
     #         falses += 1
-    # print(f'Loaded {trues}/{len(images_and_indices)}\t{filename.absolute().parent}')
     images = [x[0] for x in images_and_indices]
     img_stack = np.stack(images)
     return [(img_stack, label)]
@@ -159,12 +154,10 @@ def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, in
         im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
         # im = create_np_image((465,465), scaled_coords, filling)
         # im_t = Image.fromarray(im,mode='L')
-        # print('IMG Created')
         im.save(im_fn)
         load_image = False
     else:
         im = Image.open(im_fn)
-        # print('IMG Loaded')
 
     if im.size != imsize:
         im = im.resize(imsize)
@@ -220,7 +213,6 @@ def get_sensordata_and_flowfront(file):
             s = state.replace("state", '')
             state_num = int(s)
             sensordata = np.squeeze(pressure_array[state_num - 1])
-            # print(state_num, np.shape(filling), np.shape(sensordata))
             arr = create_np_image(norm_coords=_coords, data=filling)
             instances.append((sensordata, arr))
         except IndexError:

@@ -53,7 +53,7 @@ class FlowfrontFeatures_RNN(nn.Module):
         out = self.drop(out)
         out = F.relu(self.hidden2hidden3(out))
         out = self.drop(out)
-        out = torch.sigmoid(out)
+        # out = torch.sigmoid(out)
         # out = F.softmax(out, dim=1)
         return out
 

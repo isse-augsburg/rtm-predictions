@@ -14,6 +14,7 @@ from multiprocessing import Pool
 import time
 import socket
 
+from Pipeline.data_loaders_IMG import create_local_properties_map, draw_polygon_map
 from Simulation import resources
 from enum import Enum
 
@@ -176,6 +177,7 @@ class SimCreator:
         print(f'Adding noise and writing all files took {(time.time() - t0)/60:.1f} minutes.')
 
     def perturbate_wrapper(self, keys, df, count, mu=0):
+        df = df.copy()
         new_stem = str(count)
         dir = self.solver_input_folder / new_stem
         if not os.path.exists(dir):
@@ -191,8 +193,8 @@ class SimCreator:
         df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, self.perturbation_factors['General_Sigma'], len(df))
         # Apply shapes
         all_indices_of_elements = []
-        list_of_indices_of_shape = []
-        for shape in self.shapes:
+        set_of_indices_of_shape = set()
+        for i, shape in enumerate(self.shapes):
             y = rounded_random(random.random() * (self.y_bounds[1] - self.y_bounds[0]) + self.y_bounds[0], self.grid_step)
             x = rounded_random(random.random() * (self.x_bounds[1] - self.x_bounds[0]) + self.x_bounds[0], self.grid_step)
             if 'shapes' not in self.save_to_h5_data.keys():
@@ -201,7 +203,7 @@ class SimCreator:
                 fvc =    random.random() * (self.rect_fvc_bounds[1] - self.rect_fvc_bounds[0]) + self.rect_fvc_bounds[0]
                 height = rounded_random(random.random() * (self.rect_height_bounds[1] - self.rect_height_bounds[0]) + self.rect_height_bounds[0], self.grid_step)
                 width =  rounded_random(random.random() * (self.rect_width_bounds[1] - self.rect_width_bounds[0]) + self.rect_width_bounds[0], self.grid_step)
-                list_of_indices_of_shape = self.get_coordinates_of_rectangle((x, y), height, width)
+                set_of_indices_of_shape = self.get_coordinates_of_rectangle((x, y), height, width)
                 _dict = {"Rectangle":
                          {"fvc": fvc,
                               "height": height,
@@ -213,7 +215,7 @@ class SimCreator:
                 fvc =       random.random() * (self.circ_fvc_bounds[1] - self.circ_fvc_bounds[0]) + self.circ_fvc_bounds[0]
                 radius =    rounded_random(random.random() * (self.circ_radius_bounds[1] - self.circ_radius_bounds[0]) + self.circ_radius_bounds[0], self.grid_step)
 
-                list_of_indices_of_shape = self.get_coordinates_of_circle((x, y), radius)
+                set_of_indices_of_shape = self.get_coordinates_of_circle((x, y), radius)
                 _dict = {"Circle":
                             {"fvc": fvc,
                             "radius": radius,
@@ -221,7 +223,7 @@ class SimCreator:
                 }
             self.save_to_h5_data['shapes'].append(_dict)
 
-            indices_of_elements = self.get_elements_in_shape(list_of_indices_of_shape)
+            indices_of_elements = self.get_elements_in_shape(set_of_indices_of_shape)
             df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
 
         # Apply function that gets k1 and k2 from FVC
@@ -243,6 +245,20 @@ class SimCreator:
          # 'Perm_Vec2_y': '{,.6f}'.format,
          # 'Perm_Vec2_z': '{,.6f}'.format
          }
+        debug = False
+        if debug:
+            f = h5py.File('Debugging/2019-05-17_16-45-57_0_RESULT.erfh5', 'r')
+            coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
+            _all_coords = coord_as_np_array[:, :-1]
+            scaled_coords = (_all_coords + 23.25) * 10
+
+            triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
+            triangle_coords = triangle_coords[:, :-1] - 1
+            values_for_triangles = df['Fiber_Content']
+            im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords)
+            im.show()
+            print('--')
+
         lperm_str = df.to_string(formatters=formatters, index=False)
         with open(fn, 'w') as f:
             f.write(lperm_str)
@@ -252,17 +268,17 @@ class SimCreator:
         return Path(dir / f'{self.initial_timestamp}_{count}')
 
     def get_coordinates_of_rectangle(self, lower_left, height, width):
-        current_rect = []
+        current_rect = set()
 
         for i in np.arange(lower_left[0], lower_left[0] + width, self.grid_step):
             for j in np.arange(lower_left[1], lower_left[1] + height, self.grid_step):
                 index = np.where((self.all_coords[:, 0] == [i]) & (self.all_coords[:, 1] == [j]))[0]
                 if index.size != 0:
-                    current_rect.append(index[0])
-        return set(current_rect)
+                    current_rect.add(index[0])
+        return current_rect
 
     def get_coordinates_of_circle(self, centre, radius):
-        current_indices = []
+        current_indices = set()
         for i in np.arange(centre[0]-radius, centre[0]+radius, self.grid_step):
             for j in np.arange(centre[1]-radius, centre[1]+radius, self.grid_step):
                 distance = (i - centre[0])**2 + (j-centre[1])**2
@@ -270,10 +286,9 @@ class SimCreator:
                     index = np.where((self.all_coords[:,0] == [i]) & (self.all_coords[:,1] == [j]))
                     index = index[0]
                     if index.size != 0:
-                        current_indices.append(index[0])
+                        current_indices.add(index[0])
 
-        #list that contains lists of the indices of circles
-        return set(current_indices)
+        return current_indices
 
     def get_elements_in_shape(self, indeces_nodes):
         current_elements = list()
@@ -433,6 +448,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
 
     def run(self):
         self.create_folder_structure_and_perturbate_kN()
+        exit()
         self.write_solver_input()
         self.create_vdbs()
         self.create_unfs_et_al()

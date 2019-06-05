@@ -12,7 +12,7 @@ import os
 
 batchsize = 1
 max_Q_len = 512
-epochs = 50
+epochs = 1000
 if os.name == 'nt':
     data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
     savepath = Path(r'C:\Users\stiebesi\code\saved_models')
@@ -22,7 +22,8 @@ else:
 
 # paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
 # path = data_root / '2019-04-23_13-00-58_200p'
-path = data_root / '2019-05-17_16-45-57_3000p'
+path = data_root / '2019-05-17_16-45-57_3000p' / '0'
+# path = data_root / '2019-05-17_16-45-57_3000p'
 paths = [path]
 
 
@@ -134,6 +135,7 @@ def create_datagenerator_flow_front_to_permeabilities():
 
     return generator
 
+
 def get_comment():
     return "Sensor values are now correctly scaled"
 
@@ -148,6 +150,28 @@ def pixel_wise_loss_multi_input_single_label(input, target):
     return loss
 
 
+def plot_predictions_and_label(input, target, _str):
+    print('EVAL')
+    x = input.reshape(input.shape[0], 155, 155)
+    x = x * 255
+    import numpy as np
+    from PIL import Image
+    for i in range(input.shape[0]):
+        im = Image.fromarray(np.asarray(x[i]).astype(int))
+        path = Path('Debugging/overfit/predict')
+        path.mkdir(parents=True, exist_ok=True)
+        file = f'{_str}_{i}.png'
+        im.convert('RGB').save(path / file)
+    y = target.reshape(target.shape[0], 155, 155)
+    y = y * 255
+    im = Image.fromarray(np.asarray(y[0]).astype(int))
+    path = Path('Debugging/overfit/label')
+    path.mkdir(parents=True, exist_ok=True)
+    file = f'{_str}.png'
+    im.convert('RGB').save(path / file)
+
+
+
 if __name__ == "__main__":
     print(">>> INFO: Generating Generator")
     generator = create_datagenerator_flow_front_to_permeabilities()
@@ -159,7 +183,8 @@ if __name__ == "__main__":
     train_wrapper = Master_Trainer(model, generator, comment=get_comment(),
                                    # loss_criterion=pixel_wise_loss_multi_input_single_label,
                                    savepath=savepath / 'flow_front_perm.pt', learning_rate=0.0001,
-                                   calc_metrics=False, train_print_frequency=1, eval_frequency=20)
+                                   calc_metrics=False, train_print_frequency=1, eval_frequency=20,
+                                   eval_func=plot_predictions_and_label)
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()

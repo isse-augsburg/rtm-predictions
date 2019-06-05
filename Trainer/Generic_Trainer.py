@@ -53,6 +53,7 @@ class Master_Trainer():
 
     def __train(self):
         start_time = time.time()
+        eval_step = 0
         for i, (inputs, label) in enumerate(self.generator):
             inputs = inputs.to(self.device, non_blocking=True)
             label = label.to(self.device, non_blocking=True)
@@ -60,6 +61,8 @@ class Master_Trainer():
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
             label = torch.stack([label] * len(outputs))
+            # label = torch.sigmoid(label)
+            label = label / 255
             loss = self.loss_criterion(outputs, label)
             loss.backward()
             self.optimizer.step()
@@ -69,9 +72,10 @@ class Master_Trainer():
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
-                self.__eval()
+                self.__eval(eval_step)
+                eval_step += 1
 
-    def __eval(self):
+    def __eval(self, eval_step=0):
         # print('EVAL')
         with torch.no_grad():
             self.model.eval()
@@ -82,13 +86,15 @@ class Master_Trainer():
                 label = sample[1].to(self.device)
                 label = label.reshape((self.imsize[0] * self.imsize[1]))
                 label = torch.stack([label] * len(data))
+                # label = torch.sigmoid(label) Loses a lot of information
+                label = label / 255
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
                 l = self.loss_criterion(output, label).item()
                 print(f"Validation --- Loss: {l:12.4f}")
 
                 if self.eval_func is not None:
-                    self.eval_func(output.cpu(), label.cpu(), str(i))
+                    self.eval_func(output.cpu(), label.cpu(), str(eval_step))
                 
                 if not self.calc_metrics:
                     continue

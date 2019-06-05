@@ -87,9 +87,10 @@ class ERFH5_DataGenerator():
         self.data_dict = dict()
         print(">>> Generator: Gathering Data...")
         self.paths = self.data_gather(self.data_paths)
-        # print('!!! Using only small part of the dataset, remove the following line for real training !!!')
-        # self.paths = self.paths[:100]
-        random.shuffle(self.paths)
+
+        self.paths = self.paths
+        if len(self.paths) > 1:
+            random.shuffle(self.paths)
         clear_last_line()
         print(">>> Generator: Gathering Data... Done.")
         self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
@@ -167,6 +168,7 @@ class ERFH5_DataGenerator():
             else:
                 # data_function must return [(data, label) ... (data, label)]
                 instance = self.data_function(file)
+                # print(file)
 
                 if instance is None:
                     self.data_dict[file] = None
@@ -192,8 +194,11 @@ class ERFH5_DataGenerator():
         while len(self.validation_list) < self.num_validation_samples:
             # print(len(self.validation_list), self.num_validation_samples)
             # If IndexError here: files are all too short
-            sample = self.paths[0]
-            self.paths = self.paths[1:]
+            if len(self.paths) > 1:
+                sample = self.paths[0]
+                self.paths = self.paths[1:]
+            else:
+                sample = self.paths[0]
 
             # data_function must return [(data, label) ... (data, label)]
             instance = self.data_function(sample)
