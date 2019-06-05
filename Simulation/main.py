@@ -1,12 +1,8 @@
 import datetime
-
 import time
 import os
-
 from Simulation import analizer
 from Simulation.SimCreator import SimCreator
-
-
 
 if __name__== "__main__":
     if os.environ['Write_Simulation'] == '1':

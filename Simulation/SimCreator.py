@@ -232,7 +232,7 @@ class SimCreator:
                 lower_left_x, lower_left_y = -5, -8
                 overall_width, overall_height = 3, 10 
                 runner_x, runner_y = -4, -6
-                runner_width, runner_height = 1, 20 
+                runner_width, runner_height = 1, 6
                 print("Creating runner")
                 list_of_indices_of_shape = self.get_coordinates_of_runner(((lower_left_x, lower_left_y), overall_width, overall_height, (runner_x, runner_y), runner_width, runner_height))
                 print(list_of_indices_of_shape)
