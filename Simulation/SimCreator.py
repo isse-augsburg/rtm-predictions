@@ -248,7 +248,6 @@ class SimCreator:
             self.save_to_h5_data['shapes'].append(_dict)
 
             indices_of_elements = self.get_elements_in_shape(list_of_indices_of_shape)
-            print(indices_of_elements)
             df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
 
         # Apply function that gets k1 and k2 from FVC
@@ -506,10 +505,8 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
 
     def run(self):
         self.create_folder_structure_and_perturbate_kN()
-        exit()
         self.write_solver_input()
         self.create_vdbs()
-        exit()
         self.create_unfs_et_al()
         self.zip_vdbs()
         self.alter_dat_files()

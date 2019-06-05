@@ -1,13 +1,17 @@
 import datetime
+
 import time
 import os
+
 from Simulation import analizer
 from Simulation.SimCreator import SimCreator
 
+
+
 if __name__== "__main__":
     if os.environ['Write_Simulation'] == '1':
-        n_batches = 1
-        count = 2
+        n_batches = 20
+        count = 350
         overall_count = n_batches * count
         perturbation_factors = \
         {
@@ -24,6 +28,11 @@ if __name__== "__main__":
                     {
                         "Num": 1,
                         "Fiber_Content": [.7, .8]
+                    },
+                "Runners":
+                    {
+                        "Num": 0,
+                        "Fiber_Content": [-.7, -.8]
                     }
             }
         }
