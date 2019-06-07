@@ -123,8 +123,12 @@ def get_images_of_flow_front_and_permeability_map(filename, step_size=4, imsize=
 
     label = np.asarray(im)
     with Pool(4) as p:
-        images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize),
+        try:
+            images_and_indices = p.map(partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize),
                                    range(len(fillings)))
+        except IndexError or OSError:
+            print(f'ERROR at {filename}')
+            exit()
     # array of all images, array of the same permeability map
     # trues, falses = 0, 0
     #
@@ -150,15 +154,27 @@ def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, in
     im_fn = cache_dir / f'{index}.png'
     load_image = True
     if cache_dir != '' and not im_fn.exists():
-        means_of_neighbour_nodes = filling[triangle_coords].reshape(len(triangle_coords), 3).mean(axis=1)
+        try:
+            a = filling[triangle_coords]
+            b = a.reshape(len(triangle_coords), 3)
+            means_of_neighbour_nodes = b.mean(axis=1)
+        except IndexError:
+            print('ERROR plot wrapper ... raising')
+            print(triangle_coords)
+            print(filling[triangle_coords])
+            raise
+
         im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
         # im = create_np_image((465,465), scaled_coords, filling)
         # im_t = Image.fromarray(im,mode='L')
         im.save(im_fn)
         load_image = False
     else:
-        im = Image.open(im_fn)
-
+        try:
+            im = Image.open(im_fn)
+        except IndexError:
+            print('ERROR: Corrupt img data')
+            raise
     if im.size != imsize:
         im = im.resize(imsize)
     dat = np.asarray(im)

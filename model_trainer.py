@@ -1,3 +1,5 @@
+from functools import partial
+from multiprocessing.pool import Pool
 from pathlib import Path
 
 from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader_sensor as dls, data_loaders_IMG as dli, \
@@ -9,8 +11,10 @@ from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Models.flow_front_to_fiber_fraction_model import FlowfrontToFiberfractionModel
 import os
+import numpy as np
+from PIL import Image
 
-batchsize = 2
+batchsize = 1
 max_Q_len = 512
 epochs = 1000
 if os.name == 'nt':
@@ -122,7 +126,7 @@ def create_dataGenerator_pressure_sequence():
     return generator
 
 
-def create_datagenerator_flow_front_to_permeabilities(num_validation_samples=10):
+def create_datagenerator_flow_front_to_permeabilities(num_validation_samples=5):
     try:
         generator = pipeline.ERFH5_DataGenerator(data_paths=paths,
         data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
@@ -152,24 +156,29 @@ def pixel_wise_loss_multi_input_single_label(input, target):
 
 
 def plot_predictions_and_label(input, target, _str):
-    print('EVAL')
     x = input.reshape(input.shape[0], 155, 155)
     x = x * 255
-    import numpy as np
-    from PIL import Image
-    for i in range(input.shape[0]):
-        im = Image.fromarray(np.asarray(x[i]).astype(int))
-        path = Path('Debugging/overfit/predict')
-        path.mkdir(parents=True, exist_ok=True)
-        file = f'{_str}_{i}.png'
-        im.convert('RGB').save(path / file)
-        im.close()
+
+    if os.name == 'nt':
+        debug_path = Path(r'X:\s\t\stiebesi\code\debug\overfit')
+    else:
+        debug_path = Path('/cfs/home/s/t/code/debug/overfit/')
+    with Pool() as p:
+        images_and_indices = p.map(partial(save_img, debug_path / 'predict', _str, x), range(0, input.shape[0], 1))
     y = target.reshape(target.shape[0], 155, 155)
     y = y * 255
     im = Image.fromarray(np.asarray(y[0]).astype(int))
-    path = Path('/cfs/home/s/t/code/debug/overfit/label')
+    path = debug_path / 'label'
     path.mkdir(parents=True, exist_ok=True)
     file = f'{_str}.png'
+    im.convert('RGB').save(path / file)
+    im.close()
+
+
+def save_img(path, _str, x, index):
+    im = Image.fromarray(np.asarray(x[index]).astype(int))
+    path.mkdir(parents=True, exist_ok=True)
+    file = f'{_str}_{index}.png'
     im.convert('RGB').save(path / file)
     im.close()
 
@@ -185,7 +194,7 @@ if __name__ == "__main__":
     train_wrapper = Master_Trainer(model, generator, comment=get_comment(),
                                    # loss_criterion=pixel_wise_loss_multi_input_single_label,
                                    savepath=savepath / 'flow_front_perm.pt', learning_rate=0.0001,
-                                   calc_metrics=False, train_print_frequency=1, eval_frequency=10,
+                                   calc_metrics=False, train_print_frequency=1, eval_frequency=20,
                                    eval_func=plot_predictions_and_label)
     print(">>> INFO: The Training Will Start Shortly")
 

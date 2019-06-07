@@ -57,7 +57,7 @@ class Master_Trainer():
         for i, (inputs, label) in enumerate(self.generator):
             inputs = inputs.to(self.device, non_blocking=True)
             label = label.to(self.device, non_blocking=True)
-            label = label.reshape((self.imsize[0]*self.imsize[1]))
+            label = label.reshape((self.imsize[0] * self.imsize[1]))
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
             label = torch.stack([label] * len(outputs))
@@ -91,10 +91,10 @@ class Master_Trainer():
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
                 l = self.loss_criterion(output, label).item()
-                print(f"Validation --- Loss: {l:12.4f}")
+                print(f"Sample {i}: validation --- Loss: {l:12.4f}")
 
                 if self.eval_func is not None:
-                    self.eval_func(output.cpu(), label.cpu(), str(eval_step))
+                    self.eval_func(output.cpu(), label.cpu(), f'{eval_step}_{i}')
                 
                 if not self.calc_metrics:
                     continue
