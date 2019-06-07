@@ -78,5 +78,8 @@ def print_result_line(path, success, filled, last_state_int):
 
     p = Path(path)
     if (p.parent / 'img_cache').exists():
+        i = 0
+        for c in (p.parent / 'img_cache').iterdir():
+            i += 1
     # p1 = [x for x in p.glob('**/*.ERFH5')][0]
-        print(f'{path}\t{success}\t{sfilled}\t{last_state_int} steps')
+        print(f'{path}\t{success}\t{sfilled}\t{last_state_int} steps\t{i} imgs')

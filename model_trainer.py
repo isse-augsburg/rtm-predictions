@@ -167,12 +167,11 @@ def plot_predictions_and_label(input, target, _str):
     y = target.reshape(target.shape[0], 155, 155)
     y = y * 255
     im = Image.fromarray(np.asarray(y[0]).astype(int))
-    path = Path('Debugging/overfit/label')
+    path = Path('/cfs/home/s/t/code/debug/overfit/label')
     path.mkdir(parents=True, exist_ok=True)
     file = f'{_str}.png'
     im.convert('RGB').save(path / file)
     im.close()
-
 
 
 if __name__ == "__main__":
