@@ -6,13 +6,13 @@ import numpy as np
 from PIL import Image
 
 
-def analize_subdirs(path, print_options='all'):
-    files = Path(path).glob('**/*.hdf5')
+def analize_subdirs(path, print_options='all', suffix='erfh5'):
+    files = Path(path).glob(f'**/*.{suffix}')
     for f in files:
-        analize_finished_run(f)
+        analize_finished_run(f, print_options, suffix)
 
 
-def analize_finished_run(path, print_options='all', suffix='hdf5'):
+def analize_finished_run(path, print_options='all', suffix='erfh5'):
     # filename = ''
     # for root, dirs, files in os.walk(path, topdown=False):
     #     for name in files:
@@ -63,21 +63,20 @@ def analize_finished_run(path, print_options='all', suffix='hdf5'):
         im.close()
 
 
-
-
 def print_result_line(path, success, filled, last_state_int):
     sigma = 0
     mu = 0
 
-    for e in path.split('_'):
-        if 'sigma' in e:
-            _, ssigma = e.split('sigma')
-            sigma = ssigma.replace('.',',')
-        if 'mu' in e:
-            _, smu = e.split('mu')
-            mu = smu.replace('.',',')
+    # for e in str(path).split('_'):
+    #     if 'sigma' in e:
+    #         _, ssigma = e.split('sigma')
+    #         sigma = ssigma.replace('.',',')
+    #     if 'mu' in e:
+    #         _, smu = e.split('mu')
+    #         mu = smu.replace('.',',')
     sfilled = f'{filled:.5f}'.replace('.', ',')
 
     p = Path(path)
-    p1 = [x for x in p.glob('**/*.ERFH5')][0]
-    print(f'{p1}\t{sigma}\t{success}\t{sfilled}\t{last_state_int} steps')
+    if (p.parent / 'img_cache').exists():
+    # p1 = [x for x in p.glob('**/*.ERFH5')][0]
+        print(f'{path}\t{success}\t{sfilled}\t{last_state_int} steps')

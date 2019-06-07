@@ -129,6 +129,7 @@ class Master_Trainer():
 
     def __calc_recall(self, tp, fp, tn, fn): 
         return (tp) / max((tp + fn), 0.00000001)
+
     def save_model(self):
         torch.save(self.model.state_dict(), self.savepath)
 

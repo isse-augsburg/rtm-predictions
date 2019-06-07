@@ -10,7 +10,7 @@ from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Models.flow_front_to_fiber_fraction_model import FlowfrontToFiberfractionModel
 import os
 
-batchsize = 1
+batchsize = 2
 max_Q_len = 512
 epochs = 1000
 if os.name == 'nt':
@@ -22,7 +22,8 @@ else:
 
 # paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
 # path = data_root / '2019-04-23_13-00-58_200p'
-path = data_root / '2019-05-17_16-45-57_3000p' / '0'
+# path = data_root / '2019-05-17_16-45-57_3000p' / '0'
+path = data_root / '2019-06-05_15-30-52_1050p'
 # path = data_root / '2019-05-17_16-45-57_3000p'
 paths = [path]
 
@@ -110,7 +111,7 @@ def create_dataGenerator_pressure_sequence():
         generator = pipeline.ERFH5_DataGenerator(
             paths, data_processing_function=dls.get_sensordata_and_filling_percentage,
             data_gather_function=dg.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=5)
+            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=4)
         """ generator = pipeline.ERFH5_DataGenerator(
         path, data_processing_function = dl.get_all_sensor_sequences, data_gather_function = dl.get_filelist_within_folder,
             batch_size=batchsize, epochs=epochs ,max_queue_length=4096, num_validation_samples=250) """
@@ -121,13 +122,13 @@ def create_dataGenerator_pressure_sequence():
     return generator
 
 
-def create_datagenerator_flow_front_to_permeabilities():
+def create_datagenerator_flow_front_to_permeabilities(num_validation_samples=10):
     try:
         generator = pipeline.ERFH5_DataGenerator(data_paths=paths,
         data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
             data_gather_function=dg.get_filelist_within_folder,
             batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
-            num_validation_samples=1, num_workers=20)
+            num_validation_samples=num_validation_samples, num_workers=20)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -162,6 +163,7 @@ def plot_predictions_and_label(input, target, _str):
         path.mkdir(parents=True, exist_ok=True)
         file = f'{_str}_{i}.png'
         im.convert('RGB').save(path / file)
+        im.close()
     y = target.reshape(target.shape[0], 155, 155)
     y = y * 255
     im = Image.fromarray(np.asarray(y[0]).astype(int))
@@ -169,12 +171,13 @@ def plot_predictions_and_label(input, target, _str):
     path.mkdir(parents=True, exist_ok=True)
     file = f'{_str}.png'
     im.convert('RGB').save(path / file)
+    im.close()
 
 
 
 if __name__ == "__main__":
     print(">>> INFO: Generating Generator")
-    generator = create_datagenerator_flow_front_to_permeabilities()
+    generator = create_datagenerator_flow_front_to_permeabilities(num_validation_samples=2)
     print(">>> INFO: Generating Model")
     model = FlowfrontToFiberfractionModel()
     print(">>> INFO: Model to GPU")
@@ -183,7 +186,7 @@ if __name__ == "__main__":
     train_wrapper = Master_Trainer(model, generator, comment=get_comment(),
                                    # loss_criterion=pixel_wise_loss_multi_input_single_label,
                                    savepath=savepath / 'flow_front_perm.pt', learning_rate=0.0001,
-                                   calc_metrics=False, train_print_frequency=1, eval_frequency=20,
+                                   calc_metrics=False, train_print_frequency=1, eval_frequency=10,
                                    eval_func=plot_predictions_and_label)
     print(">>> INFO: The Training Will Start Shortly")
 

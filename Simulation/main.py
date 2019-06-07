@@ -46,6 +46,6 @@ if __name__== "__main__":
 
     # Run an analysis over the new simulations
     elif os.environ['Analysis'] == '1':
-        path = r'Y:\data\RTM\Lautern\output\with_shapes\2019-05-17_16-45-57_3000p'
+        path = r'Y:\data\RTM\Lautern\output\with_shapes\2019-06-05_15-30-52_1050p'
         print_options = ['all', 'fails_only', 'success_only']
-        analizer.analize_subdirs(path, print_options='all')
+        analizer.analize_subdirs(path, print_options='all', suffix='erfh5')

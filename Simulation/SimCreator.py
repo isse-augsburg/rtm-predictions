@@ -136,7 +136,7 @@ class SimCreator:
         self.num_small_hosts = 1
 
         self.output_frequency = 0.5
-        self.max_sim_step = 1500
+        self.max_sim_step = 3000
         self.max_injection_time = 800000
 
         sources_path = data_path / 'sources'
@@ -161,7 +161,6 @@ class SimCreator:
             self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
             self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
             self.runner_fvc_bounds = self.perturbation_factors['Shapes']['Runners']['Fiber_Content']
-
 
         self.slurm_partition = "big-cpu"
 
@@ -391,7 +390,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             subprocess.call(args2, shell=True, stdout=subprocess.PIPE)
         print(f'Writing .unf files took {(time.time()-t0)/60:.1f} minutes.')
 
-    def write_slurm_scripts(self, timeout=15):
+    def write_slurm_scripts(self, timeout=30):
         print('Writing slurm script ...')
 
         line_before_unf = 'srun -t %d singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np %d'
@@ -430,7 +429,7 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
 
             with open(filename, 'w') as f:
                 f.write(script_str)
-            fileContents = open(filename,"r").read()
+            fileContents = open(filename, "r").read()
             f = open(filename,"w", newline="\n")
             f.write(fileContents)
             f.close()
@@ -519,7 +518,6 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
 
     def run(self):
         self.create_folder_structure_and_perturbate_kN()
-        exit()
         self.write_solver_input()
         self.create_vdbs()
         self.create_unfs_et_al()

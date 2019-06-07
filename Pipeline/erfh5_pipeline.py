@@ -6,7 +6,6 @@ import random
 import torch
 import sys
 
-
 class Thread_Safe_List():
     def __init__(self, max_length=-1):
         self.list = []
@@ -191,8 +190,8 @@ class ERFH5_DataGenerator():
         if len(self.paths) == 0:
             raise Exception("No file paths found")
 
-        while len(self.validation_list) < self.num_validation_samples:
-            # print(len(self.validation_list), self.num_validation_samples)
+        for i in range(self.num_validation_samples):
+        # while len(self.validation_list) < self.num_validation_samples:
             # If IndexError here: files are all too short
             if len(self.paths) > 1:
                 sample = self.paths[0]
@@ -203,9 +202,7 @@ class ERFH5_DataGenerator():
             # data_function must return [(data, label) ... (data, label)]
             instance = self.data_function(sample)
 
-            if instance is None:
-                continue
-            else:
+            if instance is not None:
                 for i in instance:
                     data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                     self.validation_list.append((data, label))
@@ -222,6 +219,7 @@ class ERFH5_DataGenerator():
 
         data = [i[0] for i in batch]
         labels = [i[1] for i in batch]
+        # FIXME does not work for batchsize > 1 if sizes of data are different
         data = torch.stack(data)
         labels = torch.stack(labels)
         return data, labels
