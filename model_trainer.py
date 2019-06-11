@@ -164,7 +164,7 @@ def plot_predictions_and_label(input, target, _str):
     else:
         debug_path = Path('/cfs/home/s/t/code/debug/overfit/')
     with Pool() as p:
-        images_and_indices = p.map(partial(save_img, debug_path / 'predict', _str, x), range(0, input.shape[0], 1))
+        p.map(partial(save_img, debug_path / 'predict', _str, x), range(0, input.shape[0], 1))
     y = target.reshape(target.shape[0], 155, 155)
     y = y * 255
     im = Image.fromarray(np.asarray(y[0]).astype(int))
@@ -176,11 +176,15 @@ def plot_predictions_and_label(input, target, _str):
 
 
 def save_img(path, _str, x, index):
-    im = Image.fromarray(np.asarray(x[index]).astype(int))
-    path.mkdir(parents=True, exist_ok=True)
-    file = f'{_str}_{index}.png'
-    im.convert('RGB').save(path / file)
-    im.close()
+    try:
+        im = Image.fromarray(np.asarray(x[index]).astype(int))
+        path.mkdir(parents=True, exist_ok=True)
+        file = f'{_str}_{index}.png'
+        im.convert('RGB').save(path / file)
+        im.close()
+    except KeyError:
+        print('ERROR: save_img')
+
 
 
 if __name__ == "__main__":

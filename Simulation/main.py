@@ -36,7 +36,7 @@ if __name__== "__main__":
         print(initial_timestamp)
         t000 = time.time()
         for batch_num in range(n_batches):
-            sc = SimCreator(perturbation_factors, initial_timestamp=initial_timestamp, count=count, batch_num=batch_num, run_on_cluster=False, overall_count=overall_count)
+            sc = SimCreator(perturbation_factors, initial_timestamp=initial_timestamp, n_in_batch=count, batch_num=batch_num, run_on_cluster=False, overall_count=overall_count)
             t00 = time.time()
             print(f'Batch {batch_num + 1}/{n_batches}: creating {count * (batch_num + 1)}/{overall_count} simulations.')
             sc.run()

@@ -13,37 +13,21 @@ from pathlib import Path
 from multiprocessing import Pool
 import time
 import socket
+import logging
 
+from Simulation.helper_functions import *
 from Pipeline.data_loaders_IMG import create_local_properties_map, draw_polygon_map
 from Simulation import resources
 from enum import Enum
 
-#from Simulation.h5writer import create_h5, write_dict_to_Hdf5
-from h5writer import create_h5, write_dict_to_Hdf5
-#from Simulation.shapes import Rectangle, Circle
-from shapes import Rectangle, Circle, Runner
+from Simulation.h5writer import create_h5, write_dict_to_Hdf5
+from Simulation.Shapes import Rectangle, Circle, Runner, Shaper
 
 
 class OutputFrequencyType(Enum):
     Step = "Step", 0
     FillPercentage = "% Fill", 1
     Time = "Time", 2
-
-
-def derive_k1k2_from_fvc(fvcs):
-    points = np.array([(0, 1e-6), (0.4669, 1.62609e-10), (0.5318, 5.14386e-11), (0.5518, 4.28494e-11)])
-    x = points[:, 0]
-    y = points[:, 1]
-    z = np.polyfit(x, y, 3)
-    f = np.poly1d(z)
-
-
-def fvc_to_k1(fvc):
-    return 1.00000000e-06 * np.exp(-1.86478393e+01*fvc)
-
-
-def rounded_random(value, minClip):
-    return round(float(value)/ minClip) * minClip
 
 
 def create_vdbs_from_parent_folder(parent_folder):
@@ -64,36 +48,24 @@ def create_unfs_from_parent_folder(parent_folder, folder_on_storage=r'Y:\data\RT
     s.write_slurm_scripts()
 
 
-def zip_folder(path, batch_num, delete_after=True):
-    print(f'Zipping {path} ...')
-    t0 = time.time()
-    ps = [x for x in Path(path).glob('**/*') if x.is_file()]
-    zip_file = zipfile.ZipFile(str(path) + f'_{batch_num}.zip', 'w')
-    with zip_file:
-        for file in ps:
-            zip_file.write(str(file), compress_type=zipfile.ZIP_DEFLATED)
-    print(f'Zipping took {(time.time() - t0)/60:.1f} minutes.')
-    if delete_after:
-        print(f'Deleting {path} ...')
-        shutil.rmtree(path)
-    return str(path) + f'_{batch_num}.zip'
-
-
 class SimCreator:
-    def __init__(self, perturbation_factors=None, initial_timestamp='', count=20, batch_num=1, run_on_cluster=True, overall_count=20):
+    def __init__(self, perturbation_factors=None, initial_timestamp='', n_in_batch=10,
+                 batch_num=0, run_on_cluster=True, overall_count=10):
         self.overall_count = overall_count
         self.batch_num = batch_num
         self.initial_timestamp = initial_timestamp
-        self.start_index = batch_num * count
+        self.start_index = batch_num * n_in_batch
         self.run_on_cluster = run_on_cluster
         free_space = shutil.disk_usage(r'C:\\').free // (1024 ** 3)
-        estimated_used_space = count * 0.55 + 8
-        print(f'Going to use {estimated_used_space} of {free_space} GB.')
+        estimated_used_space = n_in_batch * 0.55 + 8
+
+        self.init_logger()
+
+        self.logger.info(f'Going to use {estimated_used_space} of {free_space} GB.')
         if not run_on_cluster and estimated_used_space > free_space:
             print('Not enough free space on device. Finishing ...')
             self.run_on_cluster = True
             exit()
-        current_os = os.name
         self.output_frequency_type = OutputFrequencyType.Time
         self.save_to_h5_data = {'output_frequency_type': self.output_frequency_type.value[1],
                                 'perturbation_factors': perturbation_factors}
@@ -101,9 +73,9 @@ class SimCreator:
         # f"with_{perturbation_factors['Shapes']['Rectangles']['Num']}_Rect_{perturbation_factors['Shapes']['Circles']['Num']}_Circ"
         # + re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
 
-        self.count = count
+        self.n_in_batch = n_in_batch
         self.visual_version = '14.5'
-        print(f'Using Visual Env {self.visual_version}.')
+        self.logger.info(f'Using Visual Env {self.visual_version}.')
         if os.name == 'nt':
             self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\%s\Windows-x64\VEBatch.bat' % self.visual_version)
             data_path = Path(r'Y:\data\RTM\Lautern')
@@ -131,125 +103,63 @@ class SimCreator:
             self.perturbation_factors = {}
         else:
             self.perturbation_factors = perturbation_factors
-        self.num_cpus = 32
         self.num_big_hosts = 9
         self.num_small_hosts = 1
 
         self.output_frequency = 0.5
         self.max_sim_step = 3000
-        self.max_injection_time = 800000
+        self.max_runtime_slurm = 15
+        self.max_injection_time_pam_rtm = 800000
 
         sources_path = data_path / 'sources'
         self.original_lperm         = sources_path / 'k1_k2_equal_one_layer.lperm'
         self.vdb_origin             = sources_path / 'flawless_one_layer.vdb'
         self.reference_erfh5        = sources_path / 'flawless_RESULT.erfh5'
 
-        f = h5py.File(self.reference_erfh5, 'r')
-        self.all_coords= f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()][:, :-1]
-        self.triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()][:, :-1]
-        self.x_bounds = (-20, 20)
-        self.y_bounds = (-20, 20)
-        self.circ_radius_bounds = (1, 3)
-        self.rect_width_bounds = self.rect_height_bounds = (1, 8)
-        self.grid_step = 0.125
-
-        self.shapes = []
-        if len(self.perturbation_factors.keys()) > 0:
-            [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
-            [self.shapes.append(Circle) for x in range(self.perturbation_factors['Shapes']['Circles']['Num'])]
-            [self.shapes.append(Runner) for x in range(self.perturbation_factors['Shapes']['Runners']['Num'])]
-            self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
-            self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
-            self.runner_fvc_bounds = self.perturbation_factors['Shapes']['Runners']['Fiber_Content']
-
-        self.slurm_partition = "big-cpu"
+        self.Shaper = Shaper(self.reference_erfh5, self.perturbation_factors)
 
         self.slurm_scripts = []
         self.dirs_with_stems = []
         self.fn_vdb_writer = []
         self.unf_files_on_storage = []
 
+    def init_logger(self):
+        self.logger = logging.getLogger('SimCreator')
+        self.logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler('debug.log')
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.ERROR)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        ch.setFormatter(formatter)
+        self.logger.addHandler(fh)
+        self.logger.addHandler(ch)
+
     def create_folder_structure_and_perturbate_kN(self):
-        print(f'Perturbating {self.perturbation_factors_str} ...')
+        self.logger.info(f'Perturbating {self.perturbation_factors_str} ...')
         t0 = time.time()
         self.solver_input_folder.mkdir(parents=True, exist_ok=True)
         df = pandas.read_csv(self.original_lperm, sep=' ')
-        keys = list(df.keys())
 
         with Pool() as p:
-            self.dirs_with_stems = p.map(partial(self.perturbate_wrapper, keys, df), range(self.start_index, self.start_index + self.count))
-        # self.dirs_with_stems =self.perturbate_wrapper(keys, df, 1)
-        print(f'Adding noise and writing all files took {(time.time() - t0)/60:.1f} minutes.')
+            self.dirs_with_stems = p.map(partial(self.perturbate_wrapper, df),
+                                         range(self.start_index, self.start_index + self.n_in_batch))
+        self.logger.info(f'Adding noise and writing all files took {(time.time() - t0)/60:.1f} minutes.')
 
-    def perturbate_wrapper(self, keys, df, count, mu=0):
+    def perturbate_wrapper(self, df, count, mu=0):
         df = df.copy()
         new_stem = str(count)
         dir = self.solver_input_folder / new_stem
-        if not os.path.exists(dir):
-            os.makedirs(dir)
+        dir.mkdir(parents=True, exist_ok=True)
         filename = f'{self.initial_timestamp}_{count}.lperm'
         fn = dir / filename
         if fn.exists():
             return fn
 
-        # factor = self.perturbation_factors['Fiber_Content']
         iK = df.keys().get_loc('Fiber_Content')
         # Perturbate FVC everywhere
         df.iloc[:, iK] = df.iloc[:, iK] + np.random.normal(mu, self.perturbation_factors['General_Sigma'], len(df))
-        # Apply shapes
-        all_indices_of_elements = []
-        set_of_indices_of_shape = set()
-        for i, shape in enumerate(self.shapes):
-            y = rounded_random(random.random() * (self.y_bounds[1] - self.y_bounds[0]) + self.y_bounds[0], self.grid_step)
-            x = rounded_random(random.random() * (self.x_bounds[1] - self.x_bounds[0]) + self.x_bounds[0], self.grid_step)
-            if 'shapes' not in self.save_to_h5_data.keys():
-                self.save_to_h5_data['shapes'] = []
-            if shape.__name__ == 'Rectangle':
-                fvc =    random.random() * (self.rect_fvc_bounds[1] - self.rect_fvc_bounds[0]) + self.rect_fvc_bounds[0]
-                height = rounded_random(random.random() * (self.rect_height_bounds[1] - self.rect_height_bounds[0]) + self.rect_height_bounds[0], self.grid_step)
-                width =  rounded_random(random.random() * (self.rect_width_bounds[1] - self.rect_width_bounds[0]) + self.rect_width_bounds[0], self.grid_step)
-                set_of_indices_of_shape = self.get_coordinates_of_rectangle((x, y), height, width)
-                _dict = {"Rectangle":
-                         {"fvc": fvc,
-                              "height": height,
-                              "width": width
-                      }
-                }
-
-            elif shape.__name__  == 'Circle':
-                fvc =       random.random() * (self.circ_fvc_bounds[1] - self.circ_fvc_bounds[0]) + self.circ_fvc_bounds[0]
-                radius =    rounded_random(random.random() * (self.circ_radius_bounds[1] - self.circ_radius_bounds[0]) + self.circ_radius_bounds[0], self.grid_step)
-
-                set_of_indices_of_shape = self.get_coordinates_of_circle((x, y), radius)
-                _dict = {"Circle":
-                            {"fvc": fvc,
-                            "radius": radius,
-                      }
-                }
-
-            elif shape.__name__ == 'Runner':
-                fvc =    random.random() * (self.runner_fvc_bounds[1] - self.runner_fvc_bounds[0]) + self.runner_fvc_bounds[0]
-                lower_left_x, lower_left_y = -5, -8
-                overall_width, overall_height = 3, 10 
-                runner_x, runner_y = -4, -6
-                runner_width, runner_height = 1, 6
-                print("Creating runner")
-                list_of_indices_of_shape = self.get_coordinates_of_runner(((lower_left_x, lower_left_y), overall_width, overall_height, (runner_x, runner_y), runner_width, runner_height))
-                print(list_of_indices_of_shape)
-                _dict = {"Runner":
-                            {"fvc": fvc,
-                            "height": overall_height,
-                            "width": overall_width,
-                            "inner_height": runner_height,
-                            "inner_width": runner_width
-                      }
-                }
-
-            self.save_to_h5_data['shapes'].append(_dict)
-
-            indices_of_elements = self.get_elements_in_shape(set_of_indices_of_shape)
-            df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
-
+        self.save_to_h5_data = self.Shaper.apply_shapes(df, self.save_to_h5_data)
         # Apply function that gets k1 and k2 from FVC
         # FIXME should be different values for K1 and K", currently just the same
         df['K1'] = fvc_to_k1(df['Fiber_Content'])
@@ -291,68 +201,13 @@ class SimCreator:
         write_dict_to_Hdf5(f, self.save_to_h5_data)
         return Path(dir / f'{self.initial_timestamp}_{count}')
 
-    def get_coordinates_of_runner(self, s): 
-        indices_of_runner = []
-
-        current_runner = []
-        lower_left = s[0]
-        width = s[1]
-        height = s[2]
-        runner_lower_left = s[3]
-        runner_width = s[4]
-        runner_height = s[5]
-
-        for i in np.arange(lower_left[0], lower_left[0]+width, 0.125):
-            for j in np.arange(lower_left[1], lower_left[1]+height, 0.125):
-                if((i > runner_lower_left[0] and i < runner_lower_left[0]+runner_width) and  
-                (j > runner_lower_left[1] and j < runner_lower_left[1] + runner_height)):
-                    continue
-
-                index = np.where((self.all_coords[:,0] == [i]) & (self.all_coords[:,1] == [j]))
-                index = index[0]
-                if index.size != 0:
-                    current_runner.append(int(index))
-
-        return set(current_runner)
-       
-
-    def get_coordinates_of_rectangle(self, lower_left, height, width):
-        current_rect = set()
-
-        for i in np.arange(lower_left[0], lower_left[0] + width, self.grid_step):
-            for j in np.arange(lower_left[1], lower_left[1] + height, self.grid_step):
-                index = np.where((self.all_coords[:, 0] == [i]) & (self.all_coords[:, 1] == [j]))[0]
-                if index.size != 0:
-                    current_rect.add(index[0])
-        return current_rect
-
-    def get_coordinates_of_circle(self, centre, radius):
-        current_indices = set()
-        for i in np.arange(centre[0]-radius, centre[0]+radius, self.grid_step):
-            for j in np.arange(centre[1]-radius, centre[1]+radius, self.grid_step):
-                distance = (i - centre[0])**2 + (j-centre[1])**2
-                if distance <= radius**2:
-                    index = np.where((self.all_coords[:,0] == [i]) & (self.all_coords[:,1] == [j]))
-                    index = index[0]
-                    if index.size != 0:
-                        current_indices.add(index[0])
-
-        return current_indices
-
-    def get_elements_in_shape(self, indeces_nodes):
-        current_elements = list()
-        for index, t in enumerate(self.triangle_coords):
-            if t[0] in indeces_nodes and t[1] in indeces_nodes and t[2] in indeces_nodes:
-                current_elements.append(index)
-        return current_elements
-
     def write_solver_input(self):
-        str = \
-f'''
+        freq_str = \
+            f'''
 VCmd.SetStringValue( var3, r"OutputFrequencyType", r"{self.output_frequency_type.value[0]}" )
 VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
-        py_script_str = resources.python2_script_X_vdbs % (self.vdb_origin, self.max_injection_time, str)
-        used_var_nums_in_script = 3 + 1 # starts with 1
+        py_script_str = resources.python2_script_X_vdbs % (self.vdb_origin, self.max_injection_time_pam_rtm, freq_str)
+        used_var_nums_in_script = 3 + 1  # starts with 1
 
         var_count = used_var_nums_in_script
         py_vdb_blocks = []
@@ -390,30 +245,39 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
             subprocess.call(args2, shell=True, stdout=subprocess.PIPE)
         print(f'Writing .unf files took {(time.time()-t0)/60:.1f} minutes.')
 
-    def write_slurm_scripts(self, timeout=30):
-        print('Writing slurm script ...')
+    def write_slurm_scripts(self):
+        self.logger.info('Writing slurm script ...')
 
         line_before_unf = 'srun -t %d singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np %d'
-        path_to_unf = self.solved_sims / self.perturbation_factors_str / f'{self.initial_timestamp}_{self.overall_count}p' / f'${{SLURM_ARRAY_TASK_ID}}/{self.initial_timestamp}_${{SLURM_ARRAY_TASK_ID}}g.unf'
+        path_to_unf = self.solved_sims / self.perturbation_factors_str / \
+                      f'{self.initial_timestamp}_{self.overall_count}p' / \
+                      f'${{SLURM_ARRAY_TASK_ID}}/{self.initial_timestamp}_${{SLURM_ARRAY_TASK_ID}}g.unf'
         path_to_unf = path_to_unf.as_posix().replace('Y:', '/cfs/share')
 
-        if self.count < 10:
-            calls_on_small_partition = 1
+        # if self.n_in_batch < 10:
+        #     calls_on_small_partition = 1
+        # else:
+        #     calls_on_small_partition = np.round(self.n_in_batch * 0.08).astype(int)
+        #
+        # array = f'#SBATCH --array={calls_on_small_partition}-{self.n_in_batch - 1}%{self.num_big_hosts}'
+        # self.insert_vars_into_script(array, line_before_unf, 'solve_pam_rtm_auto_big.sh', 32, path_to_unf, 'big-cpu')
+        #
+        # array = f'#SBATCH --array=0-{calls_on_small_partition - 1}%{self.num_small_hosts}'
+        # self.insert_vars_into_script(array, line_before_unf, 'solve_pam_rtm_auto_small.sh', 8, path_to_unf, 'small-cpu')
+
+        if self.n_in_batch >= 10:
+            calls_on_small_partition = np.round(self.overall_count * 0.08).astype(int)
         else:
-            calls_on_small_partition = int(self.count * 0.1)
+            calls_on_small_partition = 1
 
-        for i in range(2):
-            slurm_partition = self.slurm_partition
-            num_cpus = self.num_cpus
-            array = f'#SBATCH --array={calls_on_small_partition}-{self.count - 1}%{self.num_big_hosts}'
-            n = f'solve_pam_rtm_auto_big.sh'
-            if i == 0:
-                slurm_partition = 'small-cpu'
-                num_cpus = 8
-                array = f'#SBATCH --array=0-{calls_on_small_partition - 1}%{self.num_small_hosts}'
-                n = f'solve_pam_rtm_auto_small.sh'
+        array = f'#SBATCH --array={calls_on_small_partition}-{self.overall_count - 1}%{self.num_big_hosts}'
+        self.insert_vars_into_script(array, line_before_unf, 'complete_solve_pam_rtm_auto_big.sh', 32, path_to_unf, 'big-cpu')
 
-            script_str = f'''#!/bin/sh
+        array = f'#SBATCH --array=0-{calls_on_small_partition - 1}%{self.num_small_hosts}'
+        self.insert_vars_into_script(array, line_before_unf, 'complete_solve_pam_rtm_auto_small.sh', 8, path_to_unf, 'small-cpu')
+
+    def insert_vars_into_script(self, array, line_before_unf, filename, num_cpus, path_to_unf, slurm_partition):
+        script_str = f'''#!/bin/sh
 #SBATCH --partition={slurm_partition}
 #SBATCH --mem=24000
 #SBATCH --time=1000:00:00
@@ -421,56 +285,14 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
 #SBATCH --cpus-per-task={num_cpus}
 #SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%a.out
 {array}
-    
-{line_before_unf % (timeout, num_cpus) + ' '  + str(path_to_unf)}
+
+{line_before_unf % (self.max_runtime_slurm, num_cpus) + ' ' + str(path_to_unf)}
 '''
-            self.slurm_scripts.append(n)
-            filename = self.slurm_scripts_folder / n
-
-            with open(filename, 'w') as f:
-                f.write(script_str)
-            fileContents = open(filename, "r").read()
-            f = open(filename,"w", newline="\n")
-            f.write(fileContents)
-            f.close()
-
-        if self.count < 10:
-            calls_on_small_partition = 1
-        else:
-            calls_on_small_partition = int(self.overall_count * 0.1)
-
-        for i in range(2):
-            slurm_partition = self.slurm_partition
-            num_cpus = self.num_cpus
-            array = f'#SBATCH --array={calls_on_small_partition}-{self.overall_count - 1}%{self.num_big_hosts}'
-            n = f'complete_solve_pam_rtm_auto_big.sh'
-            if i == 0:
-                slurm_partition = 'small-cpu'
-                num_cpus = 8
-                array = f'#SBATCH --array=0-{calls_on_small_partition - 1}%{self.num_small_hosts}'
-                n = f'complete_solve_pam_rtm_auto_small.sh'
-
-            script_str = f'''#!/bin/sh
-#SBATCH --partition={slurm_partition}
-#SBATCH --mem=24000
-#SBATCH --time=1000:00:00
-#SBATCH --job-name=PAM_RTM
-#SBATCH --cpus-per-task={num_cpus}
-#SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/pam-rtm-%A-%a.out
-{array}
-
-{line_before_unf % (timeout, num_cpus) + ' ' + str(path_to_unf)}
-'''
-            self.slurm_scripts.append(n)
-            filename = self.slurm_scripts_folder.parent / n
-
-            with open(filename, 'w') as f:
-                f.write(script_str)
-            fileContents = open(filename, "r").read()
-            f = open(filename, "w", newline="\n")
-            f.write(fileContents)
-            f.close()
-
+        self.slurm_scripts.append(filename)
+        full_path = self.slurm_scripts_folder / filename
+        with open(full_path, 'w') as f_win_line_endings:
+            f_win_line_endings.write(script_str)
+        convert_win_to_unix_lineendings(full_path)
 
     def alter_dat_files(self):
         for i, e in enumerate(self.dirs_with_stems):
@@ -505,16 +327,8 @@ VCmd.SetDoubleValue( var3, r"OutputFrequency", {self.output_frequency}  )'''
         t0 = time.time()
         vdbs = [str(x) + '.vdb' for x in self.dirs_with_stems]
         with Pool() as p:
-            p.map(partial(self.zip_file, True), vdbs)
+            p.map(partial(zip_file, True), vdbs)
         print(f'Zipping took {(time.time() - t0) / 60:.1f} minutes.')
-
-    def zip_file(self, delete_after=True, path=''):
-        zip_filename = path + '.zip'
-        zip_file = zipfile.ZipFile(zip_filename, 'w')
-        zip_file.write(path, compress_type=zipfile.ZIP_DEFLATED)
-        if delete_after:
-            os.remove(path)
-        return zip_filename
 
     def run(self):
         self.create_folder_structure_and_perturbate_kN()
