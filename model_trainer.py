@@ -126,21 +126,6 @@ def create_dataGenerator_pressure_sequence():
     return generator
 
 
-def create_datagenerator_flow_front_to_permeabilities(num_validation_samples=5):
-    try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths=paths,
-        data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
-            data_gather_function=dg.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
-            num_validation_samples=num_validation_samples, num_workers=20)
-    except Exception as e:
-        print(">>>ERROR: Fatal Error:", e)
-        traceback.print_exc()
-        exit()
-
-    return generator
-
-
 def get_comment():
     return "Sensor values are now correctly scaled"
 
@@ -186,6 +171,20 @@ def save_img(path, _str, x, index):
         print('ERROR: save_img')
 
 
+def create_datagenerator_flow_front_to_permeabilities(num_validation_samples=2):
+    try:
+        generator = pipeline.ERFH5_DataGenerator(data_paths=paths,
+        data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
+            data_gather_function=dg.get_filelist_within_folder,
+            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
+            num_validation_samples=num_validation_samples, num_workers=20)
+    except Exception as e:
+        print(">>>ERROR: Fatal Error:", e)
+        traceback.print_exc()
+        exit()
+
+    return generator
+
 
 if __name__ == "__main__":
     print(">>> INFO: Generating Generator")
@@ -198,7 +197,7 @@ if __name__ == "__main__":
     train_wrapper = Master_Trainer(model, generator, comment=get_comment(),
                                    # loss_criterion=pixel_wise_loss_multi_input_single_label,
                                    savepath=savepath / 'flow_front_perm.pt', learning_rate=0.0001,
-                                   calc_metrics=False, train_print_frequency=1, eval_frequency=20,
+                                   calc_metrics=False, train_print_frequency=1, eval_frequency=5,
                                    eval_func=plot_predictions_and_label)
     print(">>> INFO: The Training Will Start Shortly")
 
