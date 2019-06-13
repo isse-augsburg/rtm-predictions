@@ -54,32 +54,38 @@ class Master_Trainer():
     def __train(self):
         start_time = time.time()
         eval_step = 0
+        time_sum = 0
+        i_of_epoch = 0
         for i, (inputs, label) in enumerate(self.generator):
+            i_of_epoch += 1
             inputs = inputs.to(self.device, non_blocking=True)
             label = label.to(self.device, non_blocking=True)
-            label = label.reshape((self.imsize[0] * self.imsize[1]))
+            label = label.reshape(label.shape[0], self.imsize[0] * self.imsize[1])
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
+            # print(inputs.shape)
             label = torch.stack([label] * len(outputs))
-            # label = torch.sigmoid(label)
             label = label / 255
             loss = self.loss_criterion(outputs, label)
             loss.backward()
             self.optimizer.step()
             if i % self.train_print_frequency == 0 and i != 0:
                 time_delta = time.time() - start_time
-                print(f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds || Q: {self.generator.get_current_queue_length()}")
+                time_sum += time_delta
+                # print(time_sum, i)
+                print(f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds; avg: {time_sum / i_of_epoch:10.2f}|| Q: {self.generator.get_current_queue_length()}")
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
                 self.__eval(eval_step)
+                time_sum = 0
                 eval_step += 1
+                i_of_epoch = 0
 
     def __eval(self, eval_step=0):
         # print('EVAL')
         with torch.no_grad():
             self.model.eval()
-            loss = 0
             tp, fp, tn, fn = 0, 0, 0, 0
             for i, sample in enumerate(self.validationList):
                 data = sample[0].to(self.device)
@@ -90,8 +96,8 @@ class Master_Trainer():
                 label = label / 255
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
-                l = self.loss_criterion(output, label).item()
-                print(f"Sample {i}: validation --- Loss: {l:12.4f}")
+                loss = self.loss_criterion(output, label).item()
+                print(f"Sample {i}: validation --- Loss: {loss:12.4f}")
 
                 if self.eval_func is not None:
                     self.eval_func(output.cpu(), label.cpu(), f'{eval_step}_{i}')

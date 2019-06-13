@@ -4,6 +4,7 @@ from pathlib import Path
 
 from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader_sensor as dls, data_loaders_IMG as dli, \
     data_gather as dg
+from Trainer.Evaluation import plot_predictions_and_label
 from Trainer.Generic_Trainer import Master_Trainer
 import torch
 import traceback
@@ -14,9 +15,6 @@ import os
 import numpy as np
 from PIL import Image
 
-batchsize = 1
-max_Q_len = 512
-epochs = 1000
 if os.name == 'nt':
     data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
     savepath = Path(r'C:\Users\stiebesi\code\saved_models')
@@ -130,54 +128,14 @@ def get_comment():
     return "Sensor values are now correctly scaled"
 
 
-def pixel_wise_loss_multi_input_single_label(input, target):
-    print('Loss')
-    loss = 0
-    for el in input:
-        out = el - target
-        # out = out * weights.expand_as(out)
-        loss += out.sum(0)
-    return loss
-
-
-def plot_predictions_and_label(input, target, _str):
-    x = input.reshape(input.shape[0], 155, 155)
-    x = x * 255
-
-    if os.name == 'nt':
-        debug_path = Path(r'X:\s\t\stiebesi\code\debug\overfit')
-    else:
-        debug_path = Path('/cfs/home/s/t/code/debug/overfit/')
-    with Pool() as p:
-        p.map(partial(save_img, debug_path / 'predict', _str, x), range(0, input.shape[0], 1))
-    y = target.reshape(target.shape[0], 155, 155)
-    y = y * 255
-    im = Image.fromarray(np.asarray(y[0]).astype(int))
-    path = debug_path / 'label'
-    path.mkdir(parents=True, exist_ok=True)
-    file = f'{_str}.png'
-    im.convert('RGB').save(path / file)
-    im.close()
-
-
-def save_img(path, _str, x, index):
-    try:
-        im = Image.fromarray(np.asarray(x[index]).astype(int))
-        path.mkdir(parents=True, exist_ok=True)
-        file = f'{_str}_{index}.png'
-        im.convert('RGB').save(path / file)
-        im.close()
-    except KeyError:
-        print('ERROR: save_img')
-
-
-def create_datagenerator_flow_front_to_permeabilities(num_validation_samples=2):
+def create_datagenerator_flow_front_to_permeabilities(batch_size=1, num_validation_samples=10,
+                                                      num_workers=20, max_Q_len=512, epochs=1000):
     try:
         generator = pipeline.ERFH5_DataGenerator(data_paths=paths,
-        data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
-            data_gather_function=dg.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
-            num_validation_samples=num_validation_samples, num_workers=20)
+                                                 data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
+                                                 data_gather_function=dg.get_filelist_within_folder,
+                                                 batch_size=batch_size, epochs=epochs, max_queue_length=max_Q_len,
+                                                 num_validation_samples=num_validation_samples, num_workers=num_workers)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -188,16 +146,25 @@ def create_datagenerator_flow_front_to_permeabilities(num_validation_samples=2):
 
 if __name__ == "__main__":
     print(">>> INFO: Generating Generator")
-    generator = create_datagenerator_flow_front_to_permeabilities(num_validation_samples=2)
+    generator = create_datagenerator_flow_front_to_permeabilities(batch_size=2,
+                                                                  num_validation_samples=1,
+                                                                  num_workers=20,
+                                                                  max_Q_len=512,
+                                                                  epochs=1000)
     print(">>> INFO: Generating Model")
     model = FlowfrontToFiberfractionModel()
     print(">>> INFO: Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
 
-    train_wrapper = Master_Trainer(model, generator, comment=get_comment(),
+    train_wrapper = Master_Trainer(model, generator,
+                                   comment=get_comment(),
+                                   loss_criterion=torch.nn.MSELoss(),
                                    # loss_criterion=pixel_wise_loss_multi_input_single_label,
-                                   savepath=savepath / 'flow_front_perm.pt', learning_rate=0.0001,
-                                   calc_metrics=False, train_print_frequency=1, eval_frequency=5,
+                                   savepath=savepath / 'flow_front_perm.pt',
+                                   learning_rate=0.0001,
+                                   calc_metrics=False,
+                                   train_print_frequency=2,
+                                   eval_frequency=100,
                                    eval_func=plot_predictions_and_label)
     print(">>> INFO: The Training Will Start Shortly")
 

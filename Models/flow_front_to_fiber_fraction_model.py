@@ -14,7 +14,8 @@ class FlowfrontFeatures_RNN(nn.Module):
         self.nlayers = num_layers
 
         self.lstm = nn.LSTM(input_dim, hidden_dim,
-                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.2)
+                            batch_first=False, num_layers=self.nlayers,
+                            bidirectional=False, dropout=0.2)
         self.hidden2hidden1 = nn.Linear(int(hidden_dim), 1024)
         self.hidden2hidden2 = nn.Linear(1024, 8192)
         self.hidden2hidden3 = nn.Linear(8192, 24025)

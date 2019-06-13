@@ -219,6 +219,7 @@ class ERFH5_DataGenerator():
 
         data = [i[0] for i in batch]
         labels = [i[1] for i in batch]
+        print([x.shape for x in data])
         # FIXME does not work for batchsize > 1 if sizes of data are different
         data = torch.stack(data)
         labels = torch.stack(labels)
