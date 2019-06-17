@@ -54,8 +54,6 @@ class Master_Trainer():
         print("Learning rate:", self.learning_rate)
         print("Evaluation frequency:", self.eval_frequency)
         print("Model:", self.model)
-        print("Model savepath (may not be used):", self.savepath)
-        print("Evaluation function (optional):", self.eval_func)
         print("###########################################")
 
 
