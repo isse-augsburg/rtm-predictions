@@ -2,6 +2,14 @@ from os import walk
 
 
 def get_filelist_within_folder(root_directory):
+    """
+    Args: 
+        root_directory (string): Root directory from which all paths should be collected. 
+
+    Returns: 
+        List of all .erfh5 files in the root_directory 
+    """ 
+    
     dataset_filenames = []
     for dirs in root_directory:
 

@@ -7,14 +7,26 @@ import math
 
 
 class Master_Trainer():
+    """Class that runs train and evaluation loops of PyTorch models automatically.
+
+    Args: 
+        model: PyTorch model that should be trained.
+        generator: ERFH5_DataGenerator that provides the data.
+        loss_criterion: Loss criterion for training.
+        train_print_frequency: Frequency of printing the current loss, in iterations. 
+        eval_frequenxy: Frequency of running a evaluation frequency on held out validation set, in iterations. 
+        comment: Optional message that is printed to the command line, helps with understanding your experiments afterwards
+        learning_rate: Optimizer's learning rate 
+        classification_evaluator: Optional object for evaluating classification, see evaluation.py for more details 
+    """
     def __init__(self, model, generator: erfh5_pipeline.ERFH5_DataGenerator, loss_criterion=torch.nn.MSELoss(),
-                 train_print_frequency=10, eval_frequency=100, savepath="model.pth", eval_func=None, comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False):
+                 train_print_frequency=10, eval_frequency=100, comment="No custom comment added.", 
+                 learning_rate=0.00001, classification_evaluator=None):
         self.validationList = generator.get_validation_samples()
         self.model = model
         self.generator = generator
         self.train_print_frequency = train_print_frequency
         self.eval_frequency = eval_frequency
-        self.savepath = savepath
         self.loss_criterion = loss_criterion
         # self.loss_criterion = self.loss_criterion.cuda()
         self.learning_rate = learning_rate
@@ -22,10 +34,11 @@ class Master_Trainer():
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.comment = comment
-        self.eval_func = eval_func
-        self.calc_metrics = calc_metrics
+        self.classification_evaluator = classification_evaluator
 
     def start_training(self):
+        """ Prints information about the used train config and starts the training of the trainer's model
+        """
         self.__print_info()
         self.__print_comment()
         self.__train()
@@ -81,58 +94,49 @@ class Master_Trainer():
         with torch.no_grad():
             self.model.eval()
             loss = 0
-            tp, fp, tn, fn = 0, 0, 0, 0
-            confusion_matrix = np.zeros((2, 2), dtype=int)
             for i, sample in enumerate(self.validationList):
                 data = sample[0].to(self.device)
                 label = sample[1].to(self.device)
                 label = torch.unsqueeze(label, 0)
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
-                print(output,label)
+                #print(output,label)
                 l = self.loss_criterion(output, label).item()
                 loss = loss + l
-                if (self.eval_func is not None):
-                    self.eval_func(output.cpu(), label.cpu(), str(i))
                 
-                if self.calc_metrics: 
-                    prediction = np.around(output.cpu())
-                    confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] +=1
+                if self.classification_evaluator is not None: 
+                    self.classification_evaluator.commit(output.cpu(), label.cpu())
 
-                    if np.array_equal(prediction.cpu(), label.cpu()):
-                        if prediction[0][0] == 1: 
-                            tp += 1 
-                        else: tn += 1
-                    else: 
-                        if prediction[0][0] == 1: 
-                            fp += 1
-                        else: fn += 1
-
-                
                 # print("loss:", l)
                 # print(output.item(), label.item())
 
             loss = loss / len(self.validationList)
             print(">>> Mean Loss on Eval:", "{:8.4f}".format(loss))
-            if self.calc_metrics:
-                print(">>>True positives:", tp, ">False positives:", fp, ">True negatives:", tn, ">False negatives:", fn)
-                print(">>>Accuracy:", self.__calc_accuracy(tp, fp, tn, fn), ">Precision:", self.__calc_precision(tp, fp, tn, fn), ">Recall:", self.__calc_recall(tp, fp, tn, fn))
-                print(">>>Confusion matrix:", confusion_matrix)
+            
+            if self.classification_evaluator is not None:
+                self.classification_evaluator.print_metrics() 
+                self.classification_evaluator.reset()
+        
             self.model.train()
 
-    def __calc_accuracy(self, tp, fp, tn ,fn): 
-        return (tp + tn) / max((tp + tn + fp + fn), 0.00000001) 
+    
 
-    def __calc_precision(self, tp, fp, tn, fn): 
-        return (tp) / max((tp + fp), 0.00000001)
+    def save_model(self, savepath):
+        """Saves the model. 
 
-    def __calc_recall(self, tp, fp, tn, fn): 
-        return (tp) / max((tp + fn), 0.00000001)
-    def save_model(self):
-        torch.save(self.model.state_dict(), self.savepath)
+        Args: 
+            savepath (string): Path and filename to the model, eg 'model.pt' 
+        """
+        torch.save(self.model.state_dict(), savepath)
 
-    def load_model(self):
-        state_dict = torch.load(self.savepath, map_location='cpu')
+
+    def load_model(self, modelpath):
+        """Loads the parameters of a previously saved model. See the official PyTorch docs for more details.
+
+        ARgs: 
+            modelpath (string): Path to the stored model.
+        """
+        state_dict = torch.load(modelpath, map_location='cpu')
         new_state_dict = OrderedDict()
         for k, v in state_dict.items():
             name = k[7:]  # remove `module.`

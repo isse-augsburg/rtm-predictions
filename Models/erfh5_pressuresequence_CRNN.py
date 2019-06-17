@@ -45,8 +45,9 @@ class ERFH5_RNN(nn.Module):
         ]
 
     def forward(self, x):
-        """  for i in range(len(hidden)):
-            hidden[i] = hidden[i].permute(1, 0, 2).contiguous() """
+        #for i in range(len(hidden)):
+            #hidden[i] = hidden[i].permute(1, 0, 2).contiguous() """
+        
 
         x = x.permute(1, 0, 2)
         lstm_out, hidden = self.lstm(x)
