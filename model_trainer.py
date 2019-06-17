@@ -7,6 +7,7 @@ import torch
 import traceback
 from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
+from Models.custom_loss import focal_loss, FocalLoss
 
 
 batchsize = 1
@@ -131,8 +132,10 @@ if __name__ == "__main__":
     print(">>> INFO: Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
     print(">>> INFO: Generating Trainer")
-    train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
-                                  learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
+    #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
+                                  #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
+    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(), comment=get_comment(),
+                                  learning_rate=0.001, classification_evaluator=Binary_Classification_Evaluator())
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()
