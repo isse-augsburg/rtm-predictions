@@ -1,13 +1,15 @@
 import datetime
 import time
 import os
+from pathlib import Path
+
 from Simulation import analizer
 from Simulation.SimCreator import SimCreator
 
 if __name__== "__main__":
     if os.environ['Write_Simulation'] == '1':
         n_batches = 1
-        count = 100
+        count = 1
         overall_count = n_batches * count
         perturbation_factors = \
         {
@@ -36,7 +38,9 @@ if __name__== "__main__":
         print(initial_timestamp)
         t000 = time.time()
         for batch_num in range(n_batches):
-            sc = SimCreator(perturbation_factors, initial_timestamp=initial_timestamp, n_in_batch=count, batch_num=batch_num, run_on_cluster=False, overall_count=overall_count)
+            sc = SimCreator(perturbation_factors, initial_timestamp=initial_timestamp, n_in_batch=count,
+                            batch_num=batch_num, run_on_cluster=False, overall_count=overall_count,
+                            data_path=Path(r'Y:\data\RTM\Leoben'))
             t00 = time.time()
             print(f'Batch {batch_num + 1}/{n_batches}: creating {count * (batch_num + 1)}/{overall_count} simulations.')
             sc.run()

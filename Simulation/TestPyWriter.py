@@ -30,7 +30,7 @@ NULL=VistaDb.PythonCNULL()
 import VistaDb
 var1=VCmd.Activate( 1, r"VHostManagerPlugin.VhmInterface", r"VhmCommand" )
 var2=VCmd.Activate( 1, r"VSessionManager.Command", r"SessionCommand" )
-ret=VExpMngr.LoadFile( r"Y:\data\RTM\Lautern\sources\flawless_one_layer.vdb", 0 )
+ret=VExpMngr.LoadFile( r"Y:\data\RTM\Lautern\sources\origin.vdb", 0 )
 ret=VHostManager.ChangeContext( r"Visual-RTM" )
 var3=VCmd.Activate( 1, r"VRTMUtilities.VRTMInterface", r"SimulationParameters" )
 VCmd.SetStringValue( var3, r"MaterialDB", r"Model" )
@@ -108,7 +108,12 @@ VExpMngr.ExportFile( r"X:\s\t\stiebesi\code\tests\solver_input_folder\9\2000-01-
                     }
             }
         }
-        self.sc = SimCreator(perturbation_factors=perturbation_factors)
+        self.test_leoben = True
+        if self.test_leoben:
+            data_path = Path(r'Y:\data\RTM\Leoben')
+        else:
+            data_path = Path(r'Y:\data\RTM\Lautern')
+        self.sc = SimCreator(perturbation_factors=perturbation_factors, data_path=data_path)
         self.sc.initial_timestamp = '2000-01-01_00-00-00'
         self.sc.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\code\tests\slurm_writer')
         self.sc.solver_input_folder = Path(r'X:\s\t\stiebesi\code\tests\solver_input_folder')
@@ -119,6 +124,10 @@ VExpMngr.ExportFile( r"X:\s\t\stiebesi\code\tests\solver_input_folder\9\2000-01-
         self.sc.write_solver_input()
         with open(self.sc.solver_input_folder / 'vdb_writerpy2.py') as f:
             out_lines = f.readlines()
+            if self.test_leoben:
+                self.pywriter_reference = self.pywriter_reference.replace(
+                                                'ret=VExpMngr.LoadFile( r"Y:\data\RTM\Lautern\sources\origin.vdb", 0 )',
+                                                'ret=VExpMngr.LoadFile( r"Y:\data\RTM\Leoben\sources\origin.vdb", 0 )')
             reference_lines = self.pywriter_reference.splitlines(keepends=True)
             for a, b in zip(out_lines, reference_lines):
                 self.assertEqual(a, b)
@@ -126,6 +135,8 @@ VExpMngr.ExportFile( r"X:\s\t\stiebesi\code\tests\solver_input_folder\9\2000-01-
     def test_create_folder_structure_and_perturbate_kN(self):
         # print('create')
         desired_num_elements = 137992
+        if self.test_leoben:
+            desired_num_elements = 56232
         self.sc.create_folder_structure_and_perturbate_kN()
         lperms = self.sc.solver_input_folder.glob('**/*.lperm')
         dfs = [pandas.read_csv(x, sep='\t') for x in lperms]
