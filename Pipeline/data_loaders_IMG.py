@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw
 # from Pipeline.data_gather import get_filelist_within_folder
 
 # data_function must return [(data, label) ... (data, label)]
-from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper
+from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_lautern
 
 
 def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label_offset=3):
@@ -145,7 +145,7 @@ def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(input
 def get_local_properties_map(cache_dir, caching, f, imsize):
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
     _all_coords = coord_as_np_array[:, :-1]
-    scaled_coords = (_all_coords + 23.25) * 10
+    scaled_coords = scale_coords_lautern(_all_coords)
     # norm_cords = normalize_coords(_all_coords)
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
     triangle_coords = triangle_coords[:, :-1] - 1
@@ -158,6 +158,9 @@ def get_local_properties_map(cache_dir, caching, f, imsize):
     if im.size != imsize:
         im = im.resize(imsize)
     return im, scaled_coords, triangle_coords
+
+
+
 
 
 def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIBER_FRACTION'):

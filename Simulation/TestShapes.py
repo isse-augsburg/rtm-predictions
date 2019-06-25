@@ -3,6 +3,8 @@ from pathlib import Path
 
 import h5py
 import pandas
+import numpy as np
+from PIL import Image
 
 from Simulation.Shapes import Rectangle, Circle
 from Simulation.SimCreator import SimCreator, OutputFrequencyType
@@ -47,6 +49,7 @@ class TestShapes(unittest.TestCase):
         self.sc.initial_timestamp = '2000-01-01_00-00-00'
         self.sc.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\code\tests\slurm_writer')
         self.sc.solver_input_folder = Path(r'X:\s\t\stiebesi\code\tests\solver_input_folder')
+        self.reference_im_1_rect = Image.open(Path().absolute().parent / 'Test_Data' / 'reference_lautern_1_rect.png')
 
     def test_get_coordinates_of_rectangle_leoben(self):
         self.setup_leoben()
@@ -105,19 +108,32 @@ class TestShapes(unittest.TestCase):
 
     def test_apply_shapes_lautern(self):
         self.setup_lautern()
-        self.sc.Shaper.shapes = [Rectangle(lower_left=(3, 3), width=4, height=3),
-                                 Circle(center=(7, 7), radius=3)]
+        self.sc.Shaper.shapes = [
+                                    Rectangle(lower_left=(0, 0), width=10, height=3, fvc=0.9),
+                                ]
         df = pandas.read_csv(self.sc.original_lperm, sep=' ')
         _save_dict = {}
-        self.sc.Shaper.apply_shapes(df, _save_dict)
+        self.sc.Shaper.apply_shapes(df, _save_dict, randomize=False)
         im, _, _ = self.sc.Shaper.create_img_from_lperm(df)
-        im.show()
+        np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_rect))
+
+    def test_apply_shapes_leoben(self):
+        self.setup_leoben()
+        self.sc.Shaper.shapes = [
+                                    Rectangle(lower_left=(0, 0), width=10, height=3),
+                                    # Circle(center=(7, 7), radius=3)
+                                ]
+        df = pandas.read_csv(self.sc.original_lperm, sep=' ')
+        _save_dict = {}
+        self.sc.Shaper.apply_shapes(df, _save_dict, randomize=False)
+        im, _, _ = self.sc.Shaper.create_img_from_lperm(df)
 
     def tearDown(self):
         all_files = self.sc.solver_input_folder.glob('**/*')
         [x.unlink() for x in all_files if x.is_file()]
         all_files = self.sc.solver_input_folder.glob('**/*')
         [x.rmdir() for x in all_files if x.is_dir()]
+
 
 if __name__ == '__main__':
     unittest.main()

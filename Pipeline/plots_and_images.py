@@ -3,6 +3,12 @@ import colorsys
 import numpy as np
 from PIL import Image, ImageDraw
 
+
+def scale_coords_lautern(input_coords):
+    scaled_coords = (input_coords + 23.25) * 10
+    return scaled_coords
+
+
 def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, index):
     fillings = np.squeeze(fillings)
     filling = fillings[index]
@@ -41,19 +47,18 @@ def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords, color
     mode = 'RGB' if colored else 'L'
     im = Image.new(mode, size)
     draw = ImageDraw.Draw(im)
-    for i in range(len(triangle_coords)):
+    for i, triangle_coord in enumerate(triangle_coords):
         val = values_for_triangles[i]
         if not colored:
-            x = triangle_coords[i]
-            pol = scaled_coords[x-1]
+            pol = scaled_coords[triangle_coord-1]
             draw.polygon(pol, fill=(int(val * 255)))
         else:
             if val == 0.0:
-                draw.polygon(scaled_coords[triangle_coords[i]], fill=(255, 0, 0))
+                draw.polygon(scaled_coords[triangle_coord], fill=(255, 0, 0))
             elif val == 1.0:
-                draw.polygon(scaled_coords[triangle_coords[i]], fill=(0, 102, 255))
+                draw.polygon(scaled_coords[triangle_coord], fill=(0, 102, 255))
             else:
                 h = 3.6 * val
                 col = tuple(int(round(i * 255)) for i in colorsys.hsv_to_rgb(h, 1, 1))
-                draw.polygon(scaled_coords[triangle_coords[i]], fill=col)
+                draw.polygon(scaled_coords[triangle_coord], fill=col)
     return im

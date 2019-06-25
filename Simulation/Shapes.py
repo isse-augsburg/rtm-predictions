@@ -2,24 +2,36 @@ import h5py
 import numpy as np
 import random
 
-from Pipeline.plots_and_images import draw_polygon_map
+from Pipeline.plots_and_images import draw_polygon_map, scale_coords_lautern
 from Simulation.helper_functions import *
 import Simulation.resources as resources
 
-class Rectangle:
-    def __init__(self, lower_left=(0, 0), height=0, width=0):
+
+class Shape:
+    def __init__(self, fvc=None):
+        self.fvc = fvc
+
+
+class Rectangle(Shape):
+    def __init__(self, lower_left=(0, 0), height=0, width=0, fvc=None):
+        super().__init__(fvc)
         self.lower_left = lower_left
         self.height = height
         self.width = width
 
-class Circle:
-    def __init__(self, center=(0, 0), radius=0):
+
+class Circle(Shape):
+    def __init__(self, center=(0, 0), radius=0, fvc=None):
+        super().__init__(fvc)
         self.center = center
         self.radius = radius
+        self.width = radius * 2
+        self.height = radius * 2
 
 
-class Runner: 
-    def __init__(self, lower_left=(0, 0), height=0, width=0):
+class Runner(Shape):
+    def __init__(self, lower_left=(0, 0), height=0, width=0, fvc=None):
+        super().__init__(fvc)
         self.lower_left = lower_left
         self.height = height
         self.width = width
@@ -32,8 +44,8 @@ class Shaper:
         self.all_coords = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()][:, :-1]
         self.triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()][:, :-1]
         # TODO: fix for Leoben
-        self.x_bounds = (-20, 20)
-        self.y_bounds = (-20, 20)
+        self.x_bounds = (self.all_coords[:, 0].min(), self.all_coords[:, 0].max())
+        self.y_bounds = (self.all_coords[:, 1].min(), self.all_coords[:, 1].max())
         self.circ_radius_bounds = (1, 3)
         self.rect_width_bounds = self.rect_height_bounds = (1, 8)
         self.grid_step = grid_step
@@ -82,18 +94,16 @@ class Shaper:
                  }
         return _dict, fvc, set_of_indices_of_shape
 
-    def place_rectangle(self, x, y, height=None, width=None, fvc=None):
+    def place_rectangle(self, x=None, y=None, height=None, width=None, fvc=None):
+        if x is None and y is None:
+            x, y = self.get_random_coords_in_bounds()
         if fvc is None:
             fvc = random.random() * (self.rect_fvc_bounds[1] - self.rect_fvc_bounds[0]) + self.rect_fvc_bounds[0]
-        if height is None:
-            height = rounded_random(
-                random.random() * (self.rect_height_bounds[1] - self.rect_height_bounds[0]) + self.rect_height_bounds[0],
-                self.grid_step)
-        if width is None:
-            width = rounded_random(
-                random.random() * (self.rect_width_bounds[1] - self.rect_width_bounds[0]) + self.rect_width_bounds[0],
-                self.grid_step)
+        if height is None and width is None:
+            height, width = self.get_random_height_width()
         set_of_indices_of_shape = self.get_coordinates_of_rectangle((x, y), height, width)
+        # if len(set_of_indices_of_shape):
+
         _dict = {"Rectangle":
                      {"fvc": fvc,
                       "height": height,
@@ -101,6 +111,15 @@ class Shaper:
                       }
                  }
         return _dict, fvc, set_of_indices_of_shape
+
+    def get_random_height_width(self):
+        height = rounded_random(
+            random.random() * (self.rect_height_bounds[1] - self.rect_height_bounds[0]) + self.rect_height_bounds[0],
+            self.grid_step)
+        width = rounded_random(
+            random.random() * (self.rect_width_bounds[1] - self.rect_width_bounds[0]) + self.rect_width_bounds[0],
+            self.grid_step)
+        return height, width
 
     def get_coordinates_of_runner(self, s):
         current_runner = set()
@@ -165,21 +184,27 @@ class Shaper:
                 current_elements.append(index)
         return current_elements
 
-    def apply_shapes(self, df, save_to_h5_data):
+    def apply_shapes(self, df, save_to_h5_data, randomize=True):
         set_of_indices_of_shape = set()
         for i, shape in enumerate(self.shapes):
-            y = rounded_random(random.random() * (self.y_bounds[1] - self.y_bounds[0]) + self.y_bounds[0],
-                               self.grid_step)
-            x = rounded_random(random.random() * (self.x_bounds[1] - self.x_bounds[0]) + self.x_bounds[0],
-                               self.grid_step)
             if 'shapes' not in save_to_h5_data.keys():
                 save_to_h5_data['shapes'] = []
             if shape.__class__.__name__ == 'Rectangle':
-                _dict, fvc, set_of_indices_of_shape = self.place_rectangle(x, y)
+                if randomize:
+                    _dict, fvc, set_of_indices_of_shape = self.place_rectangle()
+                else:
+                    x, y = shape.lower_left
+                    _dict, fvc, set_of_indices_of_shape = self.place_rectangle(x, y, height=shape.height,
+                                                                               width=shape.width, fvc=shape.fvc)
 
             elif shape.__class__.__name__ == 'Circle':
-                _dict, fvc, set_of_indices_of_shape = self.place_circle(x, y)
-
+                if randomize:
+                    x, y = self.get_random_coords_in_bounds()
+                    _dict, fvc, set_of_indices_of_shape = self.place_circle(x, y)
+                else:
+                    x, y = shape.center
+                    radius = shape.radius
+                    _dict, fvc, set_of_indices_of_shape = self.place_circle(x, y, radius)
             elif shape.__class__.__name__ == 'Runner':
                 # FIXME not yet working with x and y as parameters
                 _dict, fvc, set_of_indices_of_shape = self.place_runner(_dict)
@@ -190,13 +215,21 @@ class Shaper:
             df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
         return save_to_h5_data
 
+    def get_random_coords_in_bounds(self):
+        x = rounded_random(random.random() * (self.x_bounds[1] - self.x_bounds[0]) + self.x_bounds[0],
+                           self.grid_step)
+        y = rounded_random(random.random() * (self.y_bounds[1] - self.y_bounds[0]) + self.y_bounds[0],
+                           self.grid_step)
+        return x, y
+
     def create_img_from_lperm(self, lperm_data):
-        _all_coords = self.all_coords
-        scaled_coords = (_all_coords * 10) - 1
-        im = self.create_local_properties_map_lperm(lperm_data, scaled_coords, self.triangle_coords, 'FIBER_FRACTION')
+        scaled_coords = scale_coords_lautern(self.all_coords)
+        im = self.create_local_properties_map_lperm(lperm_data, scaled_coords, self.triangle_coords, 'Fiber_Content')
         return im, scaled_coords, self.triangle_coords
 
-    def create_local_properties_map_lperm(self, data, scaled_coords, triangle_coords, _type='FIBER_FRACTION'):
-        values_for_triangles = data['Fiber_Content']
+    @staticmethod
+    def create_local_properties_map_lperm(data, scaled_coords, triangle_coords, _type='Fiber_Content'):
+        values_for_triangles = data[_type]
+
         im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords)
         return im
