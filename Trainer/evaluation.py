@@ -1,6 +1,6 @@
 import numpy as np 
 from PIL import Image
-
+import math 
 
 class Binary_Classification_Evaluator(): 
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
@@ -18,7 +18,11 @@ class Binary_Classification_Evaluator():
             label: single label for the prediction.
         """
 
+        if math.isnan(net_output[0][0]):
+            return 
+
         prediction = np.around(net_output)
+
         self.confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] += 1
 
         if np.array_equal(prediction, label):

@@ -7,11 +7,11 @@ import torch
 import traceback
 from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
-from Models.custom_loss import focal_loss, FocalLoss
+from Models.custom_loss import FocalLoss
 
 
 batchsize = 1
-max_Q_len = 512
+max_Q_len = 32
 epochs = 70
 #path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
 path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/', '/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p']
@@ -113,7 +113,7 @@ def create_dataGenerator_pressure_sequence():
 
 
 def get_comment():
-    comment = "Sensor values are now correctyl scaled"
+    comment = "Evaluating Focal Loss"
     return comment
 
 
@@ -134,8 +134,8 @@ if __name__ == "__main__":
     print(">>> INFO: Generating Trainer")
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
-    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(), comment=get_comment(),
-                                  learning_rate=0.001, classification_evaluator=Binary_Classification_Evaluator())
+    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(gamma=3), comment=get_comment(),
+                                  learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()
