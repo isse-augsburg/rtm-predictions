@@ -21,7 +21,7 @@ from Simulation import resources
 from enum import Enum
 
 from Simulation.h5writer import create_h5, write_dict_to_Hdf5
-from Simulation.Shapes import Rectangle, Circle, Runner, Shaper
+from Simulation.Shapes import Rectangle, Circle, Runner, Shaper, TargetSimulation
 
 
 class OutputFrequencyType(Enum):
@@ -111,7 +111,11 @@ class SimCreator:
         self.vdb_origin             = sources_path / 'origin.vdb'
         self.reference_erfh5        = sources_path / 'origin.erfh5'
 
-        self.Shaper = Shaper(self.reference_erfh5, self.perturbation_factors)
+        if 'Lautern' in str(sources_path):
+            target = TargetSimulation.Lautern
+        elif 'Leoben' in str(sources_path):
+            target = TargetSimulation.Leoben
+        self.Shaper = Shaper(self.reference_erfh5, self.perturbation_factors, target=target)
 
         self.num_big_hosts = 9
         self.num_small_hosts = 1

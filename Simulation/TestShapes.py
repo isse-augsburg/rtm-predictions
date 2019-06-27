@@ -42,6 +42,10 @@ class TestShapes(unittest.TestCase):
         self.sc.initial_timestamp = '2000-01-01_00-00-00'
         self.sc.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\code\tests\slurm_writer')
         self.sc.solver_input_folder = Path(r'X:\s\t\stiebesi\code\tests\solver_input_folder')
+        self.test_folder = Path(r'X:\s\t\stiebesi\code\tests\shaper')
+        # self.reference_im_1_rect = Image.open(self.test_folder / 'reference_leoben_1_rect.png')
+        # self.reference_im_1_circ = Image.open(self.test_folder / 'reference_leoben_1_circ.png')
+        # self.reference_lautern_1_of_rect_and_circ = Image.open(self.test_folder / 'reference_leoben_1_of_rect_and_circ.png')
 
     def setup_lautern(self):
         data_path = Path(r'Y:\data\RTM\Lautern')
@@ -49,7 +53,11 @@ class TestShapes(unittest.TestCase):
         self.sc.initial_timestamp = '2000-01-01_00-00-00'
         self.sc.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\code\tests\slurm_writer')
         self.sc.solver_input_folder = Path(r'X:\s\t\stiebesi\code\tests\solver_input_folder')
-        self.reference_im_1_rect = Image.open(Path().absolute().parent / 'Test_Data' / 'reference_lautern_1_rect.png')
+        self.test_folder = Path(r'X:\s\t\stiebesi\code\tests\shaper')
+        self.reference_im_1_rect = Image.open(self.test_folder / 'reference_lautern_1_rect.png')
+        self.reference_im_1_circ = Image.open(self.test_folder / 'reference_lautern_1_circ.png')
+        self.reference_lautern_1_of_rect_and_circ = Image.open(self.test_folder / 'reference_lautern_1_of_rect_and_circ.png')
+
 
     def test_get_coordinates_of_rectangle_leoben(self):
         self.setup_leoben()
@@ -79,7 +87,6 @@ class TestShapes(unittest.TestCase):
         rect = self.sc.Shaper.get_coordinates_of_rectangle(lower_left, height, width)
         self.assertGreater(len(rect), 0)
 
-
     def test_get_coordinates_of_circle_lautern(self):
         self.setup_lautern()
         centre = (1, 1)
@@ -106,27 +113,41 @@ class TestShapes(unittest.TestCase):
         circ = self.sc.Shaper.get_coordinates_of_circle(centre, radius)
         self.assertGreater(len(circ), 0)
 
-    def test_apply_shapes_lautern(self):
-        self.setup_lautern()
-        self.sc.Shaper.shapes = [
-                                    Rectangle(lower_left=(0, 0), width=10, height=3, fvc=0.9),
-                                ]
-        df = pandas.read_csv(self.sc.original_lperm, sep=' ')
-        _save_dict = {}
-        self.sc.Shaper.apply_shapes(df, _save_dict, randomize=False)
-        im, _, _ = self.sc.Shaper.create_img_from_lperm(df)
+    def test_apply_1_rectangle_lautern(self):
+        im = self.apply_shape_list([Rectangle(lower_left=(0, 0), width=10, height=3, fvc=0.9)],
+                                   is_lautern=True)
         np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_rect))
 
-    def test_apply_shapes_leoben(self):
-        self.setup_leoben()
-        self.sc.Shaper.shapes = [
-                                    Rectangle(lower_left=(0, 0), width=10, height=3),
-                                    # Circle(center=(7, 7), radius=3)
-                                ]
+    def test_apply_1_circle_lautern(self):
+        im = self.apply_shape_list([Circle(center=(0, 0), radius=10, fvc=0.9)],
+                                   is_lautern=True)
+        np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_circ))
+
+    def test_apply_1_of_rect_and_circ_lautern(self):
+        im = self.apply_shape_list([Rectangle(lower_left=(5, 5), width=10, height=3, fvc=0.9),
+                                    Circle(center=(0, 0), radius=5, fvc=0.9)],
+                                   is_lautern=True)
+        np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_lautern_1_of_rect_and_circ))
+
+    # TODO test why there are gaps at the sensors
+
+    def apply_shape_list(self, shape_list, is_lautern):
+        if is_lautern:
+            self.setup_lautern()
+        else:
+            self.setup_leoben()
+        self.sc.Shaper.shapes = shape_list
         df = pandas.read_csv(self.sc.original_lperm, sep=' ')
-        _save_dict = {}
-        self.sc.Shaper.apply_shapes(df, _save_dict, randomize=False)
+        self.sc.Shaper.apply_shapes(df, save_to_h5_data={}, randomize=False)
         im, _, _ = self.sc.Shaper.create_img_from_lperm(df)
+        return im
+
+    def test_apply_1_rectangle_leoben(self):
+        im = self.apply_shape_list([Rectangle(lower_left=(0, 0), width=10, height=3, fvc=0.9)],
+                                   is_lautern=False)
+        print('x')
+        # TODO why is there a black image coming out here?
+        # np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_rect))
 
     def tearDown(self):
         all_files = self.sc.solver_input_folder.glob('**/*')

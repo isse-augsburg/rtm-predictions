@@ -1,3 +1,5 @@
+from enum import Enum
+
 import h5py
 import numpy as np
 import random
@@ -36,14 +38,17 @@ class Runner(Shape):
         self.height = height
         self.width = width
 
+class TargetSimulation(Enum):
+    Lautern = 0
+    Leoben = 1
+    KMT = 2
 
 class Shaper:
-    def __init__(self, reference_erfh5, perturbation_factors, grid_step=0.125):
+    def __init__(self, reference_erfh5, perturbation_factors, grid_step=0.125, target=TargetSimulation.Lautern):
         self.perturbation_factors = perturbation_factors
         f = h5py.File(reference_erfh5, 'r')
         self.all_coords = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()][:, :-1]
         self.triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()][:, :-1]
-        # TODO: fix for Leoben
         self.x_bounds = (self.all_coords[:, 0].min(), self.all_coords[:, 0].max())
         self.y_bounds = (self.all_coords[:, 1].min(), self.all_coords[:, 1].max())
         self.circ_radius_bounds = (1, 3)
@@ -196,7 +201,6 @@ class Shaper:
                     x, y = shape.lower_left
                     _dict, fvc, set_of_indices_of_shape = self.place_rectangle(x, y, height=shape.height,
                                                                                width=shape.width, fvc=shape.fvc)
-
             elif shape.__class__.__name__ == 'Circle':
                 if randomize:
                     x, y = self.get_random_coords_in_bounds()
@@ -231,5 +235,5 @@ class Shaper:
     def create_local_properties_map_lperm(data, scaled_coords, triangle_coords, _type='Fiber_Content'):
         values_for_triangles = data[_type]
 
-        im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords)
+        im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords - triangle_coords.min(), size=(375, 300))
         return im
