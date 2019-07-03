@@ -21,7 +21,7 @@ from Simulation import resources
 from enum import Enum
 
 from Simulation.h5writer import create_h5, write_dict_to_Hdf5
-from Simulation.Shapes import Rectangle, Circle, Runner, Shaper
+from Simulation.Shapes import Rectangle, Circle, Runner, Shaper, TargetSimulation
 
 
 class OutputFrequencyType(Enum):
@@ -50,7 +50,7 @@ def create_unfs_from_parent_folder(parent_folder, folder_on_storage=r'Y:\data\RT
 
 class SimCreator:
     def __init__(self, perturbation_factors=None, initial_timestamp='', n_in_batch=10,
-                 batch_num=0, run_on_cluster=True, overall_count=10):
+                 batch_num=0, run_on_cluster=True, overall_count=10, data_path=Path(r'Y:\data\RTM\Lautern')):
         self.overall_count = overall_count
         self.batch_num = batch_num
         self.initial_timestamp = initial_timestamp
@@ -78,18 +78,20 @@ class SimCreator:
         self.logger.info(f'Using Visual Env {self.visual_version}.')
         if os.name == 'nt':
             self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\%s\Windows-x64\VEBatch.bat' % self.visual_version)
-            data_path = Path(r'Y:\data\RTM\Lautern')
-            str_sip = r'\data\RTM\Lautern\output\%s\%s_%dp'
+            str_sip = str(data_path / Path('output/%s/%s_%dp'))
             if self.run_on_cluster:
                 disk = r'Y:'
             elif socket.gethostname() == 'PC610-74-virtuos':
                 disk = r'D:'
             else:
                 disk = r'C:'
-            str_sip = disk + str_sip
+            str_sip.replace(data_path.drive, disk)
             self.slurm_scripts_folder = Path("")
             # self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
         else:
+            # FIXME no support for Leoben data
+            print('ERROR: Linux currently not working.')
+            exit()
             self.vebatch_exec = '/usr/local/esi/Visual-Environment/14.5/Linux_x86_64_2.27/VEBatch.sh'
             data_path = Path('/run/user/1000/gvfs/smb-share:server=swt-clusterstorage,share=share/data/RTM/Lautern')
             str_sip = r'/home/stieber/data/output/%s/%s_%dp'
@@ -103,6 +105,18 @@ class SimCreator:
             self.perturbation_factors = {}
         else:
             self.perturbation_factors = perturbation_factors
+
+        sources_path = data_path / 'sources'
+        self.original_lperm         = sources_path / 'origin.lperm'
+        self.vdb_origin             = sources_path / 'origin.vdb'
+        self.reference_erfh5        = sources_path / 'origin.erfh5'
+
+        if 'Lautern' in str(sources_path):
+            target = TargetSimulation.Lautern
+        elif 'Leoben' in str(sources_path):
+            target = TargetSimulation.Leoben
+        self.Shaper = Shaper(self.reference_erfh5, self.perturbation_factors, target=target)
+
         self.num_big_hosts = 9
         self.num_small_hosts = 1
 
@@ -111,12 +125,6 @@ class SimCreator:
         self.max_runtime_slurm = 15
         self.max_injection_time_pam_rtm = 800000
 
-        sources_path = data_path / 'sources'
-        self.original_lperm         = sources_path / 'k1_k2_equal_one_layer.lperm'
-        self.vdb_origin             = sources_path / 'flawless_one_layer.vdb'
-        self.reference_erfh5        = sources_path / 'flawless_RESULT.erfh5'
-
-        self.Shaper = Shaper(self.reference_erfh5, self.perturbation_factors)
 
         self.slurm_scripts = []
         self.dirs_with_stems = []

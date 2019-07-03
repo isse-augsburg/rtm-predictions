@@ -14,6 +14,8 @@ from PIL import Image, ImageDraw
 # from Pipeline.data_gather import get_filelist_within_folder
 
 # data_function must return [(data, label) ... (data, label)]
+from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_lautern
+
 
 def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label_offset=3):
     filelist = get_filelist_within_folder(folder)
@@ -105,16 +107,13 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=2, imsize
             return None
         fillings.append(filling_factor)
 
-    indices = []
-    for e in selected_states:
-        indices.append(all_states.index(e))
-    indices_and_their_names = zip(indices, selected_states)
+    indices = [int(x.split('state')[1]) for x in selected_states]
     label = np.asarray(im)
     with Pool(4) as p:
         try:
             images_and_indices = p.map(
                 partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize),
-                indices_and_their_names)
+                indices)
         except IndexError or OSError:
             print(f'ERROR at {filename}, len(fillings): {len(fillings)}')
             raise
@@ -133,9 +132,9 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=2, imsize
 
 def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(input_list, wanted_num):
     num = len(input_list)
+    dist = num / wanted_num
     if num == wanted_num:
         return input_list
-    dist = num / wanted_num
     input_list.reverse()
     x = input_list[::int(np.round(dist))]
     input_list.reverse()
@@ -146,7 +145,7 @@ def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(input
 def get_local_properties_map(cache_dir, caching, f, imsize):
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
     _all_coords = coord_as_np_array[:, :-1]
-    scaled_coords = (_all_coords + 23.25) * 10
+    scaled_coords = scale_coords_lautern(_all_coords)
     # norm_cords = normalize_coords(_all_coords)
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
     triangle_coords = triangle_coords[:, :-1] - 1
@@ -164,61 +163,6 @@ def get_local_properties_map(cache_dir, caching, f, imsize):
 def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIBER_FRACTION'):
     values_for_triangles = data[_type]['ZONE1_set1']['erfblock']['res'][()]
     im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords)
-    return im
-
-
-def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, index_and_name):
-    fillings = np.squeeze(fillings)
-    index, index_name = index_and_name
-    filling = fillings[index]
-    im_fn = cache_dir / f'{index_name}.png'
-    load_image = True
-    if cache_dir != '' and not im_fn.exists():
-        try:
-            a = filling[triangle_coords]
-            b = a.reshape(len(triangle_coords), 3)
-            means_of_neighbour_nodes = b.mean(axis=1)
-        except IndexError:
-            print('ERROR plot wrapper ... raising')
-            print(triangle_coords)
-            print(filling[triangle_coords])
-            raise
-
-        im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
-        # im = create_np_image((465,465), scaled_coords, filling)
-        # im_t = Image.fromarray(im,mode='L')
-        im.save(im_fn)
-        load_image = False
-    else:
-        try:
-            im = Image.open(im_fn)
-        except IndexError:
-            print('ERROR: Corrupt img data')
-            raise
-    if im.size != imsize:
-        im = im.resize(imsize)
-    dat = np.asarray(im)
-    im.close()
-    return dat, index, load_image
-
-
-def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords, colored=False, cache_dir=''):
-    mode = 'RGB' if colored else 'L'
-    im = Image.new(mode, (465, 465))
-    draw = ImageDraw.Draw(im)
-    for i in range(len(triangle_coords)):
-        val = values_for_triangles[i]
-        if not colored:
-            draw.polygon(scaled_coords[triangle_coords[i]], fill=(int(val * 255)))
-        else:
-            if val == 0.0:
-                draw.polygon(scaled_coords[triangle_coords[i]], fill=(255, 0, 0))
-            elif val == 1.0:
-                draw.polygon(scaled_coords[triangle_coords[i]], fill=(0, 102, 255))
-            else:
-                h = 3.6 * val
-                col = tuple(int(round(i * 255)) for i in colorsys.hsv_to_rgb(h, 1, 1))
-                draw.polygon(scaled_coords[triangle_coords[i]], fill=col)
     return im
 
 
@@ -253,7 +197,7 @@ def get_sensordata_and_flowfront(file):
             instances.append((sensordata, arr))
         except IndexError:
             continue
-    if (len(instances) == 0):
+    if len(instances) == 0:
         return None
     return instances
 
