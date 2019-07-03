@@ -83,7 +83,7 @@ def create_np_image(target_shape=(151, 151), norm_coords=None, data=None, ):
     return arr
 
 
-def get_images_of_flow_front_and_permeability_map(filename, step_size=40, imsize=(155, 155), caching=True):
+def get_images_of_flow_front_and_permeability_map(filename, wanted_num=2, imsize=(155, 155), caching=True):
     cache_dir = ''
     if caching:
         # cache_dir = Path(f'/cfs/home/s/c/schroeni/Images/Cache/{filename.parts[-2]}/img_cache')
@@ -93,7 +93,7 @@ def get_images_of_flow_front_and_permeability_map(filename, step_size=40, imsize
     im, scaled_coords, triangle_coords = get_local_properties_map(cache_dir, caching, f, imsize)
 
     all_states = list(f['post']['singlestate'].keys())
-    selected_states = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(all_states, wanted_num=2)
+    selected_states = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(all_states, wanted_num=wanted_num)
 
     fillings = []
     for i, state in enumerate(all_states):
@@ -105,13 +105,16 @@ def get_images_of_flow_front_and_permeability_map(filename, step_size=40, imsize
             return None
         fillings.append(filling_factor)
 
-    indices = [int(x.split('state')[1]) for x in selected_states]
+    indices = []
+    for e in selected_states:
+        indices.append(all_states.index(e))
+    indices_and_their_names = zip(indices, selected_states)
     label = np.asarray(im)
     with Pool(4) as p:
         try:
             images_and_indices = p.map(
                 partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize),
-                indices)
+                indices_and_their_names)
         except IndexError or OSError:
             print(f'ERROR at {filename}, len(fillings): {len(fillings)}')
             raise
@@ -130,9 +133,9 @@ def get_images_of_flow_front_and_permeability_map(filename, step_size=40, imsize
 
 def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(input_list, wanted_num):
     num = len(input_list)
-    dist = num / wanted_num
     if num == wanted_num:
         return input_list
+    dist = num / wanted_num
     input_list.reverse()
     x = input_list[::int(np.round(dist))]
     input_list.reverse()
@@ -164,10 +167,11 @@ def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIB
     return im
 
 
-def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, index):
+def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, index_and_name):
     fillings = np.squeeze(fillings)
+    index, index_name = index_and_name
     filling = fillings[index]
-    im_fn = cache_dir / f'{index}.png'
+    im_fn = cache_dir / f'{index_name}.png'
     load_image = True
     if cache_dir != '' and not im_fn.exists():
         try:

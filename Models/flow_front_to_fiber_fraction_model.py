@@ -31,11 +31,11 @@ class FlowfrontFeatures_RNN(nn.Module):
         self.hidden2hidden3.bias.data.fill_(0)
         self.hidden2hidden3.weight.data.uniform_(-initrange, initrange)
 
-    def init_hidden(self):
-        return [
-            Variable(torch.zeros(self.nlayers, self.batch_size, self.hidden_dim)),
-            Variable(torch.zeros(self.nlayers, self.batch_size, self.hidden_dim)),
-        ]
+    # def init_hidden(self):
+    #     return [
+    #         Variable(torch.zeros(self.nlayers, self.batch_size, self.hidden_dim)),
+    #         Variable(torch.zeros(self.nlayers, self.batch_size, self.hidden_dim)),
+    #     ]
 
     def forward(self, x):
         """  for i in range(len(hidden)):
