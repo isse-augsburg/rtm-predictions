@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import random
 
-from Pipeline.plots_and_images import draw_polygon_map, scale_coords_lautern
+from Pipeline.plots_and_images import draw_polygon_map, scale_coords_lautern, scale_coords_leoben
 from Simulation.helper_functions import *
 import Simulation.resources as resources
 
@@ -85,8 +85,9 @@ class Shaper:
                  }
         return _dict, fvc, set_of_indices_of_shape
 
-    def place_circle(self, x, y, radius=None):
-        fvc = random.random() * (self.circ_fvc_bounds[1] - self.circ_fvc_bounds[0]) + self.circ_fvc_bounds[0]
+    def place_circle(self, x, y, radius=None, fvc=None):
+        if fvc is None:
+            fvc = random.random() * (self.circ_fvc_bounds[1] - self.circ_fvc_bounds[0]) + self.circ_fvc_bounds[0]
         if radius is None:
             radius = rounded_random(
                 random.random() * (self.circ_radius_bounds[1] - self.circ_radius_bounds[0]) + self.circ_radius_bounds[0],
@@ -107,7 +108,6 @@ class Shaper:
         if height is None and width is None:
             height, width = self.get_random_height_width()
         set_of_indices_of_shape = self.get_coordinates_of_rectangle((x, y), height, width)
-        # if len(set_of_indices_of_shape):
 
         _dict = {"Rectangle":
                      {"fvc": fvc,
@@ -187,11 +187,19 @@ class Shaper:
         for index, t in enumerate(self.triangle_coords):
             if t[0] in indeces_nodes and t[1] in indeces_nodes and t[2] in indeces_nodes:
                 current_elements.append(index)
+            # if t[0] in indeces_nodes and t[1] in indeces_nodes:
+            #     current_elements.append(index)
+            # elif t[1] in indeces_nodes and t[2] in indeces_nodes:
+            #     current_elements.append(index)
+            # elif t[0] in indeces_nodes and t[2] in indeces_nodes:
+            #     current_elements.append(index)
         return current_elements
 
     def apply_shapes(self, df, save_to_h5_data, randomize=True):
         set_of_indices_of_shape = set()
         for i, shape in enumerate(self.shapes):
+            _dict = {}
+            fvc = 0
             if 'shapes' not in save_to_h5_data.keys():
                 save_to_h5_data['shapes'] = []
             if shape.__class__.__name__ == 'Rectangle':
@@ -208,7 +216,7 @@ class Shaper:
                 else:
                     x, y = shape.center
                     radius = shape.radius
-                    _dict, fvc, set_of_indices_of_shape = self.place_circle(x, y, radius)
+                    _dict, fvc, set_of_indices_of_shape = self.place_circle(x, y, radius, fvc=shape.fvc)
             elif shape.__class__.__name__ == 'Runner':
                 # FIXME not yet working with x and y as parameters
                 _dict, fvc, set_of_indices_of_shape = self.place_runner(_dict)
@@ -226,14 +234,16 @@ class Shaper:
                            self.grid_step)
         return x, y
 
-    def create_img_from_lperm(self, lperm_data):
-        scaled_coords = scale_coords_lautern(self.all_coords)
-        im = self.create_local_properties_map_lperm(lperm_data, scaled_coords, self.triangle_coords, 'Fiber_Content')
+    def create_img_from_lperm(self, lperm_data, size):
+        if size == (465, 465):
+            scaled_coords = scale_coords_lautern(self.all_coords)
+        else:
+            scaled_coords = scale_coords_leoben(self.all_coords)
+        im = self.create_local_properties_map_lperm(lperm_data, scaled_coords, self.triangle_coords, 'Fiber_Content', size)
         return im, scaled_coords, self.triangle_coords
 
     @staticmethod
-    def create_local_properties_map_lperm(data, scaled_coords, triangle_coords, _type='Fiber_Content'):
+    def create_local_properties_map_lperm(data, scaled_coords, triangle_coords, _type='Fiber_Content', size=(375, 300)):
         values_for_triangles = data[_type]
-
-        im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords - triangle_coords.min(), size=(375, 300))
+        im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords, size=size)
         return im

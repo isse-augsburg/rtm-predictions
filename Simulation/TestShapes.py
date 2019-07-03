@@ -36,28 +36,25 @@ class TestShapes(unittest.TestCase):
             }
         }
 
-    def setup_leoben(self):
-        data_path = Path(r'Y:\data\RTM\Leoben')
-        self.sc = SimCreator(perturbation_factors=self.perturbation_factors, data_path=data_path)
+    def setup_paths(self):
         self.sc.initial_timestamp = '2000-01-01_00-00-00'
         self.sc.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\code\tests\slurm_writer')
         self.sc.solver_input_folder = Path(r'X:\s\t\stiebesi\code\tests\solver_input_folder')
         self.test_folder = Path(r'X:\s\t\stiebesi\code\tests\shaper')
-        # self.reference_im_1_rect = Image.open(self.test_folder / 'reference_leoben_1_rect.png')
-        # self.reference_im_1_circ = Image.open(self.test_folder / 'reference_leoben_1_circ.png')
-        # self.reference_lautern_1_of_rect_and_circ = Image.open(self.test_folder / 'reference_leoben_1_of_rect_and_circ.png')
+
+    def setup_leoben(self):
+        self.sc = SimCreator(perturbation_factors=self.perturbation_factors, data_path=Path(r'Y:\data\RTM\Leoben'))
+        self.setup_paths()
+        self.reference_im_1_rect                    = Image.open(self.test_folder / 'reference_leoben_1_rect.png')
+        self.reference_im_1_circ                    = Image.open(self.test_folder / 'reference_leoben_1_circ.png')
+        self.reference_lautern_1_of_rect_and_circ   = Image.open(self.test_folder / 'reference_leoben_1_of_rect_and_circ.png')
 
     def setup_lautern(self):
-        data_path = Path(r'Y:\data\RTM\Lautern')
-        self.sc = SimCreator(perturbation_factors=self.perturbation_factors, data_path=data_path)
-        self.sc.initial_timestamp = '2000-01-01_00-00-00'
-        self.sc.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\code\tests\slurm_writer')
-        self.sc.solver_input_folder = Path(r'X:\s\t\stiebesi\code\tests\solver_input_folder')
-        self.test_folder = Path(r'X:\s\t\stiebesi\code\tests\shaper')
-        self.reference_im_1_rect = Image.open(self.test_folder / 'reference_lautern_1_rect.png')
-        self.reference_im_1_circ = Image.open(self.test_folder / 'reference_lautern_1_circ.png')
-        self.reference_lautern_1_of_rect_and_circ = Image.open(self.test_folder / 'reference_lautern_1_of_rect_and_circ.png')
-
+        self.sc = SimCreator(perturbation_factors=self.perturbation_factors, data_path=Path(r'Y:\data\RTM\Lautern'))
+        self.setup_paths()
+        self.reference_im_1_rect                    = Image.open(self.test_folder / 'reference_lautern_1_rect.png')
+        self.reference_im_1_circ                    = Image.open(self.test_folder / 'reference_lautern_1_circ.png')
+        self.reference_lautern_1_of_rect_and_circ   = Image.open(self.test_folder / 'reference_lautern_1_of_rect_and_circ.png')
 
     def test_get_coordinates_of_rectangle_leoben(self):
         self.setup_leoben()
@@ -134,20 +131,27 @@ class TestShapes(unittest.TestCase):
     def apply_shape_list(self, shape_list, is_lautern):
         if is_lautern:
             self.setup_lautern()
+            size = (465, 465)
         else:
             self.setup_leoben()
+            size = (375, 300)
+            self.sc.Shaper.triangle_coords = self.sc.Shaper.triangle_coords - self.sc.Shaper.triangle_coords.min()
         self.sc.Shaper.shapes = shape_list
         df = pandas.read_csv(self.sc.original_lperm, sep=' ')
         self.sc.Shaper.apply_shapes(df, save_to_h5_data={}, randomize=False)
-        im, _, _ = self.sc.Shaper.create_img_from_lperm(df)
+        im, _, _ = self.sc.Shaper.create_img_from_lperm(df, size)
         return im
 
+    # TODO test why the shapes are not correctly applied for certain sizes and positions
     def test_apply_1_rectangle_leoben(self):
         im = self.apply_shape_list([Rectangle(lower_left=(0, 0), width=10, height=3, fvc=0.9)],
                                    is_lautern=False)
-        print('x')
-        # TODO why is there a black image coming out here?
-        # np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_rect))
+        np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_rect))
+
+    def test_apply_1_circle_leoben(self):
+        im = self.apply_shape_list([Circle(center=(2, 2), radius=2, fvc=0.9)],
+                                   is_lautern=False)
+        np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_circ))
 
     def tearDown(self):
         all_files = self.sc.solver_input_folder.glob('**/*')
