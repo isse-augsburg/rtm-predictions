@@ -1,27 +1,20 @@
-import random
-import shutil
-import zipfile
-from functools import partial
-import os
-import h5py
-import shlex
-import pandas
-import numpy as np
-import subprocess
-from shutil import copy2
-from pathlib import Path
-from multiprocessing import Pool
-import time
-import socket
 import logging
-
-from Simulation.helper_functions import *
-from Pipeline.data_loaders_IMG import create_local_properties_map, draw_polygon_map
-from Simulation import resources
+import shlex
+import socket
+import subprocess
 from enum import Enum
+from functools import partial
+from multiprocessing import Pool
+from shutil import copy2
 
+import h5py
+import pandas
+
+from Pipeline.data_loaders_IMG import draw_polygon_map
+from Simulation import resources
+from Simulation.Shapes import Shaper, TargetSimulation
 from Simulation.h5writer import create_h5, write_dict_to_Hdf5
-from Simulation.Shapes import Rectangle, Circle, Runner, Shaper, TargetSimulation
+from Simulation.helper_functions import *
 
 
 class OutputFrequencyType(Enum):
@@ -50,7 +43,8 @@ def create_unfs_from_parent_folder(parent_folder, folder_on_storage=r'Y:\data\RT
 
 class SimCreator:
     def __init__(self, perturbation_factors=None, initial_timestamp='', n_in_batch=10,
-                 batch_num=0, run_on_cluster=True, overall_count=10, data_path=Path(r'Y:\data\RTM\Lautern')):
+                 batch_num=0, run_on_cluster=True, overall_count=10,
+                 data_path=Path(r'X:\s\t\stiebesi\data\RTM\Lautern')):
         self.overall_count = overall_count
         self.batch_num = batch_num
         self.initial_timestamp = initial_timestamp
@@ -74,7 +68,7 @@ class SimCreator:
         # + re.sub('[{\',:}]', '', str(perturbation_factors)).replace(' ', '_')
 
         self.n_in_batch = n_in_batch
-        self.visual_version = '14.5'
+        self.visual_version = '15.0'
         self.logger.info(f'Using Visual Env {self.visual_version}.')
         if os.name == 'nt':
             self.vebatch_exec = Path(r'C:\Program Files\ESI Group\Visual-Environment\%s\Windows-x64\VEBatch.bat' % self.visual_version)
@@ -82,10 +76,10 @@ class SimCreator:
             if self.run_on_cluster:
                 disk = r'Y:'
             elif socket.gethostname() == 'PC610-74-virtuos':
-                disk = r'D:'
+                disk = r'D:\Data'
             else:
-                disk = r'C:'
-            str_sip.replace(data_path.drive, disk)
+                disk = r'C:\Data'
+            str_sip = str_sip.replace(r'X:\s\t\stiebesi\data', disk)
             self.slurm_scripts_folder = Path("")
             # self.slurm_scripts_folder = Path(r'X:\s\t\stiebesi\slurm_scripts\%d_batch' % batch_num)
         else:
@@ -106,7 +100,7 @@ class SimCreator:
         else:
             self.perturbation_factors = perturbation_factors
 
-        sources_path = data_path / 'sources'
+        sources_path = Path('\\'.join(['Y:'] + list(data_path.parts)[4:])) / 'sources'
         self.original_lperm         = sources_path / 'origin.lperm'
         self.vdb_origin             = sources_path / 'origin.vdb'
         self.reference_erfh5        = sources_path / 'origin.erfh5'
@@ -117,14 +111,13 @@ class SimCreator:
             target = TargetSimulation.Leoben
         self.Shaper = Shaper(self.reference_erfh5, self.perturbation_factors, target=target)
 
-        self.num_big_hosts = 9
-        self.num_small_hosts = 1
+        self.num_big_hosts      = 9
+        self.num_small_hosts    = 1
 
-        self.output_frequency = 0.5
-        self.max_sim_step = 3000
-        self.max_runtime_slurm = 15
+        self.output_frequency   = 0.5
+        self.max_sim_step       = 3000
+        self.max_runtime_slurm  = 15
         self.max_injection_time_pam_rtm = 800000
-
 
         self.slurm_scripts = []
         self.dirs_with_stems = []
@@ -148,8 +141,7 @@ class SimCreator:
         t0 = time.time()
         self.solver_input_folder.mkdir(parents=True, exist_ok=True)
         df = pandas.read_csv(self.original_lperm, sep=' ')
-
-        with Pool() as p:
+        with Pool(1) as p:
             self.dirs_with_stems = p.map(partial(self.perturbate_wrapper, df),
                                          range(self.start_index, self.start_index + self.n_in_batch))
         self.logger.info(f'Adding noise and writing all files took {(time.time() - t0)/60:.1f} minutes.')

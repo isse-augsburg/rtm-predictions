@@ -45,16 +45,16 @@ class TestShapes(unittest.TestCase):
     def setup_leoben(self):
         self.sc = SimCreator(perturbation_factors=self.perturbation_factors, data_path=Path(r'Y:\data\RTM\Leoben'))
         self.setup_paths()
-        self.reference_im_1_rect                    = Image.open(self.test_folder / 'reference_leoben_1_rect.png')
-        self.reference_im_1_circ                    = Image.open(self.test_folder / 'reference_leoben_1_circ.png')
-        self.reference_lautern_1_of_rect_and_circ   = Image.open(self.test_folder / 'reference_leoben_1_of_rect_and_circ.png')
+        self.reference_im_1_rect            = Image.open(self.test_folder / 'reference_leoben_1_rect.png')
+        self.reference_im_1_circ            = Image.open(self.test_folder / 'reference_leoben_1_circ.png')
+        self.reference_1_of_rect_and_circ   = Image.open(self.test_folder / 'reference_leoben_1_of_rect_and_circ.png')
 
     def setup_lautern(self):
         self.sc = SimCreator(perturbation_factors=self.perturbation_factors, data_path=Path(r'Y:\data\RTM\Lautern'))
         self.setup_paths()
-        self.reference_im_1_rect                    = Image.open(self.test_folder / 'reference_lautern_1_rect.png')
-        self.reference_im_1_circ                    = Image.open(self.test_folder / 'reference_lautern_1_circ.png')
-        self.reference_lautern_1_of_rect_and_circ   = Image.open(self.test_folder / 'reference_lautern_1_of_rect_and_circ.png')
+        self.reference_im_1_rect            = Image.open(self.test_folder / 'reference_lautern_1_rect.png')
+        self.reference_im_1_circ            = Image.open(self.test_folder / 'reference_lautern_1_circ.png')
+        self.reference_1_of_rect_and_circ   = Image.open(self.test_folder / 'reference_lautern_1_of_rect_and_circ.png')
 
     def test_get_coordinates_of_rectangle_leoben(self):
         self.setup_leoben()
@@ -124,10 +124,10 @@ class TestShapes(unittest.TestCase):
         im = self.apply_shape_list([Rectangle(lower_left=(5, 5), width=10, height=3, fvc=0.9),
                                     Circle(center=(0, 0), radius=5, fvc=0.9)],
                                    is_lautern=True)
-        np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_lautern_1_of_rect_and_circ))
+        np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_1_of_rect_and_circ))
 
     # TODO test why there are gaps at the sensors
-
+    # TODO add robustness at corners: fix for now: do not allow overlap
     def apply_shape_list(self, shape_list, is_lautern):
         if is_lautern:
             self.setup_lautern()
@@ -135,23 +135,28 @@ class TestShapes(unittest.TestCase):
         else:
             self.setup_leoben()
             size = (375, 300)
-            self.sc.Shaper.triangle_coords = self.sc.Shaper.triangle_coords - self.sc.Shaper.triangle_coords.min()
+        self.sc.Shaper.triangle_coords = self.sc.Shaper.triangle_coords - self.sc.Shaper.triangle_coords.min()
         self.sc.Shaper.shapes = shape_list
         df = pandas.read_csv(self.sc.original_lperm, sep=' ')
         self.sc.Shaper.apply_shapes(df, save_to_h5_data={}, randomize=False)
         im, _, _ = self.sc.Shaper.create_img_from_lperm(df, size)
         return im
 
-    # TODO test why the shapes are not correctly applied for certain sizes and positions
     def test_apply_1_rectangle_leoben(self):
-        im = self.apply_shape_list([Rectangle(lower_left=(0, 0), width=10, height=3, fvc=0.9)],
+        im = self.apply_shape_list([Rectangle(lower_left=(5, 5), width=10, height=3, fvc=0.9)],
                                    is_lautern=False)
         np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_rect))
 
     def test_apply_1_circle_leoben(self):
-        im = self.apply_shape_list([Circle(center=(2, 2), radius=2, fvc=0.9)],
+        im = self.apply_shape_list([Circle(center=(3, 3), radius=2, fvc=0.9)],
                                    is_lautern=False)
         np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_circ))
+
+    def test_apply_1_of_rect_and_circ_leoben(self):
+        im = self.apply_shape_list([Rectangle(lower_left=(1, 1), width=10, height=3, fvc=0.9),
+                                    Circle(center=(5, 5), radius=2, fvc=0.9)],
+                                   is_lautern=False)
+        np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_1_of_rect_and_circ))
 
     def tearDown(self):
         all_files = self.sc.solver_input_folder.glob('**/*')

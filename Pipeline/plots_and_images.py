@@ -55,7 +55,7 @@ def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords, color
     for i, triangle_coord in enumerate(triangle_coords):
         val = values_for_triangles[i]
         if not colored:
-            pol = scaled_coords[triangle_coord-1]
+            pol = scaled_coords[triangle_coords[i - 1]]
             draw.polygon(pol, fill=(int(val * 255)))
         else:
             if val == 0.0:
