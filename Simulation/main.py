@@ -1,10 +1,12 @@
 import datetime
 import time
 import os
+from pathlib import Path
+
 from Simulation import analizer
 from Simulation.SimCreator import SimCreator
 
-if __name__== "__main__":
+if __name__ == "__main__":
     if os.environ['Write_Simulation'] == '1':
         n_batches = 1
         count = 1
@@ -18,12 +20,17 @@ if __name__== "__main__":
                     {
                         "Num": 1,
                         "Fiber_Content":
-                            [-.3, .3]
+                            [.7, .8]
                     },
                 "Circles":
                     {
                         "Num": 1,
-                        "Fiber_Content": [-.3, 0]
+                        "Fiber_Content": [.7, .8]
+                    },
+                "Runners":
+                    {
+                        "Num": 0,
+                        "Fiber_Content": [-.7, -.8]
                     }
             }
         }
@@ -31,7 +38,9 @@ if __name__== "__main__":
         print(initial_timestamp)
         t000 = time.time()
         for batch_num in range(n_batches):
-            sc = SimCreator(perturbation_factors, initial_timestamp=initial_timestamp, count=count, batch_num=batch_num, run_on_cluster=False, overall_count=overall_count)
+            sc = SimCreator(perturbation_factors, initial_timestamp=initial_timestamp, n_in_batch=count,
+                            batch_num=batch_num, run_on_cluster=False, overall_count=overall_count,
+                            data_path=Path(r'X:\s\t\stiebesi\data\RTM\Lautern'))
             t00 = time.time()
             print(f'Batch {batch_num + 1}/{n_batches}: creating {count * (batch_num + 1)}/{overall_count} simulations.')
             sc.run()
@@ -41,6 +50,6 @@ if __name__== "__main__":
 
     # Run an analysis over the new simulations
     elif os.environ['Analysis'] == '1':
-        path = r'Y:\data\RTM\Lautern\output\with_shapes'
+        path = r'Y:\data\RTM\Lautern\output\with_shapes\2019-06-07_13-48-28_3500p'
         print_options = ['all', 'fails_only', 'success_only']
-        analizer.analize_subdirs(path, print_options='all')
+        analizer.analize_subdirs(path, print_options='none', suffix='erfh5')

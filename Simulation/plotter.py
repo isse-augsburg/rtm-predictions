@@ -2,12 +2,14 @@ import os
 from functools import partial
 
 from multiprocessing.pool import Pool
+from pathlib import Path
 
 import h5py
 import time
-import matplotlib.pyplot as plt
-from matplotlib import cm
-
+# import matplotlib.pyplot as plt
+from PIL import Image
+# from matplotlib import cm
+import numpy as np
 
 def plot_filling_from_erfh5(filename):
     f = h5py.File(filename, 'r')
@@ -45,3 +47,18 @@ def plot_wrapper_simple(coords):
     plt.savefig(r'C:\Users\stiebesi\code\datamuddler\plots\lautern\test.png')
     print('Done plotting')
     return True
+
+
+def plot_image_and_label(label_path, img_path, i):
+    print(i)
+    label = Image.open(label_path)
+    im = Image.open(img_path).convert('RGBA')
+    label = Image.fromarray((np.asarray(label) / 3) * 255).convert('RGBA')
+    Path('1on1').mkdir(exist_ok=True, parents=True)
+    Image.blend(im, label, .6).save('1on1/im%05d.png' % i)
+
+
+if __name__ == "__main__":
+    for i in range(100, 812):
+        plot_image_and_label(r'X:\s\t\stiebesi\data\RTM\Leoben\03_MessdatenOptPermeameter\03_MessdatenOptPermeameter\V01_20150313_085049\im%05d_label.png' % i,
+            r'X:\s\t\stiebesi\data\RTM\Leoben\03_MessdatenOptPermeameter\03_MessdatenOptPermeameter\V01_20150313_085049\im%05d.png' % i, i)
