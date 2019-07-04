@@ -4,8 +4,11 @@ from pathlib import Path
 
 from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader_sensor as dls, data_loaders_IMG as dli, \
     data_gather as dg
+
 from Trainer.Evaluation import plot_predictions_and_label
 from Trainer.Generic_Trainer import Master_Trainer
+from Trainer.evaluation import Binary_Classification_Evaluator
+
 import torch
 import traceback
 from torch import nn
@@ -28,6 +31,17 @@ else:
 path = data_root / '2019-06-05_15-30-52_1050p'
 # path = data_root / '2019-05-17_16-45-57_3000p'
 paths = [path]
+# =======
+# from Models.custom_loss import focal_loss, FocalLoss
+
+
+# batchsize = 1
+# max_Q_len = 512
+# epochs = 70
+# #path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
+# path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/', '/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p']
+# #path = ['/cfs/share/data/RTM/Lautern/output/with_shapes']
+# >>>>>>> model_trainer.py
 
 
 def create_dataGenerator_pressure_flowfront():
@@ -169,5 +183,5 @@ if __name__ == "__main__":
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()
-    train_wrapper.save_model()
+    train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
     print("Model saved.")

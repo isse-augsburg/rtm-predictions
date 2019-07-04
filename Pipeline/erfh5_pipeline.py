@@ -7,7 +7,14 @@ import torch
 import sys
 
 class Thread_Safe_List():
+    """Implements a thread safe list that is much faster than built-in python lists. 
+
+    Args:
+            max_length (int): Max length the list can have. Should be specified if the memory consumption is a problem.
+    """
+
     def __init__(self, max_length=-1):
+        
         self.list = []
         self.lock = threading.Lock()
         self.max_length = max_length
@@ -15,6 +22,8 @@ class Thread_Safe_List():
 
     # if called, the thread using this queue will commit suicide
     def kill(self):
+        """Sets a flag that raises a StopIteration when get is called. Prevents threads from waiting infitinely long for enough elements. 
+        """
         self.finished = True
 
     def __len__(self):
@@ -24,6 +33,8 @@ class Thread_Safe_List():
         return length
 
     def randomise(self):
+        """Shuffles the list every 10 seconds. Used for shuffling sequences that were extracted from the same file.
+        """
         while not self.finished:
             self.lock.acquire()
             random.shuffle(self.list)
@@ -32,7 +43,11 @@ class Thread_Safe_List():
             time.sleep(10)
 
     def put(self, element):
-
+        """Appends a single element to the list. 
+        
+        Args:
+            element: Element that should be added.
+        """
         while len(self.list) >= self.max_length and self.max_length != -1:
             time.sleep(0.1)
 
@@ -42,7 +57,20 @@ class Thread_Safe_List():
         self.lock.release()
 
     def put_batch(self, batch):
+        """Appends multiple elements elementwise to the list (uses extend instead of append). 
 
+        Args:
+            batch (array-like): List of elements that should be added to the list. 
+
+        Example:
+            >>> list = [1, 2, 3, 4]
+            >>> list.put_batch([5, 6]) 
+            >>> print(list) 
+            [1, 2, 3, 4, 5, 6]
+            >>> list.put([7, 8])
+            >>> print(list) 
+            [1, 2, 3, 4, 5, 6, [7, 8]]
+        """
         while len(self.list) >= self.max_length and self.max_length != -1:
             time.sleep(0.1)
 
@@ -51,6 +79,15 @@ class Thread_Safe_List():
         self.lock.release()
 
     def get(self, number_of_elements):
+        """
+        Args:
+            number_of_elements (int): number of elements that should be returned
+        
+        Returns:
+            List: list consisting of the first number_of_elements elements of the thread safe list.
+
+        
+        """
 
         while len(self) < number_of_elements:
             if (self.finished):
@@ -64,11 +101,26 @@ class Thread_Safe_List():
         return items
 
 def clear_last_line(): 
-    sys.stdout.write("\033[F") #hack for deleting the last printed console line
+    """Hack for deleting the last printed console line
+    """
+    sys.stdout.write("\033[F") 
 
 
 class ERFH5_DataGenerator():
-    def __init__(self, data_paths, data_processing_function=None, data_gather_function=None, batch_size=64,
+    """ Iterable object that generates batches of a specified size. 
+
+    Args: 
+        data_path (string): path to the root directory of the data
+        data_processing_function (function): function that transforms a file path to extracted data; MUST return the following format: [(data_1, label_1), ... , (data_n, label_n)]
+        data_gather_function (function): function that returns a list of paths to all files that should be used for training 
+        batch_size (int): size of the generated batches 
+        epochs (int): number of epochs 
+        max_queue_length (int): restricts the number of pre-loaded batches. Batch_size * 4 is usually a good value
+        num_validation_samples (int): number of instances that are used as validation samples. 
+        num_workers (int): number of threads that transform file paths to data. 
+    """
+
+    def __init__(self, data_path=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,
                  epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=4):
         self.data_paths = [str(x) for x in data_paths]
         self.batch_size = batch_size
@@ -133,6 +185,11 @@ class ERFH5_DataGenerator():
             self.path_queue.put_batch(new_paths)
 
     def get_current_queue_length(self):
+        """
+        Returns: 
+            Int: current number of pre-loaded batches
+        """
+
         return self.batch_queue.__len__()
 
     def __print_info(self):
@@ -147,6 +204,32 @@ class ERFH5_DataGenerator():
         print("Number of total samples:", self.__len__())
         print("Number of validation samples:", self.num_validation_samples)
         print("###########################################")
+
+
+
+    def __fill_validation_list(self):
+        if len(self.paths) == 0:
+            raise Exception("No file paths found")
+
+        while len(self.validation_list) < self.num_validation_samples:
+
+            # If IndexError here: files are all too short
+            sample = self.paths[0]
+            self.paths = self.paths[1:]
+            instance = self.data_function(sample)
+            
+            # data_function must return [(data, label) ... (data, label)]
+            if instance is None:
+                continue
+            else:
+                assert isinstance(instance, list), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
+                for i in instance:
+                    assert isinstance(i, tuple) and len(i) == 2,"The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
+        
+                for i in instance:
+                    data, label = torch.FloatTensor(
+                        i[0]), torch.FloatTensor(i[1])
+                    self.validation_list.append((data, label))
 
     def __fill_batch_queue(self):
         while len(self.path_queue) > 0:
@@ -167,12 +250,16 @@ class ERFH5_DataGenerator():
             else:
                 # data_function must return [(data, label) ... (data, label)]
                 instance = self.data_function(file)
-                # print(file)
+                
 
                 if instance is None:
                     self.data_dict[file] = None
                     continue
                 else:
+                    assert isinstance(instance, list), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
+                    for i in instance:
+                        assert isinstance(i, tuple) and len(i) == 2,"The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
+        
                     tensor_instances = list()
 
                     for i in instance:
@@ -229,13 +316,17 @@ class ERFH5_DataGenerator():
         return self.epochs * len(self.paths)
 
     def get_validation_samples(self):
+        """
+        Returns: 
+            List: list containing self.num_validation_samples instances for validation. 
+        """
         return self.validation_list
 
 
 if __name__ == "__main__":
 
-    """ generator = ERFH5_DataGenerator(data_path= ["/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images"],
-                                    batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
+    #generator = ERFH5_DataGenerator(data_path= ["/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images"],
+                                    #batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
     generator = ERFH5_DataGenerator(data_paths=[

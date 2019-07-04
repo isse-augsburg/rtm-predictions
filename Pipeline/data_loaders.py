@@ -4,8 +4,11 @@ import numpy as np
 
 # data_function must return [(data, label) ... (data, label)]
 
-# returns a sequence of simulation steps as data and the filling percentage of the last step as label
-def get_index_sequence(filename):
+def get_index_sequence(filename):#
+    """ 
+    Returns: 
+        ([data, label)]: a sequence of simulation steps as data and the filling percentage of the last step as label
+    """
     indices = [10, 20, 30, 40, 50]
 
     f = h5py.File(filename, 'r')
@@ -40,6 +43,10 @@ def get_index_sequence(filename):
 
 
 def get_all_sequences_for_file(filename):
+    """
+    Returns: 
+        [(data, label)]:	All Sequences of a specified length that can be extracted from a file, filling percentage at that timestep.
+    """
     all_sequences = list()
     t_begin = 0
     t_end = 10
@@ -128,6 +135,11 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
 
 
 def get_single_states_and_fillings(filename):
+    """
+    Returns: 
+        [(data, label)]: Returns single simulation states as data and label for an autoencoder.
+    """
+
     instances = []
     f = h5py.File(filename, 'r')
     all_states = f['post']['singlestate']
@@ -152,14 +164,6 @@ def get_single_states_and_fillings(filename):
     return single_states
 
 
-# def save_numpy_as_image(inputs, label, name, path="/cfs/home/s/c/schroeni/Data/Eval/", ):
-#     inputs = np.squeeze(inputs)
-#     label = np.squeeze(label)
-#     inp = Image.fromarray(np.uint8((inputs) * 255))
-#     lab = Image.fromarray(np.uint8((label) * 255))
-#     inp.save(path + "inp_" + str(name) + ".bmp")
-#     lab.save(path + "lab_" + str(name) + ".bmp")
-
 
 if __name__ == "__main__":
     # files = get_filelist_within_folder([
@@ -178,4 +182,4 @@ if __name__ == "__main__":
         else:
             print(np.shape(instances[0][0]))
 
- """
+    """
