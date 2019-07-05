@@ -91,3 +91,8 @@ def print_result_line(path, success, filled, last_state_int):
         print(f'{path}\t{success}\t{sfilled}\t{last_state_int} steps\t{i} imgs')
     else:
         print(f'{path}\t{success}\t{sfilled}\t{last_state_int} steps')
+
+if __name__ == "__main__":
+    path = r'Y:\data\RTM\Lautern\output\with_shapes\2019-06-07_13-48-28_3500p'
+    print_options = ['all', 'fails_only', 'success_only']
+    analize_subdirs(path, print_options='none', suffix='erfh5')

@@ -115,6 +115,12 @@ class TestShapes(unittest.TestCase):
                                    is_lautern=True)
         np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_rect))
 
+    def test_apply_1_rectangle_lautern_random(self):
+        im = self.apply_shape_list([Rectangle(lower_left=(0, 0), width=10, height=3, fvc=0.9)],
+                                   is_lautern=True, random=True)
+        # Testing if something of a shape was applied
+        self.assertGreater(len(np.where(np.asarray(im).flatten() > np.median(np.asarray(im)))[0]), 10)
+
     def test_apply_1_circle_lautern(self):
         im = self.apply_shape_list([Circle(center=(0, 0), radius=10, fvc=0.9)],
                                    is_lautern=True)
@@ -128,7 +134,7 @@ class TestShapes(unittest.TestCase):
 
     # TODO test why there are gaps at the sensors
     # TODO add robustness at corners: fix for now: do not allow overlap
-    def apply_shape_list(self, shape_list, is_lautern):
+    def apply_shape_list(self, shape_list, is_lautern, random=False):
         if is_lautern:
             self.setup_lautern()
             size = (465, 465)
@@ -138,7 +144,7 @@ class TestShapes(unittest.TestCase):
         self.sc.Shaper.triangle_coords = self.sc.Shaper.triangle_coords - self.sc.Shaper.triangle_coords.min()
         self.sc.Shaper.shapes = shape_list
         df = pandas.read_csv(self.sc.original_lperm, sep=' ')
-        self.sc.Shaper.apply_shapes(df, save_to_h5_data={}, randomize=False)
+        self.sc.Shaper.apply_shapes(df, save_to_h5_data={}, randomize=random)
         im, _, _ = self.sc.Shaper.create_img_from_lperm(df, size)
         return im
 
@@ -146,6 +152,13 @@ class TestShapes(unittest.TestCase):
         im = self.apply_shape_list([Rectangle(lower_left=(5, 5), width=10, height=3, fvc=0.9)],
                                    is_lautern=False)
         np.testing.assert_array_equal(np.asarray(im), np.asarray(self.reference_im_1_rect))
+
+    def test_apply_1_rectangle_leoben_random(self):
+        im = self.apply_shape_list([Rectangle(lower_left=(0, 0), width=10, height=3, fvc=0.9)],
+                                   is_lautern=False, random=True)
+        # Testing if something of a shape was applied
+        self.assertGreater(len(np.where(np.asarray(im).flatten() > np.median(np.asarray(im)))[0]), 10)
+
 
     def test_apply_1_circle_leoben(self):
         im = self.apply_shape_list([Circle(center=(3, 3), radius=2, fvc=0.9)],
