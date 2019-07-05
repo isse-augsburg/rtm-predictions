@@ -120,7 +120,7 @@ VExpMngr.ExportFile( r"X:\s\t\stiebesi\code\tests\solver_input_folder\9\2000-01-
 
     def test_write_solver_input(self):
         # print('write')
-        self.sc.create_folder_structure_and_perturbate_kN()
+        self.sc.create_folder_structure_and_perturbate_elements()
         self.sc.write_solver_input()
         with open(self.sc.solver_input_folder / 'vdb_writerpy2.py') as f:
             out_lines = f.readlines()
@@ -137,7 +137,7 @@ VExpMngr.ExportFile( r"X:\s\t\stiebesi\code\tests\solver_input_folder\9\2000-01-
         desired_num_elements = 137992
         if self.test_leoben:
             desired_num_elements = 56232
-        self.sc.create_folder_structure_and_perturbate_kN()
+        self.sc.create_folder_structure_and_perturbate_elements()
         lperms = self.sc.solver_input_folder.glob('**/*.lperm')
         dfs = [pandas.read_csv(x, sep='\t') for x in lperms]
         [self.assertEqual(len(x), desired_num_elements) for x in dfs]
@@ -152,6 +152,7 @@ VExpMngr.ExportFile( r"X:\s\t\stiebesi\code\tests\solver_input_folder\9\2000-01-
         [x.unlink() for x in all_files if x.is_file()]
         all_files = self.sc.solver_input_folder.glob('**/*')
         [x.rmdir() for x in all_files if x.is_dir()]
+
 
 if __name__ == '__main__':
     unittest.main()

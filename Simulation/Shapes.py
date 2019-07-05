@@ -51,19 +51,21 @@ class Shaper:
         f = h5py.File(reference_erfh5, 'r')
         self.all_point_coords = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()][:, :-1]
         self.triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()][:, :-1]
+        # Normalize
+        self.triangle_coords = self.triangle_coords - self.triangle_coords.min()
         # TODO add rules that shapes to not overlap border
         offset = 2
         self.x_bounds = (self.all_point_coords[:, 0].min() + offset, self.all_point_coords[:, 0].max() - offset)
         self.y_bounds = (self.all_point_coords[:, 1].min() + offset, self.all_point_coords[:, 1].max() - offset)
         self.circ_radius_bounds = (1, 3)
-        self.rect_width_bounds = self.rect_height_bounds = (1, 8)
+        self.rect_width_bounds = self.rect_height_bounds = (3, 10)
         self.grid_step = grid_step
         # self.grid_step = 0.002377933
         self.shapes = []
         if len(self.perturbation_factors.keys()) > 0:
-            [self.shapes.append(Rectangle) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
-            [self.shapes.append(Circle) for x in range(self.perturbation_factors['Shapes']['Circles']['Num'])]
-            [self.shapes.append(Runner) for x in range(self.perturbation_factors['Shapes']['Runners']['Num'])]
+            [self.shapes.append(Rectangle()) for x in range(self.perturbation_factors['Shapes']['Rectangles']['Num'])]
+            [self.shapes.append(Circle()) for x in range(self.perturbation_factors['Shapes']['Circles']['Num'])]
+            [self.shapes.append(Runner()) for x in range(self.perturbation_factors['Shapes']['Runners']['Num'])]
             self.rect_fvc_bounds = self.perturbation_factors['Shapes']['Rectangles']['Fiber_Content']
             self.circ_fvc_bounds = self.perturbation_factors['Shapes']['Circles']['Fiber_Content']
             self.runner_fvc_bounds = self.perturbation_factors['Shapes']['Runners']['Fiber_Content']
@@ -229,7 +231,6 @@ class Shaper:
                 _dict, fvc, set_of_indices_of_shape = self.place_runner(_dict)
 
             save_to_h5_data['shapes'].append(_dict)
-
             indices_of_elements = self.get_elements_in_shape(set_of_indices_of_shape)
             df.update(df.iloc[indices_of_elements]['Fiber_Content'] * (1 + fvc))
         return save_to_h5_data

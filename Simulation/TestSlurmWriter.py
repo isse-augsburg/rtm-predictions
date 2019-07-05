@@ -16,7 +16,7 @@ class TestSlurmWriter(unittest.TestCase):
 #SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%a.out
 #SBATCH --array=2-19%9
 
-srun -t 15 singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np 32 /cfs/share/data/RTM/Lautern/output/with_shapes/2000-01-01_00-00-00_20p/${SLURM_ARRAY_TASK_ID}/2000-01-01_00-00-00_${SLURM_ARRAY_TASK_ID}g.unf
+srun -t 15 singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np 32 /cfs/home/s/t/stiebesi/data/RTM/Lautern/output/with_shapes/2000-01-01_00-00-00_20p/${SLURM_ARRAY_TASK_ID}/2000-01-01_00-00-00_${SLURM_ARRAY_TASK_ID}g.unf
 '''
 
     small_cpu_reference = '''#!/bin/sh
@@ -28,7 +28,7 @@ srun -t 15 singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_201
 #SBATCH --output=/cfs/home/s/t/stiebesi/logs_slurm/slurm-%A-%a.out
 #SBATCH --array=0-1%1
 
-srun -t 15 singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np 8 /cfs/share/data/RTM/Lautern/output/with_shapes/2000-01-01_00-00-00_20p/${SLURM_ARRAY_TASK_ID}/2000-01-01_00-00-00_${SLURM_ARRAY_TASK_ID}g.unf
+srun -t 15 singularity run -B /cfs:/cfs /cfs/share/singularity_images/pamrtm_2019_0.simg -np 8 /cfs/home/s/t/stiebesi/data/RTM/Lautern/output/with_shapes/2000-01-01_00-00-00_20p/${SLURM_ARRAY_TASK_ID}/2000-01-01_00-00-00_${SLURM_ARRAY_TASK_ID}g.unf
 '''
 
     def setUp(self):
