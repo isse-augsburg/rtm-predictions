@@ -13,3 +13,4 @@ Pull requests to master will only be accepted with proper testing.
 
 # Documentation
 Add documentation to your code: See `Pipeline/erfh5_pipeline.py` as reference.
+We use the [sphinx](http://www.sphinx-doc.org/en/master/) for the creation of the documentation.
