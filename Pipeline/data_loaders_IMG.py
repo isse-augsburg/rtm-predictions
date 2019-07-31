@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw
 # from Pipeline.data_gather import get_filelist_within_folder
 
 # data_function must return [(data, label) ... (data, label)]
-from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_lautern
+from plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_lautern
 
 
 def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label_offset=3):
@@ -85,7 +85,7 @@ def create_np_image(target_shape=(151, 151), norm_coords=None, data=None, ):
     return arr
 
 
-def get_images_of_flow_front_and_permeability_map(filename, wanted_num=2, imsize=(155, 155), caching=True):
+def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsize=(155, 155), caching=True):
     cache_dir = ''
     if caching:
         # cache_dir = Path(f'/cfs/home/s/c/schroeni/Images/Cache/{filename.parts[-2]}/img_cache')
@@ -107,16 +107,17 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=2, imsize
             return None
         fillings.append(filling_factor)
 
-    indices = [int(x.split('state')[1]) for x in selected_states]
+    #indices = [int(x.split('state')[1]) for x in selected_states]
+    indices = selected_states
     label = np.asarray(im)
-    with Pool(4) as p:
+    wrapper =  partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize)
+    res = []
+    for i in indices:
         try:
-            images_and_indices = p.map(
-                partial(plot_wrapper, triangle_coords, scaled_coords, fillings, cache_dir, imsize),
-                indices)
+            res.append(wrapper(i))           
         except IndexError or OSError:
             print(f'ERROR at {filename}, len(fillings): {len(fillings)}')
-            raise
+            #raise
     # array of all images, array of the same permeability map
     # trues, falses = 0, 0
     #
@@ -125,7 +126,7 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=2, imsize
     #         trues += 1
     #     else:
     #         falses += 1
-    images = [x[0] for x in images_and_indices]
+    images = [x[0] for x in res]
     img_stack = np.stack(images)
     return [(img_stack, label)]
 
@@ -139,8 +140,12 @@ def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(input
     x = input_list[::int(np.round(dist))]
     input_list.reverse()
     x.reverse()
-    return x
-
+    res = []
+    for i in range(len(x)):
+        res.append((len(input_list) - 1) - i*int(np.round(dist)))
+    #return x
+    res.reverse()
+    return res
 
 def get_local_properties_map(cache_dir, caching, f, imsize):
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
@@ -219,4 +224,4 @@ def get_image_percentage(folder):
 
 
 if __name__ == "__main__":
-    get_images_of_flow_front_and_permeability_map(Path(r'/home/niklas/Desktop/2019-05-17_16-45-57_0_RESULT.erfh5'))
+    get_images_of_flow_front_and_permeability_map(Path(r'C:\Test\Share\Data\ERFH5_Test_File\2019-06-07_13-48-28_14_RESULT.erfh5'))
