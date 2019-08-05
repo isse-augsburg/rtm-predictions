@@ -5,6 +5,7 @@ import time
 import random
 import torch
 import sys
+from pathlib import Path
 
 class Thread_Safe_List():
     """Implements a thread safe list that is much faster than built-in python lists. 
@@ -35,12 +36,12 @@ class Thread_Safe_List():
     def randomise(self):
         """Shuffles the list every 10 seconds. Used for shuffling sequences that were extracted from the same file.
         """
-        while not self.finished:
-            self.lock.acquire()
-            random.shuffle(self.list)
-            # print(">>>INFO: Successfully shuffeled batch queue")
-            self.lock.release()
-            time.sleep(10)
+    
+        self.lock.acquire()
+        random.shuffle(self.list)
+        # print(">>>INFO: Successfully shuffeled batch queue")
+        self.lock.release()
+            
 
     def put(self, element):
         """Appends a single element to the list. 
@@ -48,8 +49,7 @@ class Thread_Safe_List():
         Args:
             element: Element that should be added.
         """
-        while len(self.list) >= self.max_length and self.max_length != -1:
-            time.sleep(0.1)
+       
 
         self.lock.acquire()
         self.list.append(element)
@@ -71,12 +71,11 @@ class Thread_Safe_List():
             >>> print(list) 
             [1, 2, 3, 4, 5, 6, [7, 8]]
         """
-        while len(self.list) >= self.max_length and self.max_length != -1:
-            time.sleep(0.1)
-
+       
         self.lock.acquire()
         self.list.extend(batch)
         self.lock.release()
+
 
     def get(self, number_of_elements):
         """
@@ -89,16 +88,16 @@ class Thread_Safe_List():
         
         """
 
-        while len(self) < number_of_elements:
-            if (self.finished):
-                raise StopIteration
-            time.sleep(0.1)
+        if len(self) < number_of_elements:
+           return None
 
         self.lock.acquire()
         items = self.list[0:number_of_elements]
         self.list = self.list[number_of_elements:]
         self.lock.release()
         return items
+
+   
 
 def clear_last_line(): 
     """Hack for deleting the last printed console line
@@ -120,8 +119,8 @@ class ERFH5_DataGenerator():
         num_workers (int): number of threads that transform file paths to data. 
     """
 
-    def __init__(self, data_path=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,
-                 epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=4):
+    def __init__(self, data_paths=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,
+                 epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=4, cache_path=None):
         self.data_paths = [str(x) for x in data_paths]
         self.batch_size = batch_size
         self.epochs = epochs
@@ -130,6 +129,10 @@ class ERFH5_DataGenerator():
         self.num_workers = num_workers
         self.data_function = data_processing_function
         self.data_gather = data_gather_function
+        self.cache_path=None
+        if cache_path is not None:
+            self.cache_path = Path(cache_path).joinpath(self.data_function.__name__)
+            self.cache_path.mkdir(parents=True, exist_ok=True)
 
         if self.data_function is None or self.data_gather is None:
             raise Exception(
@@ -144,7 +147,7 @@ class ERFH5_DataGenerator():
             random.shuffle(self.paths)
         clear_last_line()
         print(">>> Generator: Gathering Data... Done.")
-        self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
+        self.batch_queue = Thread_Safe_List()
         self.path_queue = Thread_Safe_List()
         self.validation_list = []
         self.test_list = []
@@ -173,7 +176,9 @@ class ERFH5_DataGenerator():
         self.t_shuffle.start()
 
     def __shuffle_batch_queue(self):
-        self.batch_queue.randomise()
+        while(len(self.path_queue) > self.batch_size or len(self.batch_queue) > self.batch_size):
+            self.batch_queue.randomise()
+            time.sleep(10)
 
     def __fill_path_queue(self):
         if len(self.paths) == 0:
@@ -212,10 +217,26 @@ class ERFH5_DataGenerator():
             raise Exception("No file paths found")
 
         while len(self.validation_list) < self.num_validation_samples:
-
+            s_path = None
             # If IndexError here: files are all too short
             sample = self.paths[0]
             self.paths = self.paths[1:]
+            if self.cache_path is not None:
+                s_path = Path(sample)
+                s_path = self.cache_path.joinpath(s_path.stem)
+                if(s_path.exists()):
+                    instance_f = s_path.glob("*.pt")
+                    instance_f = sorted(instance_f)
+                    for i in range(len(instance_f)//2):
+                        data = torch.load(s_path.joinpath(instance_f[i*2]))
+                        label = torch.load(s_path.joinpath(instance_f[i*2+1]))
+                        self.validation_list.append((data, label))
+                    continue
+                else:
+                    s_path.mkdir(parents=True, exist_ok=True)
+                
+                   
+           
             instance = self.data_function(sample)
             
             # data_function must return [(data, label) ... (data, label)]
@@ -226,19 +247,30 @@ class ERFH5_DataGenerator():
                 for i in instance:
                     assert isinstance(i, tuple) and len(i) == 2,"The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
         
-                for i in instance:
+                for num, i in enumerate(instance):
                     data, label = torch.FloatTensor(
                         i[0]), torch.FloatTensor(i[1])
                     self.validation_list.append((data, label))
+                    if s_path is not None:
+                        torch.save(data, s_path.joinpath(str(num)+"-data"+ ".pt"))
+                        torch.save(label, s_path.joinpath(str(num)+"-label"+ ".pt"))
+
+
 
     def __fill_batch_queue(self):
-        while len(self.path_queue) > 0:
-            if len(self.path_queue) == 0:
-                self.path_queue.kill()
-            try:
-                file = self.path_queue.get(1)[0]
-            except StopIteration as si:
-                break
+        
+        while len(self.batch_queue) < self.max_queue_length:
+            s_path = None
+            if(len(self.path_queue) < self.batch_size):
+                print(">>>INFO: Thread ended - At Start")
+                return
+           
+            file = self.path_queue.get(1)
+            if file is None:
+                print(">>>INFO: Thread ended - At File")
+                return 
+            file = file[0]
+            
 
             if file in self.data_dict:
                 instance = self.data_dict[file]
@@ -249,6 +281,24 @@ class ERFH5_DataGenerator():
 
             else:
                 # data_function must return [(data, label) ... (data, label)]
+                if self.cache_path is not None:
+                    s_path = Path(file)
+                    s_path = self.cache_path.joinpath(s_path.stem)
+                    if(s_path.exists()):
+                        instance_f = s_path.glob("*.pt")
+                        instance_f = sorted(instance_f)
+                        instance = []
+                        for i in range(len(instance_f)//2):
+                            data = torch.load(s_path.joinpath(instance_f[i*2]))
+                            label = torch.load(s_path.joinpath(instance_f[i*2+1]))
+                            self.batch_queue.put((data,label))
+                            instance.append((data, label))
+                            self.data_dict[file] = instance
+                        continue
+
+                    else:
+                        s_path.mkdir(parents=True, exist_ok=True)
+
                 instance = self.data_function(file)
                 
 
@@ -262,55 +312,52 @@ class ERFH5_DataGenerator():
         
                     tensor_instances = list()
 
-                    for i in instance:
+                    for num, i in enumerate(instance):
                         data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                         self.batch_queue.put((data, label))
                         tensor_instances.append((data, label))
+                        if s_path is not None:
+                            torch.save(data, s_path.joinpath(str(num)+"-data"+ ".pt"))
+                            torch.save(label, s_path.joinpath(str(num)+"-label"+ ".pt"))
 
                     self.data_dict[file] = tensor_instances
 
-        self.barrier.wait()
-        self.batch_queue.kill()
-        print(">>>INFO: Data loading complete. - SUCCESS")
+        
+        print(">>>INFO: Thread ended - At End")
 
-    def __fill_validation_list(self):
-        if len(self.paths) == 0:
-            raise Exception("No file paths found")
 
-        for i in range(self.num_validation_samples):
-        # while len(self.validation_list) < self.num_validation_samples:
-            # If IndexError here: files are all too short
-            if len(self.paths) > 1:
-                sample = self.paths[0]
-                self.paths = self.paths[1:]
-            else:
-                sample = self.paths[0]
 
-            # data_function must return [(data, label) ... (data, label)]
-            instance = self.data_function(sample)
-
-            if instance is not None:
-                for i in instance:
-                    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-                    self.validation_list.append((data, label))
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        try:
-            batch = self.batch_queue.get(self.batch_size)
-
-        except StopIteration as e:
-            raise e
+        if(len(self.path_queue) < self.batch_size and len(self.batch_queue) < self.batch_size):
+            raise StopIteration
+        
+        while(len(self.batch_queue) < self.batch_size):
+            if(len(self.path_queue) < self.batch_size):
+                raise StopIteration
+            time.sleep(0.1)
+        batch = self.batch_queue.get(self.batch_size)
+        if len(self.batch_queue) < self.max_queue_length/4:
+            if threading.active_count() < self.num_workers + 1 and len(self.path_queue) > self.batch_size:
+                print("Starting new Threads", threading.active_count())
+            
+                for _ in range(self.num_workers):
+                    t_batch = threading.Thread(target=self.__fill_batch_queue)
+                    t_batch.start()
+            
 
         data = [i[0] for i in batch]
         labels = [i[1] for i in batch]
-        print([x.shape for x in data])
-        # FIXME does not work for batchsize > 1 if sizes of data are different
+        
+        # FIXME does not work for batchsize > 1 if sizes of data are different - NS: This is not a bug, this is intended.
         data = torch.stack(data)
         labels = torch.stack(labels)
         return data, labels
+
+   
 
     def __len__(self):
         return self.epochs * len(self.paths)
@@ -330,7 +377,7 @@ if __name__ == "__main__":
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
     generator = ERFH5_DataGenerator(data_paths=[
-        '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'],
+        '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-05-13_16-28-01_200p/0'],
                                     data_processing_function=dls.get_sensordata_and_filling_percentage,
                                     data_gather_function=dg.get_filelist_within_folder, batch_size=1, epochs=2,
                                     max_queue_length=16)
