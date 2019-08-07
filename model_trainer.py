@@ -5,7 +5,7 @@ from pathlib import Path
 from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader_sensor as dls, data_loaders_IMG as dli, \
     data_gather as dg
 
-from Trainer.Evaluation import plot_predictions_and_label
+from Trainer.evaluation import plot_predictions_and_label
 from Trainer.Generic_Trainer import Master_Trainer
 from Trainer.evaluation import Binary_Classification_Evaluator
 
