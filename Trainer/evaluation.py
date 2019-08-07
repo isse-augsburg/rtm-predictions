@@ -1,5 +1,3 @@
-First version:
-
 import os
 from functools import partial
 from multiprocessing.pool import Pool
@@ -7,7 +5,6 @@ from multiprocessing.pool import Pool
 from PIL import Image
 from pathlib import Path
 import numpy as np
-
 
 
 def pixel_wise_loss_multi_input_single_label(input, target):
@@ -49,14 +46,7 @@ def save_img(path, _str, x, index):
         im.close()
     except KeyError:
         print('ERROR: save_img')
-		
-		
-#################
 
-Second version (local):
-
-import numpy as np 
-from PIL import Image
 
 
 class Binary_Classification_Evaluator(): 
