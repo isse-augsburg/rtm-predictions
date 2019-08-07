@@ -21,7 +21,7 @@ class Master_Trainer():
     """
     def __init__(self, model, generator: erfh5_pipeline.ERFH5_DataGenerator, loss_criterion=torch.nn.MSELoss(),
                  train_print_frequency=10, eval_frequency=100, savepath="model.pth", eval_func=None,
-                 comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False, classification_evaluator=None
+                 comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False, classification_evaluator=None,
                  imsize=(155, 155)):
         self.validationList = generator.get_validation_samples()
         self.model = model

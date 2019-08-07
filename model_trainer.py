@@ -17,7 +17,10 @@ from Models.flow_front_to_fiber_fraction_model import FlowfrontToFiberfractionMo
 import os
 import numpy as np
 from PIL import Image
+import time
+import threading
 
+# savePath does not belong here, since its user dependent.
 if os.name == 'nt':
     data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
     savepath = Path(r'C:\Users\stiebesi\code\saved_models')
@@ -25,10 +28,18 @@ else:
     data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
     savepath = Path('/cfs/home/s/t/stiebesi/code/saved_models')
 
+
+### DEBUG
+data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes')
+cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
+###
+
+
+
 # paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
-# path = data_root / '2019-04-23_13-00-58_200p'
+path = data_root / '2019-04-23_13-00-58_200p'
 # path = data_root / '2019-05-17_16-45-57_3000p' / '0'
-path = data_root / '2019-06-05_15-30-52_1050p'
+# path = data_root / '2019-06-05_15-30-52_1050p'
 # path = data_root / '2019-05-17_16-45-57_3000p'
 paths = [path]
 # =======
@@ -149,7 +160,7 @@ def create_datagenerator_flow_front_to_permeabilities(batch_size=1, num_validati
                                                  data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
                                                  data_gather_function=dg.get_filelist_within_folder,
                                                  batch_size=batch_size, epochs=epochs, max_queue_length=max_Q_len,
-                                                 num_validation_samples=num_validation_samples, num_workers=num_workers)
+                                                 num_validation_samples=num_validation_samples, num_workers=num_workers, cache_path=cache_path)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -162,10 +173,17 @@ if __name__ == "__main__":
     print(">>> INFO: Generating Generator")
     generator = create_datagenerator_flow_front_to_permeabilities(batch_size=2,
                                                                   num_validation_samples=1,
-                                                                  num_workers=20,
-                                                                  max_Q_len=512,
+                                                                  num_workers=6,
+                                                                  max_Q_len=2048,
                                                                   epochs=1000)
-    print(">>> INFO: Generating Model")
+    print("Generator finished")
+    for i, (inputs, label) in enumerate(generator):
+        print(i, np.shape(inputs), np.shape(label), len(generator.batch_queue), len(generator.path_queue), threading.active_count())
+       
+       
+
+ 
+    """    print(">>> INFO: Generating Model")
     model = FlowfrontToFiberfractionModel()
     print(">>> INFO: Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
@@ -185,3 +203,4 @@ if __name__ == "__main__":
     train_wrapper.start_training()
     train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
     print("Model saved.")
+    """

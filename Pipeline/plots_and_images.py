@@ -14,38 +14,31 @@ def scale_coords_leoben(input_coords):
     return scaled_coords
 
 
-def plot_wrapper(triangle_coords, scaled_coords, fillings, cache_dir, imsize, index):
+def plot_wrapper(triangle_coords, scaled_coords, fillings, imsize, index):
     fillings = np.squeeze(fillings)
     filling = fillings[index]
-    im_fn = cache_dir / f'{index}.png'
-    load_image = True
-    if cache_dir != '' and not im_fn.exists():
-        try:
-            a = filling[triangle_coords]
-            b = a.reshape(len(triangle_coords), 3)
-            means_of_neighbour_nodes = b.mean(axis=1)
-        except IndexError:
-            print('ERROR plot wrapper ... raising')
-            print(triangle_coords)
-            print(filling[triangle_coords])
-            raise
+   
+   
+    
+    try:
+        a = filling[triangle_coords]
+        b = a.reshape(len(triangle_coords), 3)
+        means_of_neighbour_nodes = b.mean(axis=1)
+    except IndexError:
+        print('ERROR plot wrapper ... raising')
+        print(triangle_coords)
+        print(filling[triangle_coords])
+        raise
 
-        im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
-        # im = create_np_image((465,465), scaled_coords, filling)
-        # im_t = Image.fromarray(im,mode='L')
-        im.save(im_fn)
-        load_image = False
-    else:
-        try:
-            im = Image.open(im_fn)
-        except IndexError:
-            print('ERROR: Corrupt img data')
-            raise
+    im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
+    # im = create_np_image((465,465), scaled_coords, filling)
+    # im_t = Image.fromarray(im,mode='L')
+       
     if im.size != imsize:
         im = im.resize(imsize)
     dat = np.asarray(im)
     im.close()
-    return dat, index, load_image
+    return dat, index
 
 
 def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords, colored=False, size=(465, 465)):
