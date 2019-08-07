@@ -174,7 +174,7 @@ if __name__ == "__main__":
     generator = create_datagenerator_flow_front_to_permeabilities(batch_size=2,
                                                                   num_validation_samples=1,
                                                                   num_workers=6,
-                                                                  max_Q_len=128,
+                                                                  max_Q_len=2048,
                                                                   epochs=1000)
     print("Generator finished")
     for i, (inputs, label) in enumerate(generator):

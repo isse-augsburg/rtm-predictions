@@ -14,11 +14,10 @@ class Thread_Safe_List():
             max_length (int): Max length the list can have. Should be specified if the memory consumption is a problem.
     """
 
-    def __init__(self, max_length=-1):
+    def __init__(self):
         
         self.list = []
         self.lock = threading.Lock()
-        self.max_length = max_length
         self.finished = False
 
     # if called, the thread using this queue will commit suicide
@@ -120,11 +119,12 @@ class ERFH5_DataGenerator():
     """
 
     def __init__(self, data_paths=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,
-                 epochs=80, max_queue_length=-1, num_validation_samples=1, num_workers=4, cache_path=None):
+                 epochs=80, max_queue_length=512, num_validation_samples=1, num_workers=4, cache_path=None):
         self.data_paths = [str(x) for x in data_paths]
         self.batch_size = batch_size
         self.epochs = epochs
         self.max_queue_length = max_queue_length
+        assert(max_queue_length>0)
         self.num_validation_samples = num_validation_samples
         self.num_workers = num_workers
         self.data_function = data_processing_function
@@ -262,12 +262,12 @@ class ERFH5_DataGenerator():
         while len(self.batch_queue) < self.max_queue_length:
             s_path = None
             if(len(self.path_queue) < self.batch_size):
-                print(">>>INFO: Thread ended - At Start")
+               # print(">>>INFO: Thread ended - At Start")
                 return
            
             file = self.path_queue.get(1)
             if file is None:
-                print(">>>INFO: Thread ended - At File")
+               # print(">>>INFO: Thread ended - At File")
                 return 
             file = file[0]
             
@@ -342,7 +342,7 @@ class ERFH5_DataGenerator():
         batch = self.batch_queue.get(self.batch_size)
         if len(self.batch_queue) < self.max_queue_length/4:
             if threading.active_count() < self.num_workers + 1 and len(self.path_queue) > self.batch_size:
-                print("Starting new Threads", threading.active_count())
+                #print("Starting new Threads", threading.active_count())
             
                 for _ in range(self.num_workers):
                     t_batch = threading.Thread(target=self.__fill_batch_queue)
