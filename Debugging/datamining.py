@@ -191,6 +191,6 @@ def plot_sensordata():
 
 
 if __name__ == "__main__":
-    #plot_sensordata()
-    import doctest
-    doctest.testmod()
+    plot_sensordata()
+    #import doctest
+    #doctest.testmod()

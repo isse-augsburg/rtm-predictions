@@ -12,10 +12,11 @@ from Models.custom_loss import FocalLoss
 
 batchsize = 1
 max_Q_len = 32
-epochs = 70
+epochs = 50
 #path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
-path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/', '/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p']
-#path = ['/cfs/share/data/RTM/Lautern/output/with_shapes']
+#path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/', '/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p']
+#path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
+path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-06-05_15-30-52_1050p/']
 
 
 def create_dataGenerator_pressure_flowfront():
@@ -113,7 +114,7 @@ def create_dataGenerator_pressure_sequence():
 
 
 def get_comment():
-    comment = "Evaluating Focal Loss"
+    comment = "Evaluating Focal Loss and trying new data with shapes in grid."
     return comment
 
 
@@ -124,7 +125,6 @@ if __name__ == "__main__":
     # generator = create_dataGenerator_single_state()
     # model = ERFH5_PressureSequence_Model()
     # generator = create_dataGenerator_pressure_sequence()
-
     print(">>> INFO: Generating Model")
     model = ERFH5_PressureSequence_Model()
     print(">>> INFO: Generating Generator")
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     print(">>> INFO: Generating Trainer")
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
-    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(gamma=3), comment=get_comment(),
+    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(gamma=0.5), comment=get_comment(),
                                   learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
     print(">>> INFO: The Training Will Start Shortly")
 

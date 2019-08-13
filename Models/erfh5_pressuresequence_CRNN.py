@@ -2,7 +2,7 @@ import torch
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
-from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl
+
 
 
 class ERFH5_RNN(nn.Module):
@@ -13,14 +13,14 @@ class ERFH5_RNN(nn.Module):
         self.nlayers = num_layers
 
         self.lstm = nn.LSTM(input_dim, hidden_dim,
-                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.2)
+                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.2) #LSTM
 
-        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 600)
+        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 600) #Fully connected for decision making after LSTM 
         self.hidden2hidden2 = nn.Linear(600, 400)
         self.hidden2hidden3 = nn.Linear(400, 200)
         self.hidden2hidden4 = nn.Linear(200, 100)
         self.hidden2value = nn.Linear(100, 2)
-        self.drop = nn.Dropout(0.30)
+        self.drop = nn.Dropout(0.3)
 
         self.init_weights()
 
@@ -107,6 +107,8 @@ class ERFH5_PressureSequence_Model(nn.Module):
 
 
 if __name__ == "__main__":
+ 
+
     path = [
         '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
     generator = pipeline.ERFH5_DataGenerator(

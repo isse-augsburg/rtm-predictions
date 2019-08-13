@@ -41,6 +41,10 @@ class FocalLoss(nn.Module):
         
         return fl
 
+    def __str__(self): 
+        string = "Focal Loss with gamma = " + str(self.gamma) + " and reduction = " + str(self.reduction)
+        return string
+
 
 if __name__ == "__main__":
     #out = np.array([[0.9, 0.1], [0.01, 0.99]])
@@ -57,7 +61,7 @@ if __name__ == "__main__":
 
 
 
-    print(".")
+    print(focalloss)
     
     
 
