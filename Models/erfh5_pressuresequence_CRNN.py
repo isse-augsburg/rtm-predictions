@@ -112,7 +112,7 @@ if __name__ == "__main__":
     path = [
         '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
     generator = pipeline.ERFH5_DataGenerator(
-        path, data_processing_function=dl.get_sensordata_and_filling_percentage,
+        path, data_processing_function=dl.get_sensordOata_and_filling_percentage,
         data_gather_function=dl.get_filelist_within_folder,
         batch_size=1, epochs=1, max_queue_length=32, num_validation_samples=1)
     model = ERFH5_PressureSequence_Model()

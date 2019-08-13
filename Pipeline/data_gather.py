@@ -1,4 +1,5 @@
 from os import walk
+from pathlib import Path
 
 
 def get_filelist_within_folder(root_directory):
@@ -17,8 +18,15 @@ def get_filelist_within_folder(root_directory):
             if filenames:
                 filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
                 dataset_filenames.extend(filenames)
+           
 
     return dataset_filenames
+
+
+    # l = []
+    # for dir in root_directories:
+    #    l.extend(list(Path(dir).glob('**/*.erfh5')))
+    # return l
 
 
 def get_folders_within_folder(root_directory):
