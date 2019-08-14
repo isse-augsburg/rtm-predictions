@@ -66,7 +66,8 @@ def normalize_coords(coords):
     return coords
 
 
-def create_np_image(target_shape=(151, 151), norm_coords=None, data=None, ):
+    #for new data 37.5 and 30.0
+def create_np_image(target_shape=(293, 229), norm_coords=None, data=None, ):
     if norm_coords is None or data is None:
         print("ERROR")
         return
@@ -171,6 +172,7 @@ def get_sensordata_and_flowfront(file):
         coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
+       
         _coords = normalize_coords(_coords)
 
         pressure_array = \

@@ -2,9 +2,11 @@ from Pipeline import data_loaders as dl, data_gather as dg, data_loader_sensor a
 #import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
 import threading
 import time
+import pickle
 import random
 import torch
 import sys
+import os
 from pathlib import Path
 
 class Thread_Safe_List():
@@ -130,9 +132,12 @@ class ERFH5_DataGenerator():
         self.data_function = data_processing_function
         self.data_gather = data_gather_function
         self.cache_path=None
+        self.cache_path_flist = None
         if cache_path is not None:
             self.cache_path = Path(cache_path).joinpath(self.data_function.__name__)
             self.cache_path.mkdir(parents=True, exist_ok=True)
+            self.cache_path_flist = Path(cache_path).joinpath("filelists")
+            self.cache_path_flist.mkdir(parents=True, exist_ok=True)
 
         if self.data_function is None or self.data_gather is None:
             raise Exception(
@@ -140,7 +145,23 @@ class ERFH5_DataGenerator():
 
         self.data_dict = dict()
         print(">>> Generator: Gathering Data...")
-        self.paths = self.data_gather(self.data_paths)
+        self.paths = []
+        for path in self.data_paths:
+            if self.cache_path_flist is not None:
+                path_name = path.split("/")[-1]
+                file = self.cache_path_flist.joinpath(path_name)
+                if(os.path.isfile(file)):
+                    self.paths.extend(pickle.load(open(file, "rb")))
+                    continue
+                else:
+                    gatherd = self.data_gather(path)
+                    pickle.dump(gatherd,open(file,"wb"))
+                    self.paths.extend(gatherd)
+            else:
+                gatherd = self.data_gather(path)
+                self.paths.extend(gatherd)
+            
+        
 
         self.paths = self.paths
         if len(self.paths) > 1:
@@ -291,9 +312,9 @@ class ERFH5_DataGenerator():
                         for i in range(len(instance_f)//2):
                             data = torch.load(s_path.joinpath(instance_f[i*2]))
                             label = torch.load(s_path.joinpath(instance_f[i*2+1]))
-                            self.batch_queue.put((data,label))
                             instance.append((data, label))
-                            self.data_dict[file] = instance
+                        self.batch_queue.put_batch(instance)
+                        self.data_dict[file] = instance
                         continue
 
                     else:
@@ -314,12 +335,12 @@ class ERFH5_DataGenerator():
 
                     for num, i in enumerate(instance):
                         data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-                        self.batch_queue.put((data, label))
+                       
                         tensor_instances.append((data, label))
                         if s_path is not None:
                             torch.save(data, s_path.joinpath(str(num)+"-data"+ ".pt"))
                             torch.save(label, s_path.joinpath(str(num)+"-label"+ ".pt"))
-
+                    self.batch_queue.put_batch(tensor_instances)
                     self.data_dict[file] = tensor_instances
 
         

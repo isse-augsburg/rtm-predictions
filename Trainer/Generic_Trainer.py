@@ -74,12 +74,11 @@ class Master_Trainer():
             i_of_epoch += 1
             inputs = inputs.to(self.device, non_blocking=True)
             label = label.to(self.device, non_blocking=True)
-            label = label.reshape(label.shape[0], self.imsize[0] * self.imsize[1])
+           
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
             # print(inputs.shape)
-            label = torch.stack([label] * len(outputs))
-            label = label / 255
+            
             loss = self.loss_criterion(outputs, label)
             loss.backward()
             self.optimizer.step()
@@ -105,10 +104,10 @@ class Master_Trainer():
             for i, sample in enumerate(self.validationList):
                 data = sample[0].to(self.device)
                 label = sample[1].to(self.device)
-                label = label.reshape((self.imsize[0] * self.imsize[1]))
-                label = torch.stack([label] * len(data))
+              
+               
                 # label = torch.sigmoid(label) Loses a lot of information
-                label = label / 255
+               
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
 # <<<<<<< Trainer/Generic_Trainer.py

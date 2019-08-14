@@ -14,6 +14,7 @@ import traceback
 from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Models.flow_front_to_fiber_fraction_model import FlowfrontToFiberfractionModel
+from Models.erfh5_DeconvModel import DeconvModel
 import os
 import numpy as np
 from PIL import Image
@@ -30,14 +31,14 @@ else:
 
 
 ### DEBUG
-data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes')
+data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes')
 cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
 ###
 
 
 
 # paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
-path = data_root / '2019-04-23_13-00-58_200p'
+path = data_root / '2019-07-23_15-38-08_5000p'
 # path = data_root / '2019-05-17_16-45-57_3000p' / '0'
 # path = data_root / '2019-06-05_15-30-52_1050p'
 # path = data_root / '2019-05-17_16-45-57_3000p'
@@ -58,9 +59,9 @@ paths = [path]
 def create_dataGenerator_pressure_flowfront():
     try:
         generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=100,
-                                                 batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
+                                                 batch_size=32, epochs=50, max_queue_length=8096,
                                                  data_processing_function=dli.get_sensordata_and_flowfront,
-                                                 data_gather_function=dg.get_filelist_within_folder)
+                                                 data_gather_function=dg.get_filelist_within_folder, num_workers=4, cache_path=cache_path)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -171,36 +172,24 @@ def create_datagenerator_flow_front_to_permeabilities(batch_size=1, num_validati
 
 if __name__ == "__main__":
     print(">>> INFO: Generating Generator")
-    generator = create_datagenerator_flow_front_to_permeabilities(batch_size=2,
-                                                                  num_validation_samples=1,
-                                                                  num_workers=6,
-                                                                  max_Q_len=2048,
-                                                                  epochs=1000)
-    print("Generator finished")
-    for i, (inputs, label) in enumerate(generator):
-        print(i, np.shape(inputs), np.shape(label), len(generator.batch_queue), len(generator.path_queue), threading.active_count())
-       
-       
-
- 
-    """    print(">>> INFO: Generating Model")
-    model = FlowfrontToFiberfractionModel()
-    print(">>> INFO: Model to GPU")
+    generator = create_dataGenerator_pressure_flowfront() 
+    print(">>> INFO: Generating Model")
+    model = DeconvModel()
+    print(">>> INFO:  Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
 
     train_wrapper = Master_Trainer(model, generator,
                                    comment=get_comment(),
                                    loss_criterion=torch.nn.MSELoss(),
                                    # loss_criterion=pixel_wise_loss_multi_input_single_label,
-                                   savepath=savepath / 'flow_front_perm.pt',
+                                   savepath=None,
                                    learning_rate=0.0001,
                                    calc_metrics=False,
-                                   train_print_frequency=2,
-                                   eval_frequency=100,
-                                   eval_func=plot_predictions_and_label)
+                                   train_print_frequency=10,
+                                   eval_frequency=500,
+                                   eval_func=None)
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()
-    train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
     print("Model saved.")
-    """
+ 
