@@ -35,25 +35,25 @@ epochs = 50
 
 
 # savePath does not belong here, since its user dependent.
-if os.name == 'nt':
-    data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
-    savepath = Path(r'C:\Users\stiebesi\code\saved_models')
-else:
-    data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
-    savepath = Path('/cfs/home/s/t/stiebesi/code/saved_models')
+
+#if os.name == 'nt':
+#    data_root = Path(r'Y:\data\RTM\Lautern\output\with_shapes')
+#    savepath = Path(r'C:\Users\stiebesi\code\saved_models')
+#else:
+#    data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
+#    savepath = Path('/cfs/home/s/t/stiebesi/code/saved_models')
 
 
 ### DEBUG
-data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes')
-cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
+cache_path = None
+data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
 ###
 
 
 
 # paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
-path = data_root / '2019-04-23_13-00-58_200p'
 # path = data_root / '2019-05-17_16-45-57_3000p' / '0'
-# path = data_root / '2019-06-05_15-30-52_1050p'
+path = data_root / '2019-06-05_15-30-52_1050p'
 # path = data_root / '2019-05-17_16-45-57_3000p'
 paths = [path]
 # =======
@@ -149,13 +149,12 @@ def create_dataGenerator_single_state():
 
 def create_dataGenerator_pressure_sequence():
     try:
+        
         generator = pipeline.ERFH5_DataGenerator(
             paths, data_processing_function=dls.get_sensordata_and_filling_percentage,
             data_gather_function=dg.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=4)
-        """ generator = pipeline.ERFH5_DataGenerator(
-        path, data_processing_function = dl.get_all_sensor_sequences, data_gather_function = dl.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs ,max_queue_length=4096, num_validation_samples=250) """
+            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=70)
+
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         exit()
@@ -184,21 +183,11 @@ def create_datagenerator_flow_front_to_permeabilities(batch_size=1, num_validati
 
 
 if __name__ == "__main__":
+    
+    print(">>> INFO: Generating Model")
+    model = ERFH5_PressureSequence_Model()
     print(">>> INFO: Generating Generator")
-    generator = create_datagenerator_flow_front_to_permeabilities(batch_size=2,
-                                                                  num_validation_samples=1,
-                                                                  num_workers=6,
-                                                                  max_Q_len=2048,
-                                                                  epochs=1000)
-    print("Generator finished")
-    for i, (inputs, label) in enumerate(generator):
-        print(i, np.shape(inputs), np.shape(label), len(generator.batch_queue), len(generator.path_queue), threading.active_count())
-       
-       
-
- 
-    """    print(">>> INFO: Generating Model")
-    model = FlowfrontToFiberfractionModel()
+    generator = create_dataGenerator_pressure_sequence()
     print(">>> INFO: Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
     print(">>> INFO: Generating Trainer")
@@ -211,4 +200,4 @@ if __name__ == "__main__":
     train_wrapper.start_training()
     train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
     print("Model saved.")
-    """
+   
