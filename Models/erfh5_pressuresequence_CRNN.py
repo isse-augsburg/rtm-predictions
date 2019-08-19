@@ -2,30 +2,31 @@ import torch
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
-from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl
+
+
 
 
 class ERFH5_RNN(nn.Module):
-    def __init__(self, input_dim, hidden_dim=512, batch_size=8, num_layers=3):
+    def __init__(self, input_dim, hidden_dim=512, batch_size=8, num_layers=1):
         super(ERFH5_RNN, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.nlayers = num_layers
 
-        self.lstm = nn.LSTM(input_dim, hidden_dim,
-                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.2)
+        self.lstm = nn.LSTM(input_dim, self.hidden_dim,
+                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.0) #LSTM
 
-        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 600)
-        self.hidden2hidden2 = nn.Linear(600, 400)
-        self.hidden2hidden3 = nn.Linear(400, 200)
-        self.hidden2hidden4 = nn.Linear(200, 100)
-        self.hidden2value = nn.Linear(100, 2)
-        self.drop = nn.Dropout(0.30)
-
+        self.hidden2hidden1 = nn.Linear(int(hidden_dim), 750) #Fully connected for decision making after LSTM 
+        self.hidden2hidden2 = nn.Linear(750, 600)
+        self.hidden2hidden3 = nn.Linear(600, 300)
+        self.hidden2hidden4 = nn.Linear(300, 150)
+        self.hidden2hidden5 = nn.Linear(150, 50)
+        self.hidden2value = nn.Linear(50, 1)
+        self.drop = nn.Dropout(0.5)
         self.init_weights()
 
     def init_weights(self):
-        initrange = 0.1
+        initrange = 1
 
         self.hidden2hidden1.bias.data.fill_(0)
         self.hidden2hidden1.weight.data.uniform_(-initrange, initrange)
@@ -35,6 +36,8 @@ class ERFH5_RNN(nn.Module):
         self.hidden2hidden3.weight.data.uniform_(-initrange, initrange)
         self.hidden2hidden4.bias.data.fill_(0)
         self.hidden2hidden4.weight.data.uniform_(-initrange, initrange)
+        self.hidden2hidden5.bias.data.fill_(0)
+        self.hidden2hidden5.weight.data.uniform_(-initrange, initrange)
         self.hidden2value.bias.data.fill_(0)
         self.hidden2value.weight.data.uniform_(-initrange, initrange)
 
@@ -64,8 +67,10 @@ class ERFH5_RNN(nn.Module):
         out = self.drop(out)
         out = F.relu(self.hidden2hidden4(out))
         out = self.drop(out)
+        out = F.relu(self.hidden2hidden5(out))
         out = self.hidden2value(out)
-        out = F.softmax(out)
+        #out = F.softmax(out)
+        out = F.sigmoid(out)
         return out
 
 
@@ -77,7 +82,7 @@ class ERFH5_Pressure_CNN(nn.Module):
         self.conv3 = nn.Conv2d(16, 32, (1, 7))
         self.conv4 = nn.Conv2d(32, 64, (1, 5))
         self.pool = nn.MaxPool2d((2, 2), (2, 2))
-        self.drop = nn.Dropout(0.4)
+        self.drop = nn.Dropout(0.5)
 
     def forward(self, x):
         out = torch.unsqueeze(x, 1)
@@ -96,7 +101,7 @@ class ERFH5_PressureSequence_Model(nn.Module):
     def __init__(self):
         super(ERFH5_PressureSequence_Model, self).__init__()
         self.cnn = ERFH5_Pressure_CNN()
-        self.rnn = ERFH5_RNN(input_dim=2560)
+        self.rnn = ERFH5_RNN(input_dim=8800)
 
     def forward(self, x):
         out = self.cnn(x)
@@ -107,11 +112,13 @@ class ERFH5_PressureSequence_Model(nn.Module):
 
 
 if __name__ == "__main__":
-    path = [
-        '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
+    
+    
+
+    path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p']
     generator = pipeline.ERFH5_DataGenerator(
         path, data_processing_function=dl.get_sensordOata_and_filling_percentage,
-        data_gather_function=dl.get_filelist_within_folder,
+        data_gather_function=dg.get_filelist_within_folder,
         batch_size=1, epochs=1, max_queue_length=32, num_validation_samples=1)
     model = ERFH5_PressureSequence_Model()
     loss_criterion = torch.nn.MSELoss()

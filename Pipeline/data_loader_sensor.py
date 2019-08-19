@@ -25,7 +25,7 @@ def get_all_sensor_sequences(file, spacing=25, length=150):
     return l
 
 
-def get_sensordata_and_filling_percentage(file, until=-1, frm=0):
+def get_sensordata_and_filling_percentage(file, until=100, frm=0):
     """
      Args: 
         file (string): File from which the data should be extracted.
@@ -47,8 +47,9 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=0):
                 ()]
         non_zeros = np.count_nonzero(last_filling)
         state_count = np.shape(last_filling)[0]
-        filling = np.floor(non_zeros / state_count)
-        filling_percentage = np.array((filling, 1 - filling), dtype=np.long)
+        #filling = np.floor(non_zeros / state_count)
+        filling = np.array([np.floor(non_zeros / state_count)])
+        #filling_percentage = np.array((filling, 1 - filling), dtype=np.long)
 
     except KeyError:
         return None
@@ -62,7 +63,8 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=0):
 
     # print(np.shape(pressure_array), filling_percentage)
 
-    return ([(pressure_array, filling_percentage)])
+    #return ([(pressure_array, filling_percentage)])
+    return ([(pressure_array, filling)])
 
 
 def get_sensordata_and_filling_percentage_v2(file, until=400, frm=0):
