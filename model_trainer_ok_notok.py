@@ -55,6 +55,10 @@ data_root = Path('/cfs/share/data/RTM/Leoben/output/with_shapes')
 # path = data_root / '2019-05-17_16-45-57_3000p' / '0'
 path = data_root / '2019-07-23_15-38-08_5000p'
 # path = data_root / '2019-05-17_16-45-57_3000p'
+
+
+#Debug path
+path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p'
 paths = [path]
 # =======
 # from Models.custom_loss import focal_loss, FocalLoss
@@ -192,7 +196,7 @@ if __name__ == "__main__":
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
     train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(gamma=0), comment=get_comment(),
-                                  learning_rate=0.0005, classification_evaluator=Binary_Classification_Evaluator())
+                                  learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()

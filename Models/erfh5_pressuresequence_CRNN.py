@@ -7,14 +7,14 @@ import torch.nn.functional as F
 
 
 class ERFH5_RNN(nn.Module):
-    def __init__(self, input_dim, hidden_dim=512, batch_size=8, num_layers=3):
+    def __init__(self, input_dim, hidden_dim=512, batch_size=8, num_layers=1):
         super(ERFH5_RNN, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.nlayers = num_layers
 
         self.lstm = nn.LSTM(input_dim, self.hidden_dim,
-                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.4) #LSTM
+                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0.0) #LSTM
 
         self.hidden2hidden1 = nn.Linear(int(hidden_dim), 750) #Fully connected for decision making after LSTM 
         self.hidden2hidden2 = nn.Linear(750, 600)
@@ -22,7 +22,7 @@ class ERFH5_RNN(nn.Module):
         self.hidden2hidden4 = nn.Linear(300, 150)
         self.hidden2hidden5 = nn.Linear(150, 50)
         self.hidden2value = nn.Linear(50, 1)
-        self.drop = nn.Dropout(0.7)
+        self.drop = nn.Dropout(0.5)
         self.init_weights()
 
     def init_weights(self):
