@@ -1,7 +1,7 @@
 import os
 from functools import partial
 from multiprocessing.pool import Pool
-
+import matplotlib.pyplot as plt
 from PIL import Image
 import math 
 from pathlib import Path
@@ -58,7 +58,29 @@ def save_img(path, _str, x, index):
         print('ERROR: save_img')
 
 
+class Sensor_Flowfront_Evaluator():
+    def __init__(self, save_path ="/home/schroeter/Desktop/output"):
+        self.num = 0
+        self.save_path = save_path
+    def commit(self, net_output, label):
+        a = net_output.numpy()
+        a = np.squeeze(a)
+        b = label.numpy()
+        b = np.squeeze(b)
 
+        plt.imsave(self.save_path+"/"+str(self.num)+"out.jpg", a)
+        plt.imsave(self.save_path+"/"+str(self.num)+"lab.jpg", b)
+
+        
+        self.num +=1
+        pass
+
+    
+    def print_metrics(self): 
+        pass
+    def reset(self): 
+        self.num = 0
+        pass
 
 class Binary_Classification_Evaluator(): 
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.

@@ -105,6 +105,7 @@ class Master_Trainer():
                 data = sample[0].to(self.device)
                 label = sample[1].to(self.device)
                 data = torch.unsqueeze(data, 0)
+                label = torch.unsqueeze(label, 0)
                 output = self.model(data)
                 #print(output,label)
                 l = self.loss_criterion(output, label).item()
