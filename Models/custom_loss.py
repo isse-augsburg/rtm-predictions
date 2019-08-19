@@ -6,31 +6,62 @@ import numpy as np
 
 
 def focal_loss(p, y): 
-    gamma = torch.tensor([2])
+    gamma = 1
 
 
     if y == 1.0: 
         pt = p
     else:
-        pt = 1 - p 
+        pt = 1.0 - p 
 
-    ce = -torch.log(pt)
-    fl = (1 - pt) ** gamma
+    ce = -1 * np.log(pt)
+    fl = (1.0 - pt) ** gamma * ce
     
     return fl 
 
 class FocalLoss(nn.Module):
-    def __init__(self, gamma=1, alpha=None):
+    def __init__(self, gamma=1, reduction='sum'):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
-        self.alpha = alpha
+        self.reduction = reduction
 
 
     def forward(self, p, y): 
-        logpt = F.log_softmax(p)
-        
-        pt = Variable(logpt.data.exp())
+        p = p[:,0]
+        y = y[:,0]
+        pt = torch.where(y==1.0, p, 1-p)
 
-        loss = -1 * (1 - pt)**self.gamma * logpt
-        return loss.sum()
+        ce = -1 * torch.log(pt)
+        fl = (1 - pt)**self.gamma * ce 
+
+        if self.reduction == 'sum':
+            fl = fl.sum()
+        else:
+            raise "Wrong reduction chosen!"
+        
+        return fl
+
+    def __str__(self): 
+        string = "Focal Loss with gamma = " + str(self.gamma) + " and reduction = " + str(self.reduction)
+        return string
+
+
+if __name__ == "__main__":
+    #out = np.array([[0.9, 0.1], [0.01, 0.99]])
+    out = np.array([[0.85, 0.15], [0.99, 0.01]])
+    #label = np.array([[1.0, 0.0], [1.0, 0.0]])
+    label = np.array([[1.0, 0.0], [0.0, 1.0]])
+
+    out = torch.from_numpy(out)
+    label = torch.from_numpy(label)
+
+    focalloss = FocalLoss()
+    #focalloss = focal_loss(0.85, 1.0)
+    fl = focalloss(out, label)
+
+
+
+    print(focalloss)
+    
+    
 

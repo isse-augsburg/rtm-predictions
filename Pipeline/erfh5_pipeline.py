@@ -344,7 +344,7 @@ class ERFH5_DataGenerator():
                     self.data_dict[file] = tensor_instances
 
         
-        print(">>>INFO: Thread ended - At End")
+        #print(">>>INFO: Thread ended - At End")
 
 
 

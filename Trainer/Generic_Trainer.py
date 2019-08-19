@@ -21,8 +21,7 @@ class Master_Trainer():
     """
     def __init__(self, model, generator: erfh5_pipeline.ERFH5_DataGenerator, loss_criterion=torch.nn.MSELoss(),
                  train_print_frequency=10, eval_frequency=100, savepath="model.pth", eval_func=None,
-                 comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False, classification_evaluator=None,
-                 imsize=(155, 155)):
+                 comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False, classification_evaluator=None):
         self.validationList = generator.get_validation_samples()
         self.model = model
         self.generator = generator
@@ -37,14 +36,13 @@ class Master_Trainer():
         self.comment = comment
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
-        self.imsize = imsize
         self.classification_evaluator = classification_evaluator
 
     def start_training(self):
         """ Prints information about the used train config and starts the training of the trainer's model
         """
         self.__print_info()
-        # self.__print_comment()
+        self.__print_comment() 
         self.__train()
         print('Test set missing. So no testing.')
         # self.__eval()
@@ -74,10 +72,9 @@ class Master_Trainer():
             i_of_epoch += 1
             inputs = inputs.to(self.device, non_blocking=True)
             label = label.to(self.device, non_blocking=True)
-           
+            
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
-            # print(inputs.shape)
             
             loss = self.loss_criterion(outputs, label)
             loss.backward()
@@ -96,70 +93,38 @@ class Master_Trainer():
                 i_of_epoch = 0
 
     def __eval(self, eval_step=0):
-        # print('EVAL')
+
+        """Evaluators must have a commit, print and reset function. commit updates the evaluator with the current step,
+            print can show all relevant stats and reset resets the internal structure if needed." 
+        """
+        
         with torch.no_grad():
             self.model.eval()
-            tp, fp, tn, fn = 0, 0, 0, 0
             loss = 0
             for i, sample in enumerate(self.validationList):
                 data = sample[0].to(self.device)
                 label = sample[1].to(self.device)
-              
-               
-                # label = torch.sigmoid(label) Loses a lot of information
-               
                 data = torch.unsqueeze(data, 0)
                 output = self.model(data)
-# <<<<<<< Trainer/Generic_Trainer.py
-                loss = self.loss_criterion(output, label).item()
-                print(f"Sample {i}: validation --- Loss: {loss:12.4f}")
-
-                if self.eval_func is not None:
-                    self.eval_func(output.cpu(), label.cpu(), f'{eval_step}_{i}')
+                #print(output,label)
+                l = self.loss_criterion(output, label).item()
+                loss = loss + l
                 
-                if not self.calc_metrics:
-                    continue
-                prediction = np.around(output.cpu())
-                # confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] +=1
-
-                if np.array_equal(prediction.cpu(), label.cpu()):
-                    if prediction[0][0] == 1:
-                        tp += 1
-                    else: tn += 1
-                else:
-                    if prediction[0][0] == 1:
-                        fp += 1
-                    else: fn += 1
+                if self.classification_evaluator is not None: 
+                    self.classification_evaluator.commit(output.cpu(), label.cpu())
 
                 # print("loss:", l)
                 # print(output.item(), label.item())
 
-            # loss = loss / len(self.validationList)
-            # print(">>> Mean Loss on Eval:", "{:8.4f}".format(loss))
-            if self.calc_metrics:
-                print(">>>True positives:", tp, ">False positives:", fp, ">True negatives:", tn, ">False negatives:", fn)
-                print(">>>Accuracy:", self.__calc_accuracy(tp, fp, tn, fn), ">Precision:", self.__calc_precision(tp, fp, tn, fn), ">Recall:", self.__calc_recall(tp, fp, tn, fn))
-                # print(">>>Confusion matrix:", confusion_matrix)
-# =======
-#                 #print(output,label)
-#                 l = self.loss_criterion(output, label).item()
-#                 loss = loss + l
-                
-#                 if self.classification_evaluator is not None: 
-#                     self.classification_evaluator.commit(output.cpu(), label.cpu())
-
-#                 # print("loss:", l)
-#                 # print(output.item(), label.item())
-
-#             loss = loss / len(self.validationList)
-#             print(">>> Mean Loss on Eval:", "{:8.4f}".format(loss))
+            loss = loss / len(self.validationList)
+            print(">>> Mean Loss on Eval:", "{:8.4f}".format(loss))
             
-#             if self.classification_evaluator is not None:
-#                 self.classification_evaluator.print_metrics() 
-#                 self.classification_evaluator.reset()
+            if self.classification_evaluator is not None:
+                self.classification_evaluator.print_metrics() 
+                self.classification_evaluator.reset()
         
-# >>>>>>> Trainer/Generic_Trainer.py
             self.model.train()
+
 
     
 
@@ -172,14 +137,8 @@ class Master_Trainer():
         torch.save(self.model.state_dict(), savepath)
 
 
-
-    def __calc_recall(self, tp, fp, tn, fn): 
-        return (tp) / max((tp + fn), 0.00000001)
-
-
     def load_model(self, modelpath):
         """Loads the parameters of a previously saved model. See the official PyTorch docs for more details.
->>>>>>> Trainer/Generic_Trainer.py
 
         ARgs: 
             modelpath (string): Path to the stored model.

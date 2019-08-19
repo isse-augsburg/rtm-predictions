@@ -2,11 +2,25 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from os import walk
+from tqdm import tqdm
 
 
 
 class NoSequenceException(Exception):
     pass
+
+def plot_sensorgrid(filename):
+    f = h5py.File(filename, 'r')
+
+    raw_coords_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+    all_coords = raw_coords_as_np_array[:1139, :-1]
+
+    for x, y in tqdm(all_coords):
+        plt.scatter(x, y)
+
+    plt.show()
+
+    
 
 
 # returns a list of all file paths in a root directory including sub-directories
@@ -164,16 +178,7 @@ def get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
     # print("Worked",len(filling_factors_at_certain_times), t_target, filling_percentage)
     return flat_fillings, filling_percentage
 
-def doctest_test(a, b): 
 
-    """
-    Example: 
-        >>> doctest_test(3, 4)
-        7
-    """
-
-    #print("this is a test")
-    return a + b
 
 def plot_sensordata():
     path = ['Y:/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs']
@@ -191,6 +196,5 @@ def plot_sensordata():
 
 
 if __name__ == "__main__":
-    #plot_sensordata()
-    import doctest
-    doctest.testmod()
+    filename = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/39/2019-07-23_15-38-08_39_RESULT.erfh5'
+    plot_sensorgrid(filename)

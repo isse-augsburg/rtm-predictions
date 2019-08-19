@@ -3,8 +3,18 @@ from functools import partial
 from multiprocessing.pool import Pool
 
 from PIL import Image
+import math 
 from pathlib import Path
 import numpy as np
+
+""" 
+>>>> PLEASE NOTE: <<<<
+Evaluation classes must provide three functions even if not all of them have functionality: 
+
+* commit(output, label): updates the evaluation class with a new pair of a single prediction and a single label
+* print_metrics(): prints a set of application-specific print_metrics
+* reset: Resets the internal metrics of an evaluator, e.g. after a evaluation loop is finished.  
+"""
 
 
 def pixel_wise_loss_multi_input_single_label(input, target):
@@ -49,6 +59,7 @@ def save_img(path, _str, x, index):
 
 
 
+
 class Binary_Classification_Evaluator(): 
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
@@ -65,7 +76,11 @@ class Binary_Classification_Evaluator():
             label: single label for the prediction.
         """
 
+        if math.isnan(net_output[0][0]):
+            return 
+
         prediction = np.around(net_output)
+
         self.confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] += 1
 
         if np.array_equal(prediction, label):
