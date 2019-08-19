@@ -20,7 +20,7 @@ class DeconvModel(nn.Module):
         self.shaper = Conv2d(64, 64, 15, padding=7)  # 153
         self.med = Conv2d(64, 32, 7, padding=3)  # 153
         self.details = Conv2d(32, 16, 3)  # 151
-        self.details2 = Conv2d(16, 1, 3)  # 151
+        self.details2 = Conv2d(16, 1, 3, stride=2, padding=1)  # 151
 
     def forward(self, inputs):
         f = F.relu(self.fc(inputs))
@@ -36,4 +36,4 @@ class DeconvModel(nn.Module):
         t3 = F.relu(self.details(t2))
         t4 = torch.sigmoid(self.details2(t3))
         return torch.squeeze(t4, dim=1)
-#target will be 188/150
+

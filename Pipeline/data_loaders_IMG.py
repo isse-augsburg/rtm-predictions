@@ -59,15 +59,20 @@ def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label
 
 
 def normalize_coords(coords):
-    max_c = np.max(coords)
-    min_c = np.min(coords)
-    coords = coords - min_c
-    coords = coords / (max_c - min_c)
+    coords = np.array(coords)
+    max_c = np.max(coords[:,0])
+    min_c = np.min(coords[:,0])
+    coords[:,0] = coords[:,0] - min_c
+    coords[:,0] = coords[:,0] / (max_c - min_c)
+    max_c = np.max(coords[:,1])
+    min_c = np.min(coords[:,1])
+    coords[:,1] = coords[:,1] - min_c
+    coords[:,1] = coords[:,1] / (max_c - min_c)
     return coords
 
 
     #for new data 37.5 and 30.0
-def create_np_image(target_shape=(293, 229), norm_coords=None, data=None, ):
+def create_np_image(target_shape=(148, 116), norm_coords=None, data=None, ):
     if norm_coords is None or data is None:
         print("ERROR")
         return
