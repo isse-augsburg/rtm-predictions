@@ -25,7 +25,7 @@ def get_all_sensor_sequences(file, spacing=25, length=150):
     return l
 
 
-def get_sensordata_and_filling_percentage(file, until=100, frm=0):
+def get_sensordata_and_filling_percentage(file, until=-1, frm=0):
     """
      Args: 
         file (string): File from which the data should be extracted.
