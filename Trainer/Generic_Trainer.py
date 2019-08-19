@@ -44,7 +44,7 @@ class Master_Trainer():
         """ Prints information about the used train config and starts the training of the trainer's model
         """
         self.__print_info()
-        # self.__print_comment()
+        self.__print_comment() 
         self.__train()
         print('Test set missing. So no testing.')
         # self.__eval()

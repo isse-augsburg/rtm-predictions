@@ -24,8 +24,8 @@ import threading
 
 #TODO
 batchsize = 1
-max_Q_len = 32
-epochs = 50
+max_Q_len = 64
+epochs = 100
 
 #path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/']
 #path = ['/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/', '/cfs/share/data/RTM/Lautern/output/with_shapes/2019-04-23_10-23-20_200p']
@@ -46,14 +46,14 @@ epochs = 50
 
 ### DEBUG
 cache_path = None
-data_root = Path('/cfs/share/data/RTM/Lautern/output/with_shapes')
+data_root = Path('/cfs/share/data/RTM/Leoben/output/with_shapes')
 ###
 
 
 
 # paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
 # path = data_root / '2019-05-17_16-45-57_3000p' / '0'
-path = data_root / '2019-06-05_15-30-52_1050p'
+path = data_root / '2019-07-23_15-38-08_5000p'
 # path = data_root / '2019-05-17_16-45-57_3000p'
 paths = [path]
 # =======
@@ -161,11 +161,6 @@ def create_dataGenerator_pressure_sequence():
 
     return generator
 
-
-def get_comment():
-    return "Sensor values are now correctly scaled"
-
-
 def create_datagenerator_flow_front_to_permeabilities(batch_size=1, num_validation_samples=10,
                                                       num_workers=20, max_Q_len=512, epochs=1000):
     try:
@@ -181,6 +176,9 @@ def create_datagenerator_flow_front_to_permeabilities(batch_size=1, num_validati
 
     return generator
 
+def get_comment():
+    return "New sensorgrid. Experimenting with different settings."
+
 
 if __name__ == "__main__":
     
@@ -193,11 +191,11 @@ if __name__ == "__main__":
     print(">>> INFO: Generating Trainer")
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
-    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(gamma=0.5), comment=get_comment(),
-                                  learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
+    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(gamma=0), comment=get_comment(),
+                                  learning_rate=0.0005, classification_evaluator=Binary_Classification_Evaluator())
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()
-    train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
-    print("Model saved.")
+    #train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
+    #print("Model saved.")
    
