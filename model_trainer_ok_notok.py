@@ -24,9 +24,9 @@ import time
 import threading
 
 #TODO
-batchsize = 1
+batchsize = 16
 max_Q_len = 64
-epochs = 100
+epochs = 300
 
 
 
@@ -79,23 +79,20 @@ def create_dataGenerator_single_state():
 
 
 def create_dataGenerator_pressure_sequence():
-    try:
+    
         
-        generator = pipeline.ERFH5_DataGenerator(
-            paths, data_processing_function=dls.get_sensordata_and_filling_percentage,
-            data_gather_function=dg.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=70)
+    generator = pipeline.ERFH5_DataGenerator(
+        paths, data_processing_function=dls.sensorgrid_simulationsuccess,
+        data_gather_function=dg.get_filelist_within_folder,
+        batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=70, cache_path=None)
 
-    except Exception as e:
-        print(">>>ERROR: Fatal Error:", e)
-        exit()
 
     return generator
 
 
 
 def get_comment():
-    return "New sensorgrid. Experimenting with different settings."
+    return "Using 38x30 Sensorgrid as net input"
 
 
 if __name__ == "__main__":
@@ -109,8 +106,8 @@ if __name__ == "__main__":
     print(">>> INFO: Generating Trainer")
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
-    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(gamma=0), comment=get_comment(),
-                                  learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
+    train_wrapper = Master_Trainer(model, generator, train_print_frequency=20, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
+                                  learning_rate=0.0005, classification_evaluator=Binary_Classification_Evaluator())
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()
