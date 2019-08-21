@@ -22,8 +22,7 @@ import time
 import threading
 
 
-data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
-path = data_root / '2019-07-23_15-38-08_5000p'
+data_root = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
 paths = []
 paths.append(data_root / '2019-07-23_15-38-08_5000p')
 paths.append(data_root / '2019-07-24_16-32-40_5000p')
@@ -34,9 +33,9 @@ cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/ca
 def create_dataGenerator_pressure_flowfront():
     try:
         generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=2000,
-                                                 batch_size=16, epochs=50, max_queue_length=8096,
+                                                 batch_size=256, epochs=10, max_queue_length=8096,
                                                  data_processing_function=dli.get_sensordata_and_flowfront,
-                                                 data_gather_function=dg.get_filelist_within_folder, num_workers=4, cache_path=cache_path)
+                                                 data_gather_function=dg.get_filelist_within_folder, num_workers=25, cache_path=None)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -67,8 +66,8 @@ if __name__ == "__main__":
                                    learning_rate=0.0001,
                                    calc_metrics=False,
                                    train_print_frequency=10,
-                                   eval_frequency=100,
-                                   classification_evaluator = Sensor_Flowfront_Evaluator())
+                                   eval_frequency=200,
+                                   classification_evaluator = Sensor_Flowfront_Evaluator(save_path="/cfs/share/cache/output"))
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()

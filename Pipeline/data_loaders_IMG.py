@@ -71,8 +71,8 @@ def normalize_coords(coords):
     return coords
 
 
-    #for new data 37.5 and 30.0
-def create_np_image(target_shape=(148, 116), norm_coords=None, data=None, ):
+    #for new data 38 and 30.0
+def create_np_image(target_shape=(147, 115), norm_coords=None, data=None, ):
     if norm_coords is None or data is None:
         print("ERROR")
         return
