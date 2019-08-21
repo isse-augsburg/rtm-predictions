@@ -13,14 +13,14 @@ class DeconvModel(nn.Module):
         super(DeconvModel, self).__init__()
         self.fc = Linear(input_dim,  1140)
 
-        self.ct1 = ConvTranspose2d(1, 8, 3, stride=2, padding=1)  # 39
-        self.ct2 = ConvTranspose2d(8, 32, 5, stride=2, padding=2)  # 77
-        self.ct3 = ConvTranspose2d(32, 64, 7, stride=2, padding=3)  # 233,297
+        self.ct1 = ConvTranspose2d(1, 16, 3, stride=2, padding=1)  # 39
+        self.ct2 = ConvTranspose2d(16, 64, 7, stride=2, padding=3)  # 77
+        self.ct3 = ConvTranspose2d(64, 128, 15, stride=2, padding=7)  # 233,297
 
-        self.shaper = Conv2d(64, 64, 7, padding=3)  # 153
-        self.med = Conv2d(64, 32, 5, padding=2)  # 153
-        self.details = Conv2d(32, 16, 3)  # 151
-        self.details2 = Conv2d(16, 1, 3, stride=2, padding=1)  # 151
+        self.shaper = Conv2d(128, 128, 15, padding=7)  # 153
+        self.med = Conv2d(128, 64, 7, padding=3)  # 153
+        self.details = Conv2d(64, 32, 3)  # 151
+        self.details2 = Conv2d(32, 1, 3, stride=2, padding=1)  # 151
 
     def forward(self, inputs):
         f = F.relu(self.fc(inputs))

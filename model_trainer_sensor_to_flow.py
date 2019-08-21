@@ -22,17 +22,19 @@ import time
 import threading
 
 
-data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes')
-cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
+data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
 path = data_root / '2019-07-23_15-38-08_5000p'
+paths = []
+paths.append(data_root / '2019-07-23_15-38-08_5000p')
+paths.append(data_root / '2019-07-24_16-32-40_5000p')
+paths.append(data_root / '2019-07-29_10-45-18_5000p')
 
-paths = [path]
-
+cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
 
 def create_dataGenerator_pressure_flowfront():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=1000,
-                                                 batch_size=32, epochs=50, max_queue_length=8096,
+        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=2000,
+                                                 batch_size=16, epochs=50, max_queue_length=8096,
                                                  data_processing_function=dli.get_sensordata_and_flowfront,
                                                  data_gather_function=dg.get_filelist_within_folder, num_workers=4, cache_path=cache_path)
     except Exception as e:
