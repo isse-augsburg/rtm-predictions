@@ -1,0 +1,20 @@
+from HDF5DB import HDF5DB
+from HDF5Object import HDF5Object
+
+def main():
+  test = HDF5DB()
+  #test2 = HDF5Object("Data/0") #/2019-07-23_15-38-08_0
+  #test.addObject(test2)
+  test.addObjectsFromPath("Data")
+  test.save()
+  test.load()
+  test.showSelectionOptions()
+  #test.showObjects()
+  #test.select("age", "2019-07-23_15-38-05", ">")
+  #test.select("outputFrequencyType", 1, ">")
+  #test.select("fibreContentRunners", -0.7, "=")
+  #test.select("widthRectangle", 3.0, "=")
+  test.showObjects()
+  
+if __name__== "__main__":
+    main()
