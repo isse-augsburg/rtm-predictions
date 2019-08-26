@@ -85,8 +85,8 @@ def create_np_image(target_shape=(147, 115), norm_coords=None, data=None, ):
     coords_value[:, 0] = coords_value[:, 0] * (target_shape[0] - 1)
     coords_value[:, 1] = coords_value[:, 1] * (target_shape[1] - 1)
     coords_value[:, 2] = coords_value[:, 2]
-    coords_value = coords_value.astype(np.int)
-    arr[coords_value[:, 0], coords_value[:, 1]] = coords_value[:, 2]
+    #coords_value = coords_value.astype(np.int)
+    arr[coords_value[:, 0].astype(np.int), coords_value[:, 1].astype(np.int)] = coords_value[:, 2]
 
     return arr
 
@@ -224,4 +224,4 @@ def get_image_percentage(folder):
 
 
 if __name__ == "__main__":
-    get_images_of_flow_front_and_permeability_map(Path(r'C:\Test\Share\Data\ERFH5_Test_File\2019-06-07_13-48-28_14_RESULT.erfh5'))
+    get_sensordata_and_flowfront(Path(r'/home/schroeter/Desktop/2019-08-24_11-51-48_3_RESULT.erfh5'))

@@ -27,7 +27,7 @@ if os.name != 'nt':
     data_root = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
     batch_size = 256
     eval_freq = math.ceil(num_data_points / batch_size)
-    save_path = "/cfs/share/cache/output_simon"
+    save_path = "/cfs/share/cache/output_niklas"
 else:
     data_root = Path(r'X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes')
     batch_size = 1
@@ -48,7 +48,7 @@ def create_dataGenerator_pressure_flowfront():
         generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=2000,
                                                  batch_size=batch_size, epochs=10, max_queue_length=8096,
                                                  data_processing_function=dli.get_sensordata_and_flowfront,
-                                                 data_gather_function=dg.get_filelist_within_folder, num_workers=25, cache_path=None)
+                                                 data_gather_function=dg.get_filelist_within_folder, num_workers=18, cache_path=None)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
