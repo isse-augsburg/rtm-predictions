@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 
 class ERFH5_RNN(nn.Module):
-    def __init__(self, input_dim, hidden_dim=512, batch_size=8, num_layers=1):
+    def __init__(self, input_dim, hidden_dim=1024, batch_size=8, num_layers=4):
         super(ERFH5_RNN, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
@@ -22,11 +22,11 @@ class ERFH5_RNN(nn.Module):
         self.hidden2hidden4 = nn.Linear(300, 150)
         self.hidden2hidden5 = nn.Linear(150, 50)
         self.hidden2value = nn.Linear(50, 1)
-        self.drop = nn.Dropout(0.5)
+        self.drop = nn.Dropout(0.0)
         self.init_weights()
 
     def init_weights(self):
-        initrange = 1
+        initrange = 0.1
 
         self.hidden2hidden1.bias.data.fill_(0)
         self.hidden2hidden1.weight.data.uniform_(-initrange, initrange)
@@ -75,19 +75,21 @@ class ERFH5_RNN(nn.Module):
 
 
 class ERFH5_Pressure_CNN(nn.Module):
-    def __init__(self):
+    def __init__(self, input_channels=200):
         super(ERFH5_Pressure_CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 8, (1, 7), dilation=1)
-        self.conv2 = nn.Conv2d(8, 16, (1, 5))
-        self.conv3 = nn.Conv2d(16, 32, (1, 7))
-        self.conv4 = nn.Conv2d(32, 64, (1, 5))
+        self.input_channels = input_channels
+
+        self.conv1 = nn.Conv2d(self.input_channels, 256, (5, 5), dilation=1)
+        self.conv2 = nn.Conv2d(256, 512, (3, 3))
+        self.conv3 = nn.Conv2d(512, 1024, (5, 5))
+        
         self.pool = nn.MaxPool2d((2, 2), (2, 2))
-        self.drop = nn.Dropout(0.5)
+        self.drop = nn.Dropout(0.0)
 
     def forward(self, x):
-        out = torch.unsqueeze(x, 1)
-        out = self.conv1(out)
-        out = self.pool(out)
+        
+        out = self.conv1(x)
+        #out = self.pool(out)
         out = self.drop(out)
         out = self.conv2(out)
         out = self.pool(out)
@@ -101,11 +103,12 @@ class ERFH5_PressureSequence_Model(nn.Module):
     def __init__(self):
         super(ERFH5_PressureSequence_Model, self).__init__()
         self.cnn = ERFH5_Pressure_CNN()
-        self.rnn = ERFH5_RNN(input_dim=8800)
+        self.rnn = ERFH5_RNN(input_dim=96)
 
     def forward(self, x):
+        x = x.permute(0, 3, 1, 2)
         out = self.cnn(x)
-        out = out.permute(0, 2, 1, 3)
+        
         out = out.reshape((out.size()[0], out.size()[1], -1))
         out = self.rnn(out)
         return out

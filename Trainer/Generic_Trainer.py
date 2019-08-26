@@ -101,9 +101,9 @@ class Master_Trainer():
         with torch.no_grad():
             self.model.eval()
             loss = 0
-            for i, sample in enumerate(self.validationList):
-                data = sample[0].to(self.device)
-                label = sample[1].to(self.device)
+            for i, (data, label) in enumerate(self.validationList):
+                data = data.to(self.device)
+                label = label.to(self.device)
                 data = torch.unsqueeze(data, 0)
                 label = torch.unsqueeze(label, 0)
                 output = self.model(data)

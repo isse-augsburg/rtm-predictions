@@ -14,3 +14,9 @@ Pull requests to master will only be accepted with proper testing.
 # Documentation
 Add documentation to your code: See `Pipeline/erfh5_pipeline.py` as reference.
 We use the [sphinx package](http://www.sphinx-doc.org/en/master/) for the creation of the documentation.
+
+# Checklist before merging
+- Make sure your code works
+- Test not only your model, but at least two others to make sure you did not wreck the pipeline
+- Test your model on the DGX
+- Merge

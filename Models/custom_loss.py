@@ -20,10 +20,11 @@ def focal_loss(p, y):
     return fl 
 
 class FocalLoss(nn.Module):
-    def __init__(self, gamma=1, reduction='sum'):
+    def __init__(self, gamma=1, reduction='sum', pt_epsilon=0.0001):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
         self.reduction = reduction
+        self.pt_epsilon = pt_epsilon
 
 
     def forward(self, p, y): 
@@ -31,7 +32,7 @@ class FocalLoss(nn.Module):
         y = y[:,0]
         pt = torch.where(y==1.0, p, 1-p)
 
-        ce = -1 * torch.log(pt)
+        ce = -1 * torch.log(pt + self.pt_epsilon)
         fl = (1 - pt)**self.gamma * ce 
 
         if self.reduction == 'sum':
@@ -61,7 +62,7 @@ if __name__ == "__main__":
 
 
 
-    print(focalloss)
+    print(fl)
     
     
 
