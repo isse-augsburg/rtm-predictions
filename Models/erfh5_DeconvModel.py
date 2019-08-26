@@ -18,7 +18,7 @@ class DeconvModel(nn.Module):
         self.ct3 = ConvTranspose2d(32, 64, 15, stride=2, padding=7)  
         self.ct4 = ConvTranspose2d(64, 128, 17, stride=2, padding=8)
         
-        self.shaper0 = Conv2d(128,64,17, stride = 2, padding=8)
+        self.shaper0 = Conv2d(128, 64, 17, stride=2, padding=8)
         self.shaper = Conv2d(64, 32, 15, stride=2, padding=7)  
         self.med = Conv2d(32, 32, 7, padding=3) 
         self.details = Conv2d(32, 32, 3) 

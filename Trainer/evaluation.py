@@ -62,16 +62,16 @@ class Sensor_Flowfront_Evaluator():
     def __init__(self, save_path ="/home/schroeter/Desktop/output"):
         self.num = 0
         self.save_path = save_path
+
     def commit(self, net_output, label):
         a = net_output.numpy()
         a = np.squeeze(a)
         b = label.numpy()
         b = np.squeeze(b)
 
-        plt.imsave(self.save_path+"/"+str(self.num)+"out.jpg", a)
-        plt.imsave(self.save_path+"/"+str(self.num)+"lab.jpg", b)
+        plt.imsave(Path(self.save_path) / Path(str(self.num) + "out.jpg"), a)
+        plt.imsave(Path(self.save_path) / Path(str(self.num) + "lab.jpg"), b)
 
-        
         self.num +=1
         pass
 
