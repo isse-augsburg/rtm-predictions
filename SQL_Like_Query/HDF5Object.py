@@ -4,6 +4,7 @@ import regex as re
 import glob
 from datetime import datetime
 from prettytable import PrettyTable
+import os
 
 
 class HDF5Object:
@@ -28,11 +29,11 @@ class HDF5Object:
         self.fibreContentRectangles = m["perturbation_factors/Shapes/Rectangles/Fiber_Content"][()]
         self.fibreContentRunners = m["perturbation_factors/Shapes/Runners/Fiber_Content"][()]
 
-        self.fvcCircle = m["shapes/Circle/fvc"][()]
-        self.radiusCircle = m["shapes/Circle/radius"][()]
-        self.fvcRectangle = m["shapes/Rectangle/fvc"][()]
-        self.heightRectangle = m["shapes/Rectangle/height"][()]
-        self.widthRectangle = m["shapes/Rectangle/width"][()]
+        self.fvcCircle = np.array(m["shapes/Circle/fvc"][()])
+        self.radiusCircle = np.array(m["shapes/Circle/radius"][()])
+        self.fvcRectangle = np.array(m["shapes/Rectangle/fvc"][()])
+        self.heightRectangle = np.array(m["shapes/Rectangle/height"][()])
+        self.widthRectangle = np.array(m["shapes/Rectangle/width"][()])
         m.close()
 
         #Results
@@ -42,8 +43,11 @@ class HDF5Object:
 
         r = h5py.File(self.resultPath, 'r')
 
+        temp = ""
         for key in r["post/singlestate"].keys():
             temp = key
+        while not ("post/singlestate/" + temp + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res" in r):
+            temp = self.decrement(temp)
         temp = r["post/singlestate/" + temp + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()]
         self.avgLevel = np.sum(temp) / len(temp) 
 
@@ -53,7 +57,16 @@ class HDF5Object:
         #self.model
         r.close()
         #print(self.level)
-        
+
+    def decrement(self, s):
+        lastNum = re.compile(r'(?:[^\d]*(\d+)[^\d]*)+')
+        m = lastNum.search(s)
+        if m:
+            next = str(int(m.group(1))-1)
+            start, end = m.span(1)
+            s = s[:max(end-len(next), start)] + next + s[end:]
+        return s
+
     def showObjectContent(self):
         x = PrettyTable()
         x.field_names = ["Metaparameters", "Metadata"]
