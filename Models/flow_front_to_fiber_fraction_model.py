@@ -86,9 +86,7 @@ class Flowfront_CNN(nn.Module):
 class FlowfrontToFiberfractionModel(nn.Module):
     def __init__(self):
         super(FlowfrontToFiberfractionModel, self).__init__()
-        print('>>> INFO: Generating CNN')
         self.cnn = Flowfront_CNN()
-        print('>>> INFO: Generating RNN')
         self.rnn = FlowfrontFeatures_RNN(input_dim=625)
 
     def forward(self, x):

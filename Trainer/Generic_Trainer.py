@@ -1,9 +1,11 @@
+import logging
+from pathlib import Path
+
 import torch
 import time
 from Pipeline import erfh5_pipeline
 from collections import OrderedDict
 import numpy as np 
-import math
 
 
 class Master_Trainer():
@@ -14,13 +16,13 @@ class Master_Trainer():
         generator: ERFH5_DataGenerator that provides the data.
         loss_criterion: Loss criterion for training.
         train_print_frequency: Frequency of printing the current loss, in iterations. 
-        eval_frequenxy: Frequency of running a evaluation frequency on held out validation set, in iterations. 
+        eval_frequency: Frequency of running a evaluation frequency on held out validation set, in iterations.
         comment: Optional message that is printed to the command line, helps with understanding your experiments afterwards
         learning_rate: Optimizer's learning rate 
         classification_evaluator: Optional object for evaluating classification, see evaluation.py for more details 
     """
     def __init__(self, model, generator: erfh5_pipeline.ERFH5_DataGenerator, loss_criterion=torch.nn.MSELoss(),
-                 train_print_frequency=10, eval_frequency=100, savepath="model.pth", eval_func=None,
+                 train_print_frequency=10, eval_frequency=100, savepath=Path("model.pth"), eval_func=None,
                  comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False, classification_evaluator=None):
         self.validationList = generator.get_validation_samples()
         self.model = model
@@ -37,6 +39,8 @@ class Master_Trainer():
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
         self.classification_evaluator = classification_evaluator
+        self.best_loss = np.finfo(float).max
+        self.logger = logging.getLogger(__name__)
 
     def start_training(self):
         """ Prints information about the used train config and starts the training of the trainer's model
@@ -44,24 +48,24 @@ class Master_Trainer():
         self.__print_info()
         self.__print_comment() 
         self.__train()
-        print('Test set missing. So no testing.')
+        self.logger.info('Test set missing. So no testing.')
         # self.__eval()
-        print(">>> INFO: TRAINING COMPLETE.")
+        self.logger.info(">>> INFO: TRAINING COMPLETE.")
     
     def __print_info(self): 
-        print("###########################################")
-        print(">>> Model Trainer INFO <<<")
-        print("Loss criterion:", self.loss_criterion)
-        print("Optimizer:", self.optimizer)
-        print("Learning rate:", self.learning_rate)
-        print("Evaluation frequency:", self.eval_frequency)
-        print("Model:", self.model)
-        print("###########################################")
+        self.logger.info("###########################################")
+        self.logger.info(">>> Model Trainer INFO <<<")
+        self.logger.info(f"Loss criterion: {self.loss_criterion}")
+        self.logger.info(f"Optimizer: {self.optimizer}")
+        self.logger.info(f"Learning rate: {self.learning_rate}")
+        self.logger.info(f"Evaluation frequency: {self.eval_frequency}")
+        self.logger.info(f"Model: {self.model}")
+        self.logger.info("###########################################")
 
     def __print_comment(self):
-        print("###########################################")
-        print(self.comment)
-        print("###########################################")
+        self.logger.info("###########################################")
+        self.logger.info(self.comment)
+        self.logger.info("###########################################")
 
     def __train(self):
         start_time = time.time()
@@ -82,8 +86,7 @@ class Master_Trainer():
             if i % self.train_print_frequency == 0 and i != 0:
                 time_delta = time.time() - start_time
                 time_sum += time_delta
-                # print(time_sum, i)
-                print(f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds; avg: {time_sum / i_of_epoch:10.2f}|| Q: {self.generator.get_current_queue_length()}")
+                self.logger.info(f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds; avg: {time_sum / i_of_epoch:10.2f}|| Q: {self.generator.get_current_queue_length()}")
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
@@ -93,7 +96,6 @@ class Master_Trainer():
                 i_of_epoch = 0
 
     def __eval(self, eval_step=0):
-
         """Evaluators must have a commit, print and reset function. commit updates the evaluator with the current step,
             print can show all relevant stats and reset resets the internal structure if needed." 
         """
@@ -107,37 +109,39 @@ class Master_Trainer():
                 data = torch.unsqueeze(data, 0)
                 label = torch.unsqueeze(label, 0)
                 output = self.model(data)
-                #print(output,label)
                 l = self.loss_criterion(output, label).item()
                 loss = loss + l
                 
                 if self.classification_evaluator is not None: 
                     self.classification_evaluator.commit(output.cpu(), label.cpu())
 
-                # print("loss:", l)
-                # print(output.item(), label.item())
-
             loss = loss / len(self.validationList)
-            print(">>> Mean Loss on Eval:", "{:8.4f}".format(loss))
+            self.logger.info(f">>> {eval_step} Mean Loss on Eval: {loss:8.4f}")
             
             if self.classification_evaluator is not None:
                 self.classification_evaluator.print_metrics() 
                 self.classification_evaluator.reset()
         
             self.model.train()
+            if loss < self.best_loss:
+                torch.save({
+                        'epoch': eval_step,
+                        'model_state_dict': self.model.state_dict(),
+                        'optimizer_state_dict': self.optimizer.state_dict(),
+                        'loss': loss
+                    }, self.savepath / Path('checkpoint.pth'))
+                self.best_loss = loss
 
+    # deprecated?
+    def save_model(self):
+        """Saves the model.
 
-    
-
-    def save_model(self, savepath):
-        """Saves the model. 
-
-        Args: 
-            savepath (string): Path and filename to the model, eg 'model.pt' 
+        Args:
+            savepath (string): Path and filename to the model, eg 'model.pt'
         """
-        torch.save(self.model.state_dict(), savepath)
+        torch.save(self.model.state_dict(), self.savepath / Path('model.pth'))
 
-
+    # deprecated?
     def load_model(self, modelpath):
         """Loads the parameters of a previously saved model. See the official PyTorch docs for more details.
 
@@ -151,3 +155,20 @@ class Master_Trainer():
             new_state_dict[name] = v
         # load params   
         self.model.load_state_dict(new_state_dict)
+
+    def load_checkpoint(self, path):
+        """Loads the parameters of a previously saved model and optimizer, loss and epoch.
+        See the official PyTorch docs for more details:
+        https://pytorch.org/tutorials/beginner/saving_loading_models.html
+
+        ARgs:
+            path (string): Path to the stored checkpoint.
+        """
+
+        checkpoint = torch.load(path)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch']
+        loss = checkpoint['loss']
+
+        return epoch, loss

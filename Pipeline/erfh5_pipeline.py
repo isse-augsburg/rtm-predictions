@@ -1,3 +1,5 @@
+import logging
+
 from Pipeline import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
 #import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
 import threading
@@ -131,7 +133,7 @@ class ERFH5_DataGenerator():
         self.num_workers = num_workers
         self.data_function = data_processing_function
         self.data_gather = data_gather_function
-        self.cache_path=None
+        self.cache_path = None
         self.cache_path_flist = None
         if cache_path is not None:
             self.cache_path = Path(cache_path).joinpath(self.data_function.__name__)
@@ -144,49 +146,48 @@ class ERFH5_DataGenerator():
                 "No data processing or reading function specified!")
 
         self.data_dict = dict()
-        print(">>> Generator: Gathering Data...")
+        self.logger = logging.getLogger(__name__)
+        self.logger.info(">>> Generator: Gathering Data...")
         self.paths = []
         for path in self.data_paths:
             if self.cache_path_flist is not None:
                 path_name = path.split("/")[-1]
                 file = self.cache_path_flist.joinpath(path_name)
-                if(os.path.isfile(file)):
+                if os.path.isfile(file):
                     self.paths.extend(pickle.load(open(file, "rb")))
                     continue
                 else:
                     gatherd = self.data_gather(path)
-                    pickle.dump(gatherd,open(file,"wb"))
+                    pickle.dump(gatherd, open(file, "wb"))
                     self.paths.extend(gatherd)
             else:
                 gatherd = self.data_gather(path)
                 self.paths.extend(gatherd)
-            
-        
 
         self.paths = self.paths
         if len(self.paths) > 1:
             random.shuffle(self.paths)
         clear_last_line()
-        print(">>> Generator: Gathering Data... Done.")
+        self.logger.info(">>> Generator: Gathering Data... Done.")
         self.batch_queue = Thread_Safe_List()
         self.path_queue = Thread_Safe_List()
         self.validation_list = []
         self.test_list = []
         self.barrier = threading.Barrier(self.num_workers)
         
-        print(">>> Generator: Filling Validation List...")
+        self.logger.info(">>> Generator: Filling Validation List...")
         self.__fill_validation_list()
         clear_last_line()
-        print(">>> Generator: Filling Validation List... Done.")
+        self.logger.info(">>> Generator: Filling Validation List... Done.")
 
-        print(">>> Generator: Filling Path Queue...")
+        self.logger.info(">>> Generator: Filling Path Queue...")
         try:
             self.__fill_path_queue()
         except Exception as e:
             raise e
         clear_last_line()
         
-        print(">>> Generator: Filling Path Queue... Done.")
+        self.logger.info(">>> Generator: Filling Path Queue... Done.")
         
         self.__print_info()
         
@@ -197,7 +198,7 @@ class ERFH5_DataGenerator():
         self.t_shuffle.start()
 
     def __shuffle_batch_queue(self):
-        while(len(self.path_queue) > self.batch_size or len(self.batch_queue) > self.batch_size):
+        while len(self.path_queue) > self.batch_size or len(self.batch_queue) > self.batch_size:
             self.batch_queue.randomise()
             time.sleep(10)
 
@@ -219,19 +220,19 @@ class ERFH5_DataGenerator():
         return self.batch_queue.__len__()
 
     def __print_info(self):
-        print("###########################################")
-        print(">>> Generator INFO <<<")
-        print("Used data folders:", self.data_paths)
-        print("Used data gather function:", self.data_gather)
-        print("Used data processing function:", self.data_function)
-        print("Number of epochs:", self.epochs)
-        print("Batchsize:", self.batch_size)
-        print("Number of unique samples:", len(self.paths))
-        print("Number of total samples:", self.__len__())
-        print("Number of validation samples:", self.num_validation_samples)
-        print("###########################################")
-
-
+        self.logger.info("###########################################")
+        self.logger.info(">>> Generator INFO <<<")
+        self.logger.info(f"Used data folders:")
+        for e in self.data_paths:
+            self.logger.info(e)
+        self.logger.info(f"Used data gather function: {self.data_gather}")
+        self.logger.info(f"Used data processing function: {self.data_function}")
+        self.logger.info(f"Number of epochs: {self.epochs}")
+        self.logger.info(f"Batchsize: {self.batch_size}")
+        self.logger.info(f"Number of unique samples: {len(self.paths)}")
+        self.logger.info(f"Number of total samples: {self.__len__()}")
+        self.logger.info(f"Number of validation samples: {self.num_validation_samples}")
+        self.logger.info("###########################################")
 
     def __fill_validation_list(self):
         if len(self.paths) == 0:
@@ -245,7 +246,7 @@ class ERFH5_DataGenerator():
             if self.cache_path is not None:
                 s_path = Path(sample)
                 s_path = self.cache_path.joinpath(s_path.stem)
-                if(s_path.exists()):
+                if s_path.exists():
                     instance_f = s_path.glob("*.pt")
                     instance_f = sorted(instance_f)
                     for i in range(len(instance_f)//2):
@@ -256,8 +257,6 @@ class ERFH5_DataGenerator():
                 else:
                     s_path.mkdir(parents=True, exist_ok=True)
                 
-                   
-           
             instance = self.data_function(sample)
             
             # data_function must return [(data, label) ... (data, label)]
@@ -269,29 +268,23 @@ class ERFH5_DataGenerator():
                     assert isinstance(i, tuple) and len(i) == 2,"The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
         
                 for num, i in enumerate(instance):
-                    data, label = torch.FloatTensor(
-                        i[0]), torch.FloatTensor(i[1])
+                    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                     self.validation_list.append((data, label))
                     if s_path is not None:
                         torch.save(data, s_path.joinpath(str(num)+"-data"+ ".pt"))
                         torch.save(label, s_path.joinpath(str(num)+"-label"+ ".pt"))
 
-
-
     def __fill_batch_queue(self):
         
         while len(self.batch_queue) < self.max_queue_length:
             s_path = None
-            if(len(self.path_queue) < self.batch_size):
-               # print(">>>INFO: Thread ended - At Start")
+            if len(self.path_queue) < self.batch_size:
                 return
            
             file = self.path_queue.get(1)
             if file is None:
-               # print(">>>INFO: Thread ended - At File")
-                return 
+                return
             file = file[0]
-            
 
             if file in self.data_dict:
                 instance = self.data_dict[file]
@@ -305,7 +298,7 @@ class ERFH5_DataGenerator():
                 if self.cache_path is not None:
                     s_path = Path(file)
                     s_path = self.cache_path.joinpath(s_path.stem)
-                    if(s_path.exists()):
+                    if s_path.exists():
                         instance_f = s_path.glob("*.pt")
                         instance_f = sorted(instance_f)
                         instance = []
@@ -321,7 +314,6 @@ class ERFH5_DataGenerator():
                         s_path.mkdir(parents=True, exist_ok=True)
 
                 instance = self.data_function(file)
-                
 
                 if instance is None:
                     self.data_dict[file] = None
@@ -343,42 +335,32 @@ class ERFH5_DataGenerator():
                     self.batch_queue.put_batch(tensor_instances)
                     self.data_dict[file] = tensor_instances
 
-        
-        #print(">>>INFO: Thread ended - At End")
-
-
-
-
     def __iter__(self):
         return self
 
     def __next__(self):
-        if(len(self.path_queue) < self.batch_size and len(self.batch_queue) < self.batch_size):
+        if len(self.path_queue) < self.batch_size and len(self.batch_queue) < self.batch_size:
             raise StopIteration
         
-        while(len(self.batch_queue) < self.batch_size):
-            if(len(self.path_queue) < self.batch_size):
+        while len(self.batch_queue) < self.batch_size:
+            if len(self.path_queue) < self.batch_size:
                 raise StopIteration
             time.sleep(0.1)
         batch = self.batch_queue.get(self.batch_size)
         if len(self.batch_queue) < self.max_queue_length/4:
             if threading.active_count() < self.num_workers + 1 and len(self.path_queue) > self.batch_size:
-                #print("Starting new Threads", threading.active_count())
-            
+
                 for _ in range(self.num_workers):
                     t_batch = threading.Thread(target=self.__fill_batch_queue)
                     t_batch.start()
             
-
         data = [i[0] for i in batch]
         labels = [i[1] for i in batch]
         
-        # FIXME does not work for batchsize > 1 if sizes of data are different - NS: This is not a bug, this is intended.
+        # FIXME does not work for batchsize > 1 if sizes of data are different - NS: This is not a bug, this is intended -> FIX TBD in dataloader
         data = torch.stack(data)
         labels = torch.stack(labels)
         return data, labels
-
-   
 
     def __len__(self):
         return self.epochs * len(self.paths)

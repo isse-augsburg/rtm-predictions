@@ -1,3 +1,5 @@
+import logging
+
 import h5py
 import numpy as np
 # from PIL import Image
@@ -81,7 +83,9 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
     try:
         f = h5py.File(filename, 'r')
     except OSError:
-        print(">>> ERROR: FILE", filename, "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
+        logger = logging.getLogger(__name__)
+        logger.addHandler(logging.StreamHandler())
+        logger.error(">>> ERROR: FILE", filename, "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
         return None
 
     all_states = f['post']['singlestate']
