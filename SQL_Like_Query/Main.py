@@ -6,6 +6,7 @@ def main():
   #test2 = HDF5Object("Data/0") #/2019-07-23_15-38-08_0
   #test.addObject(test2)
   test.addObjectsFromPath("Data")
+  #test.showObjects()
   test.save("Data", "HDF5DB")
   test.load("Data", "HDF5DB")
   test.showSelectionOptions()
@@ -18,3 +19,9 @@ def main():
   
 if __name__== "__main__":
     main()
+
+#ToDo:
+#       Testklasse für HDF5DB sowie HDF5Object
+#       Comments
+#       Add x,y
+#       Check paths in erfh5 and hdf5
