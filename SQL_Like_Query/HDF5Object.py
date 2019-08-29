@@ -8,16 +8,10 @@ import os
 
 
 class HDF5Object:
-    def __init__(self, path):
-        meta = "_meta_data.hdf5"
-        result = "_RESULT.erfh5"
-
+    def __init__(self, metaPath, resultPath):
         #Metadata
-        self.metaPath = ""
-        for file in glob.glob(path+"/*.hdf5"):
-            self.metaPath = file
-
-        m = h5py.File(self.metaPath, 'r')
+        m = h5py.File(metaPath, 'r')
+        self.metaPath = metaPath
         self.outputFrequencyType = m["output_frequency_type"][()]
 
         self.generalSigma = m["perturbation_factors/General_Sigma"][()]
@@ -37,11 +31,8 @@ class HDF5Object:
         m.close()
 
         #Results
-        self.resultPath = ""
-        for file in glob.glob(path+"/*.erfh5"):
-            self.resultPath = file
-
-        r = h5py.File(self.resultPath, 'r')
+        r = h5py.File(resultPath, 'r')
+        self.resultPath = resultPath
 
         temp = ""
         for key in r["post/singlestate"].keys():
@@ -51,7 +42,7 @@ class HDF5Object:
         temp = r["post/singlestate/" + temp + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()]
         self.avgLevel = np.sum(temp) / len(temp) 
 
-        self.age = datetime.strptime(re.search("([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})", self.resultPath).group(1), '%Y-%m-%d_%H-%M-%S')
+        self.age = datetime.strptime(re.search("([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})", resultPath).group(1), '%Y-%m-%d_%H-%M-%S')
         self.numberOfSensors = np.shape(r["post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"][()])[1]
         #self.sensorgrid
         #self.model
@@ -97,8 +88,6 @@ class HDF5Object:
         y.add_row(["Number_Sensors", str(self.numberOfSensors)])
         print(x)
         print(y)
-        #print("" + self.sensorgrid)
-        #print("" + self.model)
     
 #test = HDF5Object("Data/2019-07-23_15-38-08_0")
 #test.showObjectContent()

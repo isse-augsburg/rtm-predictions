@@ -1,16 +1,16 @@
-import h5py
-import pickle
 import os
-import regex as re
+import pickle
 from datetime import datetime
-from prettytable import PrettyTable
-from glob import glob
+from pathlib import Path
+
+import h5py
 import numpy as np
+import regex as re
+from prettytable import PrettyTable
+
 from HDF5Object import HDF5Object
 
-#ToDo:
-#       Testklasse für HDF5DB sowie HDF5Object
-#       pathlib
+
 class HDF5DB:
     def __init__(self):
         self.hdf5ObjectList = []
@@ -20,19 +20,20 @@ class HDF5DB:
             self.hdf5ObjectList.append(object)
 
     def addObjectsFromPath(self, path):
-        if(os.path.exists(path)):
-            for folder in os.listdir(path):            
-                for hdf5File in glob(path + "/" + folder + "/*.hdf5"):
-                    for erfh5File in glob(path + "/" + folder + "/*.erfh5"):
-                        # Check that only *.hdf5 and *.erfh5 files will be opened
-                        if (h5py.is_hdf5(hdf5File) and h5py.is_hdf5(erfh5File)):
-                            #print(path + "/" + folder)
-                            self.hdf5ObjectList.append(HDF5Object(path + "/" + folder))
-                            
-                    if not (h5py.is_hdf5(hdf5File)):
-                        print(hdf5File + " is corrupt!\nThe file has been skipped.")                                                                                                            #"There is one or more corrupt files in " + path + "/" + folder + "!\n" + "The folder has been skipped.")
-                    if not (h5py.is_hdf5(erfh5File)):
-                        print(erfh5File + " is corrupt!\nThe file has been skipped.")
+        dirpath = Path(path)
+        if(dirpath.is_dir()):
+            hdf5File = dirpath.cwd().rglob("**/*.hdf5")
+            for i in hdf5File:
+                # Check that only *.hdf5 and *.erfh5 files will be opened
+                hdf5Path = i.relative_to(r'/home/hartmade/rtm-predictions/SQL_Like_Query').as_posix()
+                if(h5py.is_hdf5(hdf5Path)):
+                    erfh5File = Path(str(i).replace("meta_data.hdf5", "RESULT.erfh5"))
+                    if(erfh5File.exists()):
+                        self.hdf5ObjectList.append(HDF5Object(hdf5Path, erfh5File.as_posix()))
+                    else:
+                        print(erfh5File.as_posix() + " does not exist. Folder will be skipped.")
+                else:
+                    print(hdf5Path + " does not exist. Folder will be skipped.")
             print(str(len(self.hdf5ObjectList)) + " Objects have been added.")
         else:
             print("The path " + path + " does not exist! No objects were added!")
@@ -61,7 +62,6 @@ class HDF5DB:
                     self.selected.append(obj)
                 elif (variable == "fibreContentRunners" and np.amin(obj.fibreContentRunners) <= value and np.amax(obj.fibreContentRunners) >= value):
                     self.selected.append(obj)
-                    #print("Min: " + str(np.amin(obj.fibreContentRunners)) + ", Max: " + str(np.amax(obj.fibreContentRunners)))
                 elif (variable == "fvcCircle" and value in obj.fvcCircle):
                     self.selected.append(obj)
                 elif (variable == "radiusCircle" and value in obj.radiusCircle):
@@ -70,7 +70,7 @@ class HDF5DB:
                     self.selected.append(obj)
                 elif (variable == "heightRectangle" and value in obj.heightRectangle):
                     self.selected.append(obj)
-                elif (variable == "widthRectangle" and value in obj.widthRectangle):#np.isin(value, obj.widthRectangle)):
+                elif (variable == "widthRectangle" and value in obj.widthRectangle):
                     self.selected.append(obj)
                 elif (variable == "resultPath" and obj.resultPath == value):
                     self.selected.append(obj)
@@ -205,19 +205,20 @@ class HDF5DB:
             print("No objects were found.")
 
     def save(self, path, filename="HDF5DB"):
-        if(os.path.exists(path)):
+        dirpath = Path(path)
+        if(dirpath.is_dir()):
             if not(len(self.hdf5ObjectList) == 0):
-                if(os.path.isfile(path + "/" + filename + ".h5db")):
-                    print(filename + " will be overwritten. Do you want to continue?\nPlease type in yes to continue.")
+                file = Path(filename + r'.h5db')
+                h5dbPath = dirpath / file
+                if(h5dbPath.is_file()):
+                    print("A file with the given name already exists. " + filename + " will be overwritten. Do you want to continue?\nPlease type in yes to continue.")
                     userinput = input("")
                     if not(userinput == "yes"):
                         print("Nothing has been saved.")
                         return
                     else:
-                        print(filename + " will be overwritten.")
-                if not(path == ""):
-                    path = path + "/"                
-                outfile = open(path + filename +  ".h5db", "wb" )
+                        print(filename + " will be overwritten.")        
+                outfile = open(dirpath / file, "wb" )
                 pickle.dump(self.hdf5ObjectList, outfile)
                 outfile.close()
                 print("HDF5DB saved")
@@ -227,10 +228,10 @@ class HDF5DB:
             print(path + " does not exist! Nothing was saved!")
 
     def load(self, path, filename="HDF5DB"):
-        if not(path == ""):
-            path = path + "/"
-        if(os.path.isfile(path + filename + ".h5db")):
-            infile = open(path + "HDF5DB.h5db", "rb" )
+        dirpath = Path(path)
+        h5dbPath = dirpath / Path(filename + str(".h5db"))
+        if(h5dbPath.is_file()):
+            infile = open(dirpath / "HDF5DB.h5db", "rb" )
             self.hdf5ObjectList = pickle.load(infile)
             infile.close()
             print("HDF5DB loaded")
