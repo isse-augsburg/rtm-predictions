@@ -1,6 +1,7 @@
 from HDF5DB import HDF5DB
 from HDF5Object import HDF5Object
 
+
 def main():
   test = HDF5DB()
   #test2 = HDF5Object("Data/0") #/2019-07-23_15-38-08_0
@@ -14,14 +15,11 @@ def main():
   #test.select("age", "2019-07-23_15-38-05", ">")
   #test.select("outputFrequencyType", 1, ">")
   #test.select("fibreContentRunners", -0.7, "=")
-  test.select("widthRectangle", 6, "<")
+  #test.select("widthRectangle", 6, "<")
   test.showObjects()
-  
-if __name__== "__main__":
+
+if(__name__ == "__main__"):
     main()
 
-#ToDo:
+#TODO:
 #       Testklasse für HDF5DB sowie HDF5Object
-#       Comments
-#       Add x,y
-#       Check paths in erfh5 and hdf5

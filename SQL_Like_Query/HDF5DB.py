@@ -22,18 +22,18 @@ class HDF5DB:
     def addObjectsFromPath(self, path):
         dirpath = Path(path)
         if(dirpath.is_dir()):
+            #List all hdft-files
             hdf5File = dirpath.cwd().rglob("**/*.hdf5")
             for i in hdf5File:
                 # Check that only *.hdf5 and *.erfh5 files will be opened
-                hdf5Path = i.relative_to(r'/home/hartmade/rtm-predictions/SQL_Like_Query').as_posix()
-                if(h5py.is_hdf5(hdf5Path)):
+                if(h5py.is_hdf5(i.as_posix())):
                     erfh5File = Path(str(i).replace("meta_data.hdf5", "RESULT.erfh5"))
                     if(erfh5File.exists()):
-                        self.hdf5ObjectList.append(HDF5Object(hdf5Path, erfh5File.as_posix()))
+                        self.hdf5ObjectList.append(HDF5Object(i.as_posix(), erfh5File.as_posix()))
                     else:
-                        print(erfh5File.as_posix() + " does not exist. Folder will be skipped.")
+                        print(erfh5File.as_posix() + " does not exist. The folder was skipped.")
                 else:
-                    print(hdf5Path + " does not exist. Folder will be skipped.")
+                    print(i.as_posix() + " does not exist. The folder was skipped.")
             print(str(len(self.hdf5ObjectList)) + " Objects have been added.")
         else:
             print("The path " + path + " does not exist! No objects were added!")
@@ -84,7 +84,7 @@ class HDF5DB:
             elif (comparisonOperator == ">"):
                 if (variable == "metaPath"):
                     print("The operator " + comparisonOperator + " is not available for metaPath.")
-                    break
+                    return
                 elif (variable == "outputFrequencyType" and obj.outputFrequencyType > value):
                     self.selected.append(obj)
                 elif (variable == "generalSigma" and obj.generalSigma > value):
@@ -115,7 +115,7 @@ class HDF5DB:
                     self.selected.append(obj)
                 elif (variable == "resultPath"):
                     print("The operator " + comparisonOperator + " is not available for resultPath.")
-                    break
+                    return
                 elif (variable == "avgLevel" and obj.avgLevel > value):
                     self.selected.append(obj)
                 elif (variable == "age" and obj.age > datetime.strptime(re.search("([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})", value).group(1), '%Y-%m-%d_%H-%M-%S')):
@@ -126,7 +126,7 @@ class HDF5DB:
             elif (comparisonOperator == "<"):
                 if (variable == "metaPath"):
                     print("The operator " + comparisonOperator + " is not available for metaPath.")
-                    break
+                    return
                 elif (variable == "outputFrequencyType" and obj.outputFrequencyType < value):
                     self.selected.append(obj)
                 elif (variable == "generalSigma" and obj.generalSigma < value):
@@ -157,7 +157,7 @@ class HDF5DB:
                     self.selected.append(obj)
                 elif (variable == "resultPath"):
                     print("The operator " + comparisonOperator + " is not available for resultPath.")
-                    break
+                    return
                 elif (variable == "avgLevel" and obj.avgLevel < value):
                     self.selected.append(obj)
                 elif (variable == "age" and obj.age < datetime.strptime(re.search("([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})", value).group(1), '%Y-%m-%d_%H-%M-%S')):
@@ -165,11 +165,11 @@ class HDF5DB:
                 elif (variable == "numberOfSensors" and obj.numberOfSensors < value):
                     self.selected.append(obj)
 
-        if (len(self.selected) == 0):
+        if(len(self.selected) == 0):
             print("No matches were found for " + str(variable) + " and parameter " + str(value) + ". No filters were applied!")
         else:
             self.HDF5Object = self.selected
-            print("The filter " + str(variable) + " " + str(comparisonOperator) + " " + str(value) + " was applied. " + str(len(self.selected)) + " objects were found.")
+            print("\nThe filter " + str(variable) + " " + str(comparisonOperator) + " " + str(value) + " was applied. " + str(len(self.selected)) + " objects were found.")
             self.hdf5ObjectList =  self.selected
 
     def showSelectionOptions(self):
@@ -187,9 +187,20 @@ class HDF5DB:
         self.options.add_row(["fibreContentRunners"])
         self.options.add_row(["fvcCircle"])
         self.options.add_row(["radiusCircle"])
+        self.options.add_row(["posXCircle"])
+        self.options.add_row(["posYCircle"])
         self.options.add_row(["fvcRectangle"])
         self.options.add_row(["heightRectangle"])
         self.options.add_row(["widthRectangle"])
+        self.options.add_row(["posXRectangle"])
+        self.options.add_row(["posYRectangle"])
+        self.options.add_row(["fvcRunner"])
+        self.options.add_row(["heightRunner"])
+        self.options.add_row(["widthRunner"])
+        self.options.add_row(["posXRunner"])
+        self.options.add_row(["posYRunner"])
+        self.options.add_row(["posLowerLeftXRunner"])
+        self.options.add_row(["posLowerLeftYRunner"])
         self.options.add_row(["resultPath"])
         self.options.add_row(["avgLevel"])
         self.options.add_row(["age"])
@@ -217,8 +228,8 @@ class HDF5DB:
                         print("Nothing has been saved.")
                         return
                     else:
-                        print(filename + " will be overwritten.")        
-                outfile = open(dirpath / file, "wb" )
+                        print(filename + " will be overwritten.")
+                outfile = open(dirpath / file, "wb")
                 pickle.dump(self.hdf5ObjectList, outfile)
                 outfile.close()
                 print("HDF5DB saved")
@@ -231,7 +242,7 @@ class HDF5DB:
         dirpath = Path(path)
         h5dbPath = dirpath / Path(filename + str(".h5db"))
         if(h5dbPath.is_file()):
-            infile = open(dirpath / "HDF5DB.h5db", "rb" )
+            infile = open(dirpath / "HDF5DB.h5db", "rb")
             self.hdf5ObjectList = pickle.load(infile)
             infile.close()
             print("HDF5DB loaded")

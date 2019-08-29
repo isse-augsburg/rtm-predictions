@@ -1,33 +1,114 @@
+import glob
+import os
+from datetime import datetime
+from pathlib import Path
+
 import h5py
 import numpy as np
 import regex as re
-import glob
-from datetime import datetime
 from prettytable import PrettyTable
-import os
 
 
 class HDF5Object:
     def __init__(self, metaPath, resultPath):
+        self.outputFrequencyTypePath = "output_frequency_type"
+        #Pertubations_Factors
+        self.generalSigmaPath = "perturbation_factors/General_Sigma"
+        #-Shapes
+        self.numberOfCirclesPath = "perturbation_factors/Shapes/Circles/Num"
+        self.numberOfRectanglesPath = "perturbation_factors/Shapes/Rectangles/Num"
+        self.numberOfRunnersPath = "perturbation_factors/Shapes/Runners/Num"
+        self.fibreContentCirclesPath = "perturbation_factors/Shapes/Circles/Fiber_Content"
+        self.fibreContentRectanglesPath = "perturbation_factors/Shapes/Rectangles/Fiber_Content"
+        self.fibreContentRunnersPath = "perturbation_factors/Shapes/Runners/Fiber_Content"
+        #Shapes
+        #-Circlepaths
+        self.fvcCirclePath = "shapes/Circle/fvc"
+        self.radiusCirclePath = "shapes/Circle/radius"
+        self.posXCirclePath = "shapes/Circle/posX"
+        self.posYCirclePath = "shapes/Circle/posY"
+        #-Rectanglepaths
+        self.fvcRectanglePath = "shapes/Rectangle/fvc"
+        self.heightRectanglePath = "shapes/Rectangle/height"
+        self.widthRectanglePath = "shapes/Rectangle/width"
+        self.posXRectanglePath = "shapes/Rectangle/posX"
+        self.posYRectanglePath = "shapes/Rectangle/posY"
+        #-Runnerspaths
+        self.fvcRunnerPath = "shapes/Runner/fvc"
+        self.heightRunnerPath = "shapes/Runner/height"
+        self.widthRunnerPath = "shapes/Runner/width"
+        self.posXRunnerPath = "shapes/Runner/posX"
+        self.posYRunnerPath = "shapes/Runner/posY"
+        self.posLowerLeftXRunnerPath = "shapes/Runner/posLowerLeftX"
+        self.posLowerLeftYRunnerPath = "shapes/Runner/posLowerLeftY"
+
+        self.singleStatePath = "post/singlestate"
+        self.numberOfSensorsPath = "post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
+
+        self.numberOfCircles = 0
+        self.numberOfRectangles = 0
+        self.numberOfRunners = 0
+        self.numberOfSensors = 0
+
         #Metadata
         m = h5py.File(metaPath, 'r')
         self.metaPath = metaPath
-        self.outputFrequencyType = m["output_frequency_type"][()]
+        if(self.outputFrequencyTypePath in m):
+            self.outputFrequencyType = m[self.outputFrequencyTypePath][()]
 
-        self.generalSigma = m["perturbation_factors/General_Sigma"][()]
-        self.numberOfCircles = m["perturbation_factors/Shapes/Circles/Num"][()]
-        self.numberOfRectangles = m["perturbation_factors/Shapes/Rectangles/Num"][()]
-        self.numberOfRunners = m["perturbation_factors/Shapes/Runners/Num"][()]
+        if(self.generalSigmaPath in m):
+            self.generalSigma = m[self.generalSigmaPath][()]
+        if(self.numberOfCirclesPath in m):
+            self.numberOfCircles = m[self.numberOfCirclesPath][()]
+        if(self.numberOfRectanglesPath in m):
+            self.numberOfRectangles = m[self.numberOfRectanglesPath][()]
+        if(self.numberOfRunnersPath in m):
+            self.numberOfRunners = m[self.numberOfRunnersPath][()]
         self.numberOfShapes = self.numberOfCircles + self.numberOfRectangles + self.numberOfRunners
-        self.fibreContentCircles = m["perturbation_factors/Shapes/Circles/Fiber_Content"][()]
-        self.fibreContentRectangles = m["perturbation_factors/Shapes/Rectangles/Fiber_Content"][()]
-        self.fibreContentRunners = m["perturbation_factors/Shapes/Runners/Fiber_Content"][()]
+        if(self.fibreContentCirclesPath in m):
+            self.fibreContentCircles = m[self.fibreContentCirclesPath][()]
+        if(self.fibreContentRectanglesPath in m):
+            self.fibreContentRectangles = m[self.fibreContentRectanglesPath][()]
 
-        self.fvcCircle = np.array(m["shapes/Circle/fvc"][()])
-        self.radiusCircle = np.array(m["shapes/Circle/radius"][()])
-        self.fvcRectangle = np.array(m["shapes/Rectangle/fvc"][()])
-        self.heightRectangle = np.array(m["shapes/Rectangle/height"][()])
-        self.widthRectangle = np.array(m["shapes/Rectangle/width"][()])
+        if(self.fibreContentRunnersPath in m):
+            self.fibreContentRunners = m[self.fibreContentRunnersPath][()]
+
+        #Shapes
+        #-Circle
+        if(self.fvcCirclePath in m):
+            self.fvcCircle = np.array(m[self.fvcCirclePath][()])
+        if(self.radiusCirclePath in m):
+            self.radiusCircle = np.array(m[self.radiusCirclePath][()])
+        if(self.posXCirclePath in m):
+            self.posXCircle = np.array(m[self.posXCirclePath][()])
+        if(self.posYCirclePath in m):
+            self.posyCircle = np.array(m[self.posYCirclePath][()])
+        #-Rectangle
+        if(self.fvcRectanglePath in m):
+            self.fvcRectangle = np.array(m[self.fvcRectanglePath][()])
+        if(self.heightRectanglePath in m):
+            self.heightRectangle = np.array(m[self.heightRectanglePath][()])
+        if(self.widthRectanglePath in m):
+            self.widthRectangle = np.array(m[self.widthRectanglePath][()])
+        if(self.posXRectanglePath in m):
+            self.posXRectangle = np.array(m[self.posXRectanglePath][()])
+        if(self.posYRectanglePath in m):
+            self.posYRectangle = np.array(m[self.posYRectanglePath][()])
+        #-Runner
+        if(self.fvcRunnerPath in m):
+            self.fvcRunner = np.array(m[self.fvcRunnerPath][()])
+        if(self.heightRunnerPath in m):
+            self.heightRunner = np.array(m[self.heightRunnerPath][()])
+        if(self.widthRunnerPath in m):
+            self.widthRunner = np.array(m[self.widthRunnerPath][()])
+        if(self.posXRunnerPath in m):
+            self.posXRunner = np.array(m[self.posXRunnerPath][()])
+        if(self.posYRunnerPath in m):
+            self.posYRunner = np.array(m[self.posYRunnerPath][()])
+        if(self.posLowerLeftXRunnerPath in m):
+            self.posLowerLeftXRunner = np.array(m[self.posLowerLeftXRunnerPath][()])
+        if(self.posLowerLeftYRunnerPath in m):
+            self.posLowerLeftYRunner = np.array(m[self.posLowerLeftYRunnerPath][()])
         m.close()
 
         #Results
@@ -35,19 +116,18 @@ class HDF5Object:
         self.resultPath = resultPath
 
         temp = ""
-        for key in r["post/singlestate"].keys():
-            temp = key
-        while not ("post/singlestate/" + temp + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res" in r):
-            temp = self.decrement(temp)
-        temp = r["post/singlestate/" + temp + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()]
-        self.avgLevel = np.sum(temp) / len(temp) 
+        if(self.singleStatePath in r):
+            for key in r[self.singleStatePath].keys():
+                temp = key
+                while not (self.singleStatePath + "/" + temp + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res" in r):
+                    temp = self.decrement(temp)
+            temp = r["post/singlestate/" + temp + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()]
+        self.avgLevel = np.sum(temp) / len(temp)
 
         self.age = datetime.strptime(re.search("([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})", resultPath).group(1), '%Y-%m-%d_%H-%M-%S')
-        self.numberOfSensors = np.shape(r["post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"][()])[1]
-        #self.sensorgrid
-        #self.model
+        if(self.numberOfSensorsPath in r):
+            self.numberOfSensors = np.shape(r[self.numberOfSensorsPath][()])[1]
         r.close()
-        #print(self.level)
 
     def decrement(self, s):
         lastNum = re.compile(r'(?:[^\d]*(\d+)[^\d]*)+')
@@ -62,22 +142,38 @@ class HDF5Object:
         x = PrettyTable()
         x.field_names = ["Metaparameters", "Metadata"]
         x.add_row(["Path_Metadata", str(self.metaPath)])
-        x.add_row(["Output_Frequency_Type", str(self.outputFrequencyType)])
+        if(hasattr(self, 'outputFrequencyType')):
+            x.add_row(["Output_Frequency_Type", str(self.outputFrequencyType)])
 
-        x.add_row(["General_Sigma", str(self.generalSigma)])
-        x.add_row(["Number_Circles", str(self.numberOfCircles)])
-        x.add_row(["Number_Rectangles", str(self.numberOfRectangles)])
-        x.add_row(["Number_Runners", str(self.numberOfRunners)])
-        x.add_row(["Number_Shapes", str(self.numberOfShapes)])
-        x.add_row(["Fibre_Content_Circles", str(self.fibreContentCircles)])
-        x.add_row(["Fibre_Content_Rectangles", str(self.fibreContentRectangles)])
-        x.add_row(["Fibre_Content_Runners", str(self.fibreContentRunners)])
+        if(hasattr(self, 'generalSigma')):
+            x.add_row(["General_Sigma", str(self.generalSigma)])
+        if(hasattr(self, 'numberOfCircles')):
+            x.add_row(["Number_Circles", str(self.numberOfCircles)])
+        if(hasattr(self, 'numberOfRectangles')):
+            x.add_row(["Number_Rectangles", str(self.numberOfRectangles)])
+        if(hasattr(self, 'numberOfRunners')):
+            x.add_row(["Number_Runners", str(self.numberOfRunners)])
+        if(hasattr(self, 'numberOfShapes')):
+            x.add_row(["Number_Shapes", str(self.numberOfShapes)])
+        if(hasattr(self, 'fibreContentCircles')):
+            x.add_row(["Fibre_Content_Circles", str(self.fibreContentCircles)])
+        if(hasattr(self, 'fibreContentRectangles')):
+            x.add_row(["Fibre_Content_Rectangles", str(self.fibreContentRectangles)])
+        if(hasattr(self, 'fibreContentRunners')):
+            x.add_row(["Fibre_Content_Runners", str(self.fibreContentRunners)])
 
-        x.add_row(["FVC_Circle", str(self.fvcCircle)])
-        x.add_row(["Radius_Circle", str(self.radiusCircle)])
-        x.add_row(["FVC_Rectangle", str(self.fvcRectangle)])
-        x.add_row(["Height_Rectangle", str(self.heightRectangle)])
-        x.add_row(["Width_Rectangle", str(self.widthRectangle)])
+        if(hasattr(self, 'fvcCircle')):
+            x.add_row(["FVC_Circle", str(self.fvcCircle)])
+        if(hasattr(self, 'radiusCircle')):
+            x.add_row(["Radius_Circle", str(self.radiusCircle)])
+        if(hasattr(self, 'fvcRectangle')):
+            x.add_row(["FVC_Rectangle", str(self.fvcRectangle)])
+        if(hasattr(self, 'heightRectangle')):
+            x.add_row(["Height_Rectangle", str(self.heightRectangle)])
+        if(hasattr(self, 'widthRectangle')):
+            x.add_row(["Width_Rectangle", str(self.widthRectangle)])
+        if(hasattr(self, 'posXRectangle')):
+            x.add_row(["PosX_Rectangle", str(self.posXRectangle)])
         
         #Result
         y = PrettyTable()
