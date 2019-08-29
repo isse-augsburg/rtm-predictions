@@ -9,19 +9,16 @@ def get_filelist_within_folder(root_directory):
 
     Returns: 
         List of all .erfh5 files in the root_directory 
-    """ 
-    
+    """
+
     dataset_filenames = []
-    
 
     for (dirpath, _, filenames) in walk(root_directory):
         if filenames:
             filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
             dataset_filenames.extend(filenames)
-           
 
     return dataset_filenames
-
 
     # l = []
     # for dir in root_directories:
@@ -31,8 +28,6 @@ def get_filelist_within_folder(root_directory):
 
 def get_folders_within_folder(root_directory):
     folders = list()
-
-   
 
     for (dirpath, dirnames, _) in walk(root_directory):
         l = [dirpath + '/' + f for f in dirnames]

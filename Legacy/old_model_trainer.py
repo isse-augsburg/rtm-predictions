@@ -6,7 +6,7 @@ from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader
     data_gather as dg
 
 from Trainer.evaluation import plot_predictions_and_label
-from Trainer.Generic_Trainer import Master_Trainer
+from Trainer.Generic_Trainer import MasterTrainer
 from Trainer.evaluation import Binary_Classification_Evaluator
 
 import torch
@@ -14,7 +14,6 @@ import traceback
 from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Models.custom_loss import FocalLoss
-
 from Models.flow_front_to_fiber_fraction_model import FlowfrontToFiberfractionModel
 from Models.erfh5_DeconvModel import DeconvModel
 import os
@@ -77,10 +76,10 @@ paths = [path]
 
 def create_dataGenerator_pressure_flowfront():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=100,
-                                                 batch_size=32, epochs=50, max_queue_length=8096,
-                                                 data_processing_function=dli.get_sensordata_and_flowfront,
-                                                 data_gather_function=dg.get_filelist_within_folder, num_workers=4, cache_path=cache_path)
+        generator = pipeline.ERFH5DataGenerator(data_paths=paths, num_validation_samples=100,
+                                                batch_size=32, epochs=50, max_queue_length=8096,
+                                                data_processing_function=dli.get_sensordata_and_flowfront,
+                                                data_gather_function=dg.get_filelist_within_folder, num_workers=4, cache_path=cache_path)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -90,10 +89,10 @@ def create_dataGenerator_pressure_flowfront():
 
 def create_dataGenerator_Pressure_percentage():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=10,
-                                                 batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
-                                                 data_processing_function=dls.get_sensordata_and_filling_percentage,
-                                                 data_gather_function=dg.get_filelist_within_folder)
+        generator = pipeline.ERFH5DataGenerator(data_paths=paths, num_validation_samples=10,
+                                                batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
+                                                data_processing_function=dls.get_sensordata_and_filling_percentage,
+                                                data_gather_function=dg.get_filelist_within_folder)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -103,11 +102,11 @@ def create_dataGenerator_Pressure_percentage():
 
 def create_dataGenerator_IMG_percentage():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths="/cfs/home/s/c/schroeni/Data/Images",
-                                                 num_validation_samples=100,
-                                                 batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
-                                                 data_processing_function=dli.get_image_percentage,
-                                                 data_gather_function=dg.get_folders_within_folder)
+        generator = pipeline.ERFH5DataGenerator(data_paths="/cfs/home/s/c/schroeni/Data/Images",
+                                                num_validation_samples=100,
+                                                batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len,
+                                                data_processing_function=dli.get_image_percentage,
+                                                data_gather_function=dg.get_folders_within_folder)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -117,10 +116,10 @@ def create_dataGenerator_IMG_percentage():
 
 def create_dataGenerator_IMG():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths="/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images",
-                                                 batch_size=batchsize, epochs=epochs, max_queue_length=2048,
-                                                 data_processing_function=dli.get_image_state_sequence,
-                                                 data_gather_function=dg.get_folders_within_folder)
+        generator = pipeline.ERFH5DataGenerator(data_paths="/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images",
+                                                batch_size=batchsize, epochs=epochs, max_queue_length=2048,
+                                                data_processing_function=dli.get_image_state_sequence,
+                                                data_gather_function=dg.get_folders_within_folder)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         exit()
@@ -129,7 +128,7 @@ def create_dataGenerator_IMG():
 
 def create_dataGenerator_index_sequence():
     try:
-        generator = pipeline.ERFH5_DataGenerator(
+        generator = pipeline.ERFH5DataGenerator(
             '/cfs/share/data/RTM/Lautern/clean_erfh5/', data_processing_function=dl.get_index_sequence,
             data_gather_function=dg.get_filelist_within_folder,
             batch_size=batchsize, epochs=epochs, max_queue_length=2048, num_validation_samples=10)
@@ -142,11 +141,11 @@ def create_dataGenerator_index_sequence():
 
 def create_dataGenerator_single_state():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths='/cfs/share/data/RTM/Lautern/clean_erfh5/',
-                                                 data_processing_function=dl.get_single_states_and_fillings,
-                                                 data_gather_function=dg.get_filelist_within_folder,
-                                                 batch_size=batchsize, epochs=epochs, max_queue_length=2048,
-                                                 num_validation_samples=3)
+        generator = pipeline.ERFH5DataGenerator(data_paths='/cfs/share/data/RTM/Lautern/clean_erfh5/',
+                                                data_processing_function=dl.get_single_states_and_fillings,
+                                                data_gather_function=dg.get_filelist_within_folder,
+                                                batch_size=batchsize, epochs=epochs, max_queue_length=2048,
+                                                num_validation_samples=3)
     except Exception as e:
         print("Fatal Error:", e)
         exit()
@@ -156,7 +155,7 @@ def create_dataGenerator_single_state():
 def create_dataGenerator_pressure_sequence():
     try:
         
-        generator = pipeline.ERFH5_DataGenerator(
+        generator = pipeline.ERFH5DataGenerator(
             paths, data_processing_function=dls.get_sensordata_and_filling_percentage,
             data_gather_function=dg.get_filelist_within_folder,
             batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=70)
@@ -170,11 +169,11 @@ def create_dataGenerator_pressure_sequence():
 def create_datagenerator_flow_front_to_permeabilities(batch_size=1, num_validation_samples=10,
                                                       num_workers=20, max_Q_len=512, epochs=1000):
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths=paths,
-                                                 data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
-                                                 data_gather_function=dg.get_filelist_within_folder,
-                                                 batch_size=batch_size, epochs=epochs, max_queue_length=max_Q_len,
-                                                 num_validation_samples=num_validation_samples, num_workers=num_workers, cache_path=cache_path)
+        generator = pipeline.ERFH5DataGenerator(data_paths=paths,
+                                                data_processing_function=dli.get_images_of_flow_front_and_permeability_map,
+                                                data_gather_function=dg.get_filelist_within_folder,
+                                                batch_size=batch_size, epochs=epochs, max_queue_length=max_Q_len,
+                                                num_validation_samples=num_validation_samples, num_workers=num_workers, cache_path=cache_path)
     except Exception as e:
         print(">>>ERROR: Fatal Error:", e)
         traceback.print_exc()
@@ -197,7 +196,7 @@ if __name__ == "__main__":
     print(">>> INFO: Generating Trainer")
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
-    train_wrapper = Master_Trainer(model, generator, loss_criterion=FocalLoss(gamma=0), comment=get_comment(),
+    train_wrapper = MasterTrainer(model, generator, loss_criterion=FocalLoss(gamma=0), comment=get_comment(),
                                   learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
     print(">>> INFO: The Training Will Start Shortly")
 

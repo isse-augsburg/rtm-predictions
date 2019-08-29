@@ -4,8 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-
-
 class ERFH5_RNN(nn.Module):
     def __init__(self, input_dim, hidden_dim=1024, batch_size=8, num_layers=4):
         super(ERFH5_RNN, self).__init__()
@@ -51,7 +49,6 @@ class ERFH5_RNN(nn.Module):
         #for i in range(len(hidden)):
             #hidden[i] = hidden[i].permute(1, 0, 2).contiguous() """
         
-
         x = x.permute(1, 0, 2)
         lstm_out, hidden = self.lstm(x)
 
@@ -87,7 +84,6 @@ class ERFH5_Pressure_CNN(nn.Module):
         self.drop = nn.Dropout(0.0)
 
     def forward(self, x):
-        
         out = self.conv1(x)
         #out = self.pool(out)
         out = self.drop(out)
@@ -115,9 +111,6 @@ class ERFH5_PressureSequence_Model(nn.Module):
 
 
 if __name__ == "__main__":
-    
-    
-
     path = ['/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p']
     generator = pipeline.ERFH5_DataGenerator(
         path, data_processing_function=dl.get_sensordOata_and_filling_percentage,

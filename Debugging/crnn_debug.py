@@ -12,7 +12,7 @@ model_path = 'Z:/models/crnn_weird.pt'
 
 def create_dataGenerator_pressure_sequence():
     try:
-        generator = pipeline.ERFH5_DataGenerator(
+        generator = pipeline.ERFH5DataGenerator(
             path, data_processing_function=dls.get_sensordata_and_filling_percentage,
             data_gather_function=dg.get_filelist_within_folder,
             batch_size=1, epochs=1, max_queue_length=256, num_validation_samples=2)

@@ -1,3 +1,4 @@
+import logging
 import os
 from functools import partial
 from multiprocessing.pool import Pool
@@ -14,11 +15,12 @@ Evaluation classes must provide three functions even if not all of them have fun
 * commit(output, label): updates the evaluation class with a new pair of a single prediction and a single label
 * print_metrics(): prints a set of application-specific print_metrics
 * reset: Resets the internal metrics of an evaluator, e.g. after a evaluation loop is finished.  
+
+They have to be given a save_path, where the results are going to be stored.
 """
 
 
 def pixel_wise_loss_multi_input_single_label(input, target):
-    print('Loss')
     loss = 0
     for el in input:
         out = el - target
@@ -55,13 +57,17 @@ def save_img(path, _str, x, index):
         im.convert('RGB').save(path / file)
         im.close()
     except KeyError:
-        print('ERROR: save_img')
+        logger = logging.getLogger(__name__)
+        logger.addHandler(logging.StreamHandler())
+        logger.error('ERROR: save_img')
 
 
 class Sensor_Flowfront_Evaluator():
-    def __init__(self, save_path ="/home/schroeter/Desktop/output"):
+    def __init__(self, save_path=Path("/home/schroeter/Desktop/output")):
         self.num = 0
         self.save_path = save_path
+        self.im_save_path = save_path / 'images'
+        self.im_save_path.mkdir(parents=True, exist_ok=True)
 
     def commit(self, net_output, label):
         a = net_output.numpy()
@@ -69,26 +75,28 @@ class Sensor_Flowfront_Evaluator():
         b = label.numpy()
         b = np.squeeze(b)
 
-        plt.imsave(Path(self.save_path) / Path(str(self.num) + "out.jpg"), a)
-        plt.imsave(Path(self.save_path) / Path(str(self.num) + "lab.jpg"), b)
+        plt.imsave(self.im_save_path / Path(str(self.num) + "out.jpg"), a)
+        plt.imsave(self.im_save_path / Path(str(self.num) + "lab.jpg"), b)
 
-        self.num +=1
+        self.num += 1
         pass
 
-    
-    def print_metrics(self): 
+    def print_metrics(self):
         pass
+
     def reset(self): 
         self.num = 0
         pass
+
 
 class Binary_Classification_Evaluator(): 
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
 
-    def __init__(self): 
+    def __init__(self, save_path):
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0 
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
+        self.save_path = save_path
 
     def commit(self, net_output, label):
         """Updates the confusion matrix and updates the metrics. 
@@ -108,22 +116,27 @@ class Binary_Classification_Evaluator():
         if np.array_equal(prediction, label):
             if prediction[0][0] == 1: 
                 self.tp += 1 
-            else: self.tn += 1
+            else:
+                self.tn += 1
         else: 
             if prediction[0][0] == 1: 
                 self.fp += 1
-            else: self.fn += 1
+            else:
+                self.fn += 1
 
     def print_metrics(self): 
-        """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall, Specificity and the confusion matrix.
+        """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall,
+        Specificity and the confusion matrix.
         """
+        logger = logging.getLogger(__name__)
 
-        print(">>>True positives:", self.tp, ">False positives:", self.fp, ">True negatives:", self.tn, ">False negatives:", self.fn)
-        print(">>>Accuracy:", "{:7.4f}".format(self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)), 
+        logger.info(">>>True positives:", self.tp, ">False positives:", self.fp, ">True negatives:", self.tn,
+                    ">False negatives:", self.fn)
+        logger.info(">>>Accuracy:", "{:7.4f}".format(self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)),
             ">Precision:", "{:7.4f}".format(self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)), 
             ">Recall:", "{:7.4f}".format(self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)), 
             ">Specificity:", "{:7.4f}".format(self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)))
-        print(">>>Confusion matrix:", self.confusion_matrix)
+        logger.info(">>>Confusion matrix:", self.confusion_matrix)
 
     def reset(self): 
         """Resets the internal counters for the next evaluation loop. 
@@ -132,31 +145,37 @@ class Binary_Classification_Evaluator():
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0 
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
 
-    def __calc_accuracy(self, tp, fp, tn, fn): 
+    @staticmethod
+    def __calc_accuracy(tp, fp, tn, fn):
         return (tp + tn) / max((tp + tn + fp + fn), 0.00000001) 
 
-    def __calc_precision(self, tp, fp, tn, fn): 
-        return (tp) / max((tp + fp), 0.00000001)
+    @staticmethod
+    def __calc_precision(tp, fp, tn, fn):
+        return tp / max((tp + fp), 0.00000001)
 
-    def __calc_recall(self, tp, fp, tn,fn): 
-        return (tp) / max((tp + fn), 0.00000001)
+    @staticmethod
+    def __calc_recall(tp, fp, tn, fn):
+        return tp / max((tp + fn), 0.00000001)
 
-    def __calc_specificity(self, tp, fp, tn, fn): 
-        return (tn) / max((tn + fp), 0.00000001)
+    @staticmethod
+    def __calc_specificity(tp, fp, tn, fn):
+        return tn / max((tn + fp), 0.00000001)
 
 
-class FlowFront_Prediction_Evaluator(): 
-    def __init__(self, name, path="/cfs/home/s/c/schroeni/Data/Eval/"):
+class FlowFrontPredictionEvaluator:
+    def __init__(self, name, save_path="/cfs/home/s/c/schroeni/Data/Eval/"):
         self.name = name 
-        self.path = path 
+        self.save_path = save_path
+        self.im_save_path = save_path / 'images'
+        self.im_save_path.mkdir(parents=True, exist_ok=True)
 
     def commit(self, inputs, label):
         inputs = np.squeeze(inputs)
         label = np.squeeze(label)
-        inp = Image.fromarray(np.uint8((inputs) * 255))
-        lab = Image.fromarray(np.uint8((label) * 255))
-        inp.save(self.path + "inp_" + str(self.name) + ".bmp")
-        lab.save(self.path + "lab_" + str(self.name) + ".bmp")
+        inp = Image.fromarray(np.uint8(inputs * 255))
+        lab = Image.fromarray(np.uint8(label * 255))
+        inp.save(self.im_save_path + "inp_" + str(self.name) + ".bmp")
+        lab.save(self.im_save_path + "lab_" + str(self.name) + ".bmp")
 
     def print_metrics(self):
         pass 

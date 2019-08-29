@@ -43,7 +43,6 @@ def with_matplotlib():
         plt.close()
         print(time.time() - t1)
 
-
     # plt.show()
     # triang = mtri.Triangulation(x, y, triangles=triangle_coords)
 
@@ -106,7 +105,8 @@ def draw_polygon_map(index, values_for_triangles, scaled_coords, triangle_coords
                 h = 3.6 * val
                 col = tuple(int(round(i * 255)) for i in colorsys.hsv_to_rgb(h, 1, 1))
                 draw.polygon(scaled_coords[triangle_coords[i]], fill=col)
-    if index % 10 == 0: print(index)
+    if index % 10 == 0:
+        print(index)
     im.save(Path(r'img3/%d.png' % index))
 
 

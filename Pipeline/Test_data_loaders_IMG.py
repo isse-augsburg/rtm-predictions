@@ -1,3 +1,4 @@
+import logging
 import unittest
 from pathlib import Path
 from time import time, sleep
@@ -15,7 +16,8 @@ class TestDataLoaderIMG(unittest.TestCase):
                 self.create_list_and_test(i, j)
 
     def create_list_and_test(self, list_length, n_elements):
-        print(list_length, n_elements)
+        logger = logging.getLogger(__name__)
+        logger.info(list_length, n_elements)
         if n_elements > list_length:
             return
         x = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(list(range(list_length)), n_elements)
