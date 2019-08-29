@@ -10,7 +10,7 @@ from torch import nn
 from Models.erfh5_DeconvModel import DeconvModel
 from Pipeline import erfh5_pipeline as pipeline, data_loaders_IMG as dli, \
     data_gather as dg
-from Trainer.Generic_Trainer import Master_Trainer
+from Trainer.Generic_Trainer import MasterTrainer
 from Trainer.evaluation import Sensor_Flowfront_Evaluator
 
 num_data_points = 10371
@@ -47,11 +47,11 @@ cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/ca
 
 def create_dataGenerator_pressure_flowfront():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=num_validation_samples,
-                                                 batch_size=batch_size, epochs=epochs, max_queue_length=8096,
-                                                 data_processing_function=dli.get_sensordata_and_flowfront,
-                                                 data_gather_function=dg.get_filelist_within_folder,
-                                                 num_workers=num_workers, cache_path=None)
+        generator = pipeline.ERFH5DataGenerator(data_paths=paths, num_validation_samples=num_validation_samples,
+                                                batch_size=batch_size, epochs=epochs, max_queue_length=8096,
+                                                data_processing_function=dli.get_sensordata_and_flowfront,
+                                                data_gather_function=dg.get_filelist_within_folder,
+                                                num_workers=num_workers, cache_path=None)
     except Exception as e:
         logger.error("Fatal Error:", e)
         logging.error("exception ", exc_info=1)
@@ -79,16 +79,16 @@ if __name__ == "__main__":
     logger.info("Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
 
-    train_wrapper = Master_Trainer(model, generator,
-                                   comment=get_comment(),
-                                   loss_criterion=torch.nn.MSELoss(),
-                                   # loss_criterion=pixel_wise_loss_multi_input_single_label,
-                                   savepath=save_path,
-                                   learning_rate=0.0001,
-                                   calc_metrics=False,
-                                   train_print_frequency=2,
-                                   eval_frequency=eval_freq,
-                                   classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path))
+    train_wrapper = MasterTrainer(model, generator,
+                                  comment=get_comment(),
+                                  loss_criterion=torch.nn.MSELoss(),
+                                  # loss_criterion=pixel_wise_loss_multi_input_single_label,
+                                  savepath=save_path,
+                                  learning_rate=0.0001,
+                                  calc_metrics=False,
+                                  train_print_frequency=2,
+                                  eval_frequency=eval_freq,
+                                  classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path))
     logger.info("The Training Will Start Shortly")
 
     train_wrapper.start_training()

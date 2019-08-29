@@ -11,7 +11,7 @@ import random
 # from PIL import Image
 from PIL import Image, ImageDraw
 
-# from Pipeline.data_gather import get_filelist_within_folder
+from Pipeline.data_gather import get_filelist_within_folder
 
 # data_function must return [(data, label) ... (data, label)]
 from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_lautern
@@ -71,7 +71,7 @@ def normalize_coords(coords):
     return coords
 
 
-    # for new data 38 and 30.0
+# for new data 38 and 30.0
 def create_np_image(target_shape=(147, 115), norm_coords=None, data=None, ):
     if norm_coords is None or data is None:
         logger = logging.getLogger(__name__)

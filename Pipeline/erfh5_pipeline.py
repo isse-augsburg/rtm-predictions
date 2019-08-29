@@ -1,7 +1,6 @@
 import logging
 
 from Pipeline import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
-#import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
 import threading
 import time
 import pickle
@@ -11,7 +10,8 @@ import sys
 import os
 from pathlib import Path
 
-class Thread_Safe_List():
+
+class ThreadSafeList:
     """Implements a thread safe list that is much faster than built-in python lists. 
 
     Args:
@@ -19,14 +19,14 @@ class Thread_Safe_List():
     """
 
     def __init__(self):
-        
         self.list = []
         self.lock = threading.Lock()
         self.finished = False
 
     # if called, the thread using this queue will commit suicide
     def kill(self):
-        """Sets a flag that raises a StopIteration when get is called. Prevents threads from waiting infitinely long for enough elements. 
+        """Sets a flag that raises a StopIteration when get is called. Prevents threads from waiting infinitely
+        long for enough elements.
         """
         self.finished = True
 
@@ -39,12 +39,11 @@ class Thread_Safe_List():
     def randomise(self):
         """Shuffles the list every 10 seconds. Used for shuffling sequences that were extracted from the same file.
         """
-    
+
         self.lock.acquire()
         random.shuffle(self.list)
         # print(">>>INFO: Successfully shuffeled batch queue")
         self.lock.release()
-            
 
     def put(self, element):
         """Appends a single element to the list. 
@@ -52,7 +51,6 @@ class Thread_Safe_List():
         Args:
             element: Element that should be added.
         """
-       
 
         self.lock.acquire()
         self.list.append(element)
@@ -74,11 +72,10 @@ class Thread_Safe_List():
             >>> print(list) 
             [1, 2, 3, 4, 5, 6, [7, 8]]
         """
-       
+
         self.lock.acquire()
         self.list.extend(batch)
         self.lock.release()
-
 
     def get(self, number_of_elements):
         """
@@ -92,7 +89,7 @@ class Thread_Safe_List():
         """
 
         if len(self) < number_of_elements:
-           return None
+            return None
 
         self.lock.acquire()
         items = self.list[0:number_of_elements]
@@ -100,21 +97,22 @@ class Thread_Safe_List():
         self.lock.release()
         return items
 
-   
 
-def clear_last_line(): 
+def clear_last_line():
     """Hack for deleting the last printed console line
     """
-    sys.stdout.write("\033[F") 
+    sys.stdout.write("\033[F")
 
 
-class ERFH5_DataGenerator():
+class ERFH5DataGenerator:
     """ Iterable object that generates batches of a specified size. 
 
     Args: 
         data_path (string): path to the root directory of the data
-        data_processing_function (function): function that transforms a file path to extracted data; MUST return the following format: [(data_1, label_1), ... , (data_n, label_n)]
-        data_gather_function (function): function that returns a list of paths to all files that should be used for training 
+        data_processing_function (function): function that transforms a file path to extracted data;
+        MUST return the following format: [(data_1, label_1), ... , (data_n, label_n)]
+        data_gather_function (function): function that returns a list of paths to all files that should be
+        used for training
         batch_size (int): size of the generated batches 
         epochs (int): number of epochs 
         max_queue_length (int): restricts the number of pre-loaded batches. Batch_size * 4 is usually a good value
@@ -128,7 +126,7 @@ class ERFH5_DataGenerator():
         self.batch_size = batch_size
         self.epochs = epochs
         self.max_queue_length = max_queue_length
-        assert(max_queue_length>0)
+        assert (max_queue_length > 0)
         self.num_validation_samples = num_validation_samples
         self.num_workers = num_workers
         self.data_function = data_processing_function
@@ -169,12 +167,12 @@ class ERFH5_DataGenerator():
             random.shuffle(self.paths)
         clear_last_line()
         self.logger.info(">>> Generator: Gathering Data... Done.")
-        self.batch_queue = Thread_Safe_List()
-        self.path_queue = Thread_Safe_List()
+        self.batch_queue = ThreadSafeList()
+        self.path_queue = ThreadSafeList()
         self.validation_list = []
         self.test_list = []
         self.barrier = threading.Barrier(self.num_workers)
-        
+
         self.logger.info(">>> Generator: Filling Validation List...")
         self.__fill_validation_list()
         clear_last_line()
@@ -186,11 +184,11 @@ class ERFH5_DataGenerator():
         except Exception as e:
             raise e
         clear_last_line()
-        
+
         self.logger.info(">>> Generator: Filling Path Queue... Done.")
-        
+
         self.__print_info()
-        
+
         for i in range(self.num_workers):
             t_batch = threading.Thread(target=self.__fill_batch_queue)
             t_batch.start()
@@ -249,38 +247,40 @@ class ERFH5_DataGenerator():
                 if s_path.exists():
                     instance_f = s_path.glob("*.pt")
                     instance_f = sorted(instance_f)
-                    for i in range(len(instance_f)//2):
-                        data = torch.load(s_path.joinpath(instance_f[i*2]))
-                        label = torch.load(s_path.joinpath(instance_f[i*2+1]))
+                    for i in range(len(instance_f) // 2):
+                        data = torch.load(s_path.joinpath(instance_f[i * 2]))
+                        label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
                         self.validation_list.append((data, label))
                     continue
                 else:
                     s_path.mkdir(parents=True, exist_ok=True)
-                
+
             instance = self.data_function(sample)
-            
+
             # data_function must return [(data, label) ... (data, label)]
             if instance is None:
                 continue
             else:
-                assert isinstance(instance, list), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
+                assert isinstance(instance,
+                                  list), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
                 for i in instance:
-                    assert isinstance(i, tuple) and len(i) == 2,"The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
-        
+                    assert isinstance(i, tuple) and len(
+                        i) == 2, "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
+
                 for num, i in enumerate(instance):
                     data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                     self.validation_list.append((data, label))
                     if s_path is not None:
-                        torch.save(data, s_path.joinpath(str(num)+"-data"+ ".pt"))
-                        torch.save(label, s_path.joinpath(str(num)+"-label"+ ".pt"))
+                        torch.save(data, s_path.joinpath(str(num) + "-data" + ".pt"))
+                        torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
 
     def __fill_batch_queue(self):
-        
+
         while len(self.batch_queue) < self.max_queue_length:
             s_path = None
             if len(self.path_queue) < self.batch_size:
                 return
-           
+
             file = self.path_queue.get(1)
             if file is None:
                 return
@@ -302,9 +302,9 @@ class ERFH5_DataGenerator():
                         instance_f = s_path.glob("*.pt")
                         instance_f = sorted(instance_f)
                         instance = []
-                        for i in range(len(instance_f)//2):
-                            data = torch.load(s_path.joinpath(instance_f[i*2]))
-                            label = torch.load(s_path.joinpath(instance_f[i*2+1]))
+                        for i in range(len(instance_f) // 2):
+                            data = torch.load(s_path.joinpath(instance_f[i * 2]))
+                            label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
                             instance.append((data, label))
                         self.batch_queue.put_batch(instance)
                         self.data_dict[file] = instance
@@ -319,19 +319,21 @@ class ERFH5_DataGenerator():
                     self.data_dict[file] = None
                     continue
                 else:
-                    assert isinstance(instance, list), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
+                    assert isinstance(instance,
+                                      list), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
                     for i in instance:
-                        assert isinstance(i, tuple) and len(i) == 2,"The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
-        
+                        assert isinstance(i, tuple) and len(
+                            i) == 2, "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
+
                     tensor_instances = list()
 
                     for num, i in enumerate(instance):
                         data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-                       
+
                         tensor_instances.append((data, label))
                         if s_path is not None:
-                            torch.save(data, s_path.joinpath(str(num)+"-data"+ ".pt"))
-                            torch.save(label, s_path.joinpath(str(num)+"-label"+ ".pt"))
+                            torch.save(data, s_path.joinpath(str(num) + "-data" + ".pt"))
+                            torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
                     self.batch_queue.put_batch(tensor_instances)
                     self.data_dict[file] = tensor_instances
 
@@ -341,22 +343,22 @@ class ERFH5_DataGenerator():
     def __next__(self):
         if len(self.path_queue) < self.batch_size and len(self.batch_queue) < self.batch_size:
             raise StopIteration
-        
+
         while len(self.batch_queue) < self.batch_size:
             if len(self.path_queue) < self.batch_size:
                 raise StopIteration
             time.sleep(0.1)
         batch = self.batch_queue.get(self.batch_size)
-        if len(self.batch_queue) < self.max_queue_length/4:
+        if len(self.batch_queue) < self.max_queue_length / 4:
             if threading.active_count() < self.num_workers + 1 and len(self.path_queue) > self.batch_size:
 
                 for _ in range(self.num_workers):
                     t_batch = threading.Thread(target=self.__fill_batch_queue)
                     t_batch.start()
-            
+
         data = [i[0] for i in batch]
         labels = [i[1] for i in batch]
-        
+
         # FIXME does not work for batchsize > 1 if sizes of data are different - NS: This is not a bug, this is intended -> FIX TBD in dataloader
         data = torch.stack(data)
         labels = torch.stack(labels)
@@ -374,16 +376,14 @@ class ERFH5_DataGenerator():
 
 
 if __name__ == "__main__":
-
-    #generator = ERFH5_DataGenerator(data_path= ["/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images"],
-                                    #batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
+    # generator = ERFH5_DataGenerator(data_path= ["/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images"],
+    # batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
     # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
-    generator = ERFH5_DataGenerator(data_paths=[
+    generator = ERFH5DataGenerator(data_paths=[
         '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-05-13_16-28-01_200p/0'],
-                                    data_processing_function=dls.get_sensordata_and_filling_percentage,
-                                    data_gather_function=dg.get_filelist_within_folder, batch_size=1, epochs=2,
-                                    max_queue_length=16)
+        data_processing_function=dls.get_sensordata_and_filling_percentage,
+        data_gather_function=dg.get_filelist_within_folder, batch_size=1, epochs=2,
+        max_queue_length=16)
     for data, label in generator:
         print(data.size(), label.size())
-        

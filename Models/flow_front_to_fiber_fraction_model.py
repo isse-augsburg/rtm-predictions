@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class FlowfrontFeatures_RNN(nn.Module):
     def __init__(self, input_dim, hidden_dim=512, batch_size=16, num_layers=3):
         super(FlowfrontFeatures_RNN, self).__init__()

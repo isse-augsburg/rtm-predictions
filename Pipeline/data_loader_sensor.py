@@ -8,7 +8,8 @@ def get_all_sensor_sequences(file, spacing=25, length=150):
         file (string): File from which the data should be extracted.
 
     Returns: 
-            [(data, label)]: all sequences of sensordata of a file as data and the filling percentage at the last sequence state as labels
+            [(data, label)]: all sequences of sensordata of a file as data and the filling percentage at the
+            last sequence state as labels
     """
     l = []
     start = 0
@@ -47,16 +48,16 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=-10):
                 ()]
         non_zeros = np.count_nonzero(last_filling)
         state_count = np.shape(last_filling)[0]
-        #filling = np.floor(non_zeros / state_count)
+        # filling = np.floor(non_zeros / state_count)
         filling = np.array([np.floor(non_zeros / state_count)])
-        #filling_percentage = np.array((filling, 1 - filling), dtype=np.long)
+        # filling_percentage = np.array((filling, 1 - filling), dtype=np.long)
 
     except KeyError:
         return None
 
     if (np.shape(pressure_array)[0] < frm):
         return None
-    #pressure_array = pressure_array[frm:until, :, :]
+    # pressure_array = pressure_array[frm:until, :, :]
     pressure_array = pressure_array[frm:, :, :]
     pressure_array = pressure_array / 1000000
     # pressure_array = pressure_array[-frm:,:,:]
@@ -64,22 +65,21 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=-10):
 
     # print(np.shape(pressure_array), filling_percentage)
 
-    #return ([(pressure_array, filling_percentage)])
+    # return ([(pressure_array, filling_percentage)])
     return ([(pressure_array, filling)])
+
 
 def sensorgrid_simulationsuccess(file, last_n=200):
     data = get_sensordata_and_filling_percentage(file, frm=-last_n)
-    
+
     if data is None:
         return None
 
     pressure_array, label = data[0]
 
-
     pressure_array = np.reshape(pressure_array, (38, 30, -1))
 
     return ([(pressure_array, label)])
-
 
 
 def get_sensordata_and_filling_percentage_v2(file, until=400, frm=0):

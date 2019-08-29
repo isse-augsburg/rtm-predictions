@@ -8,7 +8,7 @@ from collections import OrderedDict
 import numpy as np 
 
 
-class Master_Trainer():
+class MasterTrainer:
     """Class that runs train and evaluation loops of PyTorch models automatically.
 
     Args: 
@@ -17,13 +17,14 @@ class Master_Trainer():
         loss_criterion: Loss criterion for training.
         train_print_frequency: Frequency of printing the current loss, in iterations. 
         eval_frequency: Frequency of running a evaluation frequency on held out validation set, in iterations.
-        comment: Optional message that is printed to the command line, helps with understanding your experiments afterwards
+        comment: Optional message that is printed to the command line, helps understanding your experiments afterwards
         learning_rate: Optimizer's learning rate 
         classification_evaluator: Optional object for evaluating classification, see evaluation.py for more details 
     """
-    def __init__(self, model, generator: erfh5_pipeline.ERFH5_DataGenerator, loss_criterion=torch.nn.MSELoss(),
+    def __init__(self, model, generator: erfh5_pipeline.ERFH5DataGenerator, loss_criterion=torch.nn.MSELoss(),
                  train_print_frequency=10, eval_frequency=100, savepath=Path("model.pth"), eval_func=None,
-                 comment="No custom comment added.", learning_rate=0.00001, calc_metrics=False, classification_evaluator=None):
+                 comment="No custom comment added.", learning_rate=0.00001,
+                 calc_metrics=False, classification_evaluator=None):
         self.validationList = generator.get_validation_samples()
         self.model = model
         self.generator = generator

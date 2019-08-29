@@ -7,7 +7,7 @@ from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader
     data_gather as dg
 
 from Trainer.evaluation import plot_predictions_and_label
-from Trainer.Generic_Trainer import Master_Trainer
+from Trainer.Generic_Trainer import MasterTrainer
 from Trainer.evaluation import Binary_Classification_Evaluator
 
 import torch
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 def create_dataGenerator_index_sequence():
     try:
-        generator = pipeline.ERFH5_DataGenerator(
+        generator = pipeline.ERFH5DataGenerator(
             '/cfs/share/data/RTM/Lautern/clean_erfh5/', data_processing_function=dl.get_index_sequence,
             data_gather_function=dg.get_filelist_within_folder,
             batch_size=batchsize, epochs=epochs, max_queue_length=2048, num_validation_samples=10)
@@ -69,11 +69,11 @@ def create_dataGenerator_index_sequence():
 
 def create_dataGenerator_single_state():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths='/cfs/share/data/RTM/Lautern/clean_erfh5/',
-                                                 data_processing_function=dl.get_single_states_and_fillings,
-                                                 data_gather_function=dg.get_filelist_within_folder,
-                                                 batch_size=batchsize, epochs=epochs, max_queue_length=2048,
-                                                 num_validation_samples=3)
+        generator = pipeline.ERFH5DataGenerator(data_paths='/cfs/share/data/RTM/Lautern/clean_erfh5/',
+                                                data_processing_function=dl.get_single_states_and_fillings,
+                                                data_gather_function=dg.get_filelist_within_folder,
+                                                batch_size=batchsize, epochs=epochs, max_queue_length=2048,
+                                                num_validation_samples=3)
     except Exception as e:
         logger.error("Fatal Error:", e)
         exit()
@@ -83,7 +83,7 @@ def create_dataGenerator_single_state():
 def create_dataGenerator_pressure_sequence():
     
         
-    generator = pipeline.ERFH5_DataGenerator(
+    generator = pipeline.ERFH5DataGenerator(
         paths, data_processing_function=dls.sensorgrid_simulationsuccess,
         data_gather_function=dg.get_filelist_within_folder,
         batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=70, cache_path=None)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     logger.info("Generating Trainer")
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
-    train_wrapper = Master_Trainer(model, generator, train_print_frequency=20, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
+    train_wrapper = MasterTrainer(model, generator, train_print_frequency=20, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   learning_rate=0.0005, classification_evaluator=Binary_Classification_Evaluator())
     logger.info("The Training Will Start Shortly")
 

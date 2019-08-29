@@ -78,7 +78,7 @@ class Sensor_Flowfront_Evaluator():
         plt.imsave(self.im_save_path / Path(str(self.num) + "out.jpg"), a)
         plt.imsave(self.im_save_path / Path(str(self.num) + "lab.jpg"), b)
 
-        self.num +=1
+        self.num += 1
         pass
 
     def print_metrics(self):
@@ -125,11 +125,13 @@ class Binary_Classification_Evaluator():
                 self.fn += 1
 
     def print_metrics(self): 
-        """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall, Specificity and the confusion matrix.
+        """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall,
+        Specificity and the confusion matrix.
         """
         logger = logging.getLogger(__name__)
 
-        logger.info(">>>True positives:", self.tp, ">False positives:", self.fp, ">True negatives:", self.tn, ">False negatives:", self.fn)
+        logger.info(">>>True positives:", self.tp, ">False positives:", self.fp, ">True negatives:", self.tn,
+                    ">False negatives:", self.fn)
         logger.info(">>>Accuracy:", "{:7.4f}".format(self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)),
             ">Precision:", "{:7.4f}".format(self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)), 
             ">Recall:", "{:7.4f}".format(self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)), 
@@ -143,20 +145,24 @@ class Binary_Classification_Evaluator():
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0 
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
 
-    def __calc_accuracy(self, tp, fp, tn, fn): 
+    @staticmethod
+    def __calc_accuracy(tp, fp, tn, fn):
         return (tp + tn) / max((tp + tn + fp + fn), 0.00000001) 
 
-    def __calc_precision(self, tp, fp, tn, fn): 
+    @staticmethod
+    def __calc_precision(tp, fp, tn, fn):
         return tp / max((tp + fp), 0.00000001)
 
-    def __calc_recall(self, tp, fp, tn,fn): 
+    @staticmethod
+    def __calc_recall(tp, fp, tn, fn):
         return tp / max((tp + fn), 0.00000001)
 
-    def __calc_specificity(self, tp, fp, tn, fn): 
+    @staticmethod
+    def __calc_specificity(tp, fp, tn, fn):
         return tn / max((tn + fp), 0.00000001)
 
 
-class FlowFront_Prediction_Evaluator(): 
+class FlowFrontPredictionEvaluator:
     def __init__(self, name, save_path="/cfs/home/s/c/schroeni/Data/Eval/"):
         self.name = name 
         self.save_path = save_path
