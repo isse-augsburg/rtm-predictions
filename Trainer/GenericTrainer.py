@@ -25,9 +25,9 @@ class MasterTrainer:
                  train_print_frequency=10, eval_frequency=100, savepath=Path("model.pth"), eval_func=None,
                  comment="No custom comment added.", learning_rate=0.00001,
                  calc_metrics=False, classification_evaluator=None):
-        self.validationList = generator.get_validation_samples()
-        self.model = model
         self.generator = generator
+        self.validationList = self.generator.get_validation_samples()
+        self.model = model
         self.train_print_frequency = train_print_frequency
         self.eval_frequency = eval_frequency
         self.savepath = savepath
@@ -52,6 +52,13 @@ class MasterTrainer:
         self.logger.info('Test set missing. So no testing.')
         # self.__eval()
         self.logger.info(">>> INFO: TRAINING COMPLETE.")
+
+    def test(self, path):
+        self.generator.load_test_set(path)
+        test_list = self.generator.get_test_samples()
+        self.generator.paths = test_list
+        dataset, _  = self.generator.__fill_separate_set_list(len(self.generator.paths))
+        self.eval(dataset)
     
     def __print_info(self): 
         self.logger.info("###########################################")
@@ -91,12 +98,12 @@ class MasterTrainer:
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
-                self.__eval(eval_step)
+                self.eval(self.validationList, eval_step)
                 time_sum = 0
                 eval_step += 1
                 i_of_epoch = 0
 
-    def __eval(self, eval_step=0):
+    def eval(self, data_set, eval_step=0, test_mode=False):
         """Evaluators must have a commit, print and reset function. commit updates the evaluator with the current step,
             print can show all relevant stats and reset resets the internal structure if needed." 
         """
@@ -104,7 +111,7 @@ class MasterTrainer:
         with torch.no_grad():
             self.model.eval()
             loss = 0
-            for i, (data, label) in enumerate(self.validationList):
+            for i, (data, label) in enumerate(data_set):
                 data = data.to(self.device)
                 label = label.to(self.device)
                 data = torch.unsqueeze(data, 0)
@@ -116,7 +123,7 @@ class MasterTrainer:
                 if self.classification_evaluator is not None: 
                     self.classification_evaluator.commit(output.cpu(), label.cpu())
 
-            loss = loss / len(self.validationList)
+            loss = loss / len(data_set)
             self.logger.info(f">>> {eval_step} Mean Loss on Eval: {loss:8.4f}")
             
             if self.classification_evaluator is not None:
@@ -124,14 +131,15 @@ class MasterTrainer:
                 self.classification_evaluator.reset()
         
             self.model.train()
-            if loss < self.best_loss:
-                torch.save({
-                        'epoch': eval_step,
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        'loss': loss
-                    }, self.savepath / Path('checkpoint.pth'))
-                self.best_loss = loss
+            if not test_mode:
+                if loss < self.best_loss:
+                    torch.save({
+                            'epoch': eval_step,
+                            'model_state_dict': self.model.state_dict(),
+                            'optimizer_state_dict': self.optimizer.state_dict(),
+                            'loss': loss
+                        }, self.savepath / Path('checkpoint.pth'))
+                    self.best_loss = loss
 
     # deprecated?
     def save_model(self):
@@ -167,7 +175,12 @@ class MasterTrainer:
         """
 
         checkpoint = torch.load(path)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
+        new_model_state_dict = OrderedDict()
+        model_state_dict = checkpoint['model_state_dict']
+        for k, v in model_state_dict.items():
+            name = k[7:]  # remove `module.`
+            new_model_state_dict[name] = v
+        self.model.load_state_dict(new_model_state_dict)
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         epoch = checkpoint['epoch']
         loss = checkpoint['loss']

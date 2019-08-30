@@ -2,13 +2,14 @@ import logging
 
 from Pipeline import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
 import threading
-import time
+from time import time, sleep
 import pickle
 import random
 import torch
 import sys
 import os
 from pathlib import Path
+import typing
 
 
 class ThreadSafeList:
@@ -98,10 +99,10 @@ class ThreadSafeList:
         return items
 
 
-def clear_last_line():
-    """Hack for deleting the last printed console line
-    """
-    sys.stdout.write("\033[F")
+# def clear_last_line():
+#     """Hack for deleting the last printed console line
+#     """
+#     sys.stdout.write("\033[F")
 
 
 class ERFH5DataGenerator:
@@ -116,18 +117,22 @@ class ERFH5DataGenerator:
         batch_size (int): size of the generated batches 
         epochs (int): number of epochs 
         max_queue_length (int): restricts the number of pre-loaded batches. Batch_size * 4 is usually a good value
-        num_validation_samples (int): number of instances that are used as validation samples. 
+        num_validation_samples (int): number of instances that are used as validation samples,
+        instances mean single frames, not entire runs
+        num_test_samples (int): number of instances that are used as test samples
         num_workers (int): number of threads that transform file paths to data. 
     """
 
     def __init__(self, data_paths=['/home/'], data_processing_function=None, data_gather_function=None, batch_size=64,
-                 epochs=80, max_queue_length=512, num_validation_samples=1, num_workers=4, cache_path=None):
+                 epochs=80, max_queue_length=512, num_validation_samples=1, num_test_samples=1,
+                 num_workers=4, cache_path=None, save_path=None, test_mode=False):
         self.data_paths = [str(x) for x in data_paths]
         self.batch_size = batch_size
         self.epochs = epochs
         self.max_queue_length = max_queue_length
         assert (max_queue_length > 0)
         self.num_validation_samples = num_validation_samples
+        self.num_test_samples = num_test_samples
         self.num_workers = num_workers
         self.data_function = data_processing_function
         self.data_gather = data_gather_function
@@ -147,6 +152,14 @@ class ERFH5DataGenerator:
         self.logger = logging.getLogger(__name__)
         self.logger.info(">>> Generator: Gathering Data...")
         self.paths = []
+        self.batch_queue = ThreadSafeList()
+        self.path_queue = ThreadSafeList()
+        self.validation_list = []
+        self.test_list = []
+        if not test_mode:
+            self.init_generators_and_run(save_path)
+
+    def init_generators_and_run(self, save_path):
         for path in self.data_paths:
             if self.cache_path_flist is not None:
                 path_name = path.split("/")[-1]
@@ -161,34 +174,30 @@ class ERFH5DataGenerator:
             else:
                 gatherd = self.data_gather(path)
                 self.paths.extend(gatherd)
-
         self.paths = self.paths
         if len(self.paths) > 1:
             random.shuffle(self.paths)
-        clear_last_line()
         self.logger.info(">>> Generator: Gathering Data... Done.")
-        self.batch_queue = ThreadSafeList()
-        self.path_queue = ThreadSafeList()
-        self.validation_list = []
-        self.test_list = []
         self.barrier = threading.Barrier(self.num_workers)
-
         self.logger.info(">>> Generator: Filling Validation List...")
-        self.__fill_validation_list()
-        clear_last_line()
+        self.validation_list, fnames_validation = self.__fill_separate_set_list(self.num_validation_samples)
+        if save_path is not None:
+            pickle.dump(fnames_validation, open(str(save_path / 'validation_set.p'), 'wb'))
         self.logger.info(">>> Generator: Filling Validation List... Done.")
-
+        self.logger.info(">>> Generator: Filling Test List...")
+        self.test_list, fnames_test = self.__fill_separate_set_list(self.num_test_samples)
+        if save_path is not None:
+            pickle.dump(fnames_test, open(str(save_path / 'test_set.p'), 'wb'))
+        self.logger.info(">>> Generator: Filling Test List... Done.")
+        if save_path is not None:
+            pickle.dump(self.paths, open(str(save_path / 'training_set.p'), 'wb'))
         self.logger.info(">>> Generator: Filling Path Queue...")
         try:
             self.__fill_path_queue()
         except Exception as e:
             raise e
-        clear_last_line()
-
         self.logger.info(">>> Generator: Filling Path Queue... Done.")
-
         self.__print_info()
-
         for i in range(self.num_workers):
             t_batch = threading.Thread(target=self.__fill_batch_queue)
             t_batch.start()
@@ -198,7 +207,7 @@ class ERFH5DataGenerator:
     def __shuffle_batch_queue(self):
         while len(self.path_queue) > self.batch_size or len(self.batch_queue) > self.batch_size:
             self.batch_queue.randomise()
-            time.sleep(10)
+            sleep(10)
 
     def __fill_path_queue(self):
         if len(self.paths) == 0:
@@ -232,14 +241,17 @@ class ERFH5DataGenerator:
         self.logger.info(f"Number of validation samples: {self.num_validation_samples}")
         self.logger.info("###########################################")
 
-    def __fill_validation_list(self):
+    def __fill_separate_set_list(self, wanted_len):
+        separate_set_list = []
+        separate_fname_list = []
         if len(self.paths) == 0:
             raise Exception("No file paths found")
 
-        while len(self.validation_list) < self.num_validation_samples:
+        while len(separate_set_list) < wanted_len:
             s_path = None
             # If IndexError here: files are all too short
             sample = self.paths[0]
+            separate_fname_list.append(sample)
             self.paths = self.paths[1:]
             if self.cache_path is not None:
                 s_path = Path(sample)
@@ -250,7 +262,7 @@ class ERFH5DataGenerator:
                     for i in range(len(instance_f) // 2):
                         data = torch.load(s_path.joinpath(instance_f[i * 2]))
                         label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
-                        self.validation_list.append((data, label))
+                        separate_set_list.append((data, label))
                     continue
                 else:
                     s_path.mkdir(parents=True, exist_ok=True)
@@ -269,13 +281,15 @@ class ERFH5DataGenerator:
 
                 for num, i in enumerate(instance):
                     data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-                    self.validation_list.append((data, label))
+                    separate_set_list.append((data, label))
+                    if len(separate_set_list) == wanted_len:
+                        break
                     if s_path is not None:
                         torch.save(data, s_path.joinpath(str(num) + "-data" + ".pt"))
                         torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
+        return separate_set_list, separate_fname_list
 
     def __fill_batch_queue(self):
-
         while len(self.batch_queue) < self.max_queue_length:
             s_path = None
             if len(self.path_queue) < self.batch_size:
@@ -347,7 +361,7 @@ class ERFH5DataGenerator:
         while len(self.batch_queue) < self.batch_size:
             if len(self.path_queue) < self.batch_size:
                 raise StopIteration
-            time.sleep(0.1)
+            sleep(0.1)
         batch = self.batch_queue.get(self.batch_size)
         if len(self.batch_queue) < self.max_queue_length / 4:
             if threading.active_count() < self.num_workers + 1 and len(self.path_queue) > self.batch_size:
@@ -367,12 +381,24 @@ class ERFH5DataGenerator:
     def __len__(self):
         return self.epochs * len(self.paths)
 
+    # TODO unnecessary?
     def get_validation_samples(self):
         """
         Returns: 
             List: list containing self.num_validation_samples instances for validation. 
         """
         return self.validation_list
+
+    # TODO unnecessary?
+    def get_test_samples(self):
+        """
+        Returns:
+            List: list containing self.num_test_samples instances for validation.
+        """
+        return self.test_list
+
+    def load_test_set(self, path):
+        self.test_list = pickle.load(open(path, 'rb'))
 
 
 if __name__ == "__main__":

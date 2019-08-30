@@ -7,7 +7,7 @@ from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader
     data_gather as dg
 
 from Trainer.evaluation import plot_predictions_and_label
-from Trainer.Generic_Trainer import MasterTrainer
+from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import Binary_Classification_Evaluator
 
 import torch
