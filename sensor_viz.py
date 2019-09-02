@@ -11,6 +11,9 @@ path = data_root / '2019-07-23_15-38-08_5000p'
 paths = [path]
 
 
+
+
+
 def create_dataGenerator_pressure_flowfront():
     try:
         generator = pipeline.ERFH5DataGenerator(data_paths=paths, num_validation_samples=1,
@@ -28,13 +31,17 @@ def create_dataGenerator_pressure_flowfront():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    logger.addHandler(logging.StreamHandler())
     gen = create_dataGenerator_pressure_flowfront()
     for inputs, labels in gen:
         print(np.shape(inputs), np.shape(labels))
         a = inputs.numpy()
         c = labels.numpy()
         b = np.reshape(a, [-1, 38, 30])
-        b = b[::2, :]
+        b = b[:, ::4, ::4]
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_title('colorMap')
