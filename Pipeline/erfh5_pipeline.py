@@ -162,7 +162,7 @@ class ERFH5DataGenerator:
     def init_generators_and_run(self, save_path):
         for path in self.data_paths:
             if self.cache_path_flist is not None:
-                path_name = path.split("/")[-1]
+                path_name = Path(path).stem
                 file = self.cache_path_flist.joinpath(path_name)
                 if os.path.isfile(file):
                     self.paths.extend(pickle.load(open(file, "rb")))

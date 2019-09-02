@@ -19,6 +19,7 @@ num_data_points = 31376
 initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 if socket.gethostname() == 'swt-dgx1':
+    cache_path=None
     data_root = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
     batch_size = 256
     eval_freq = math.ceil(num_data_points / batch_size)
@@ -26,6 +27,7 @@ if socket.gethostname() == 'swt-dgx1':
         save_path = Path("/cfs/share/cache/output_simon")
     elif getpass.getuser() =='schroeni':
         save_path = Path("/cfs/share/cache/output_niklas")
+        # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
     else:
         save_path = Path('/cfs/share/cache/output')
     epochs = 10
@@ -34,6 +36,7 @@ if socket.gethostname() == 'swt-dgx1':
     num_test_samples = 2000
 
 elif socket.gethostname() == 'swtse130':
+    cache_path = Path(r'C:\Users\stiebesi\CACHE')
     data_root = Path(r'X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes')
     batch_size = 1
     eval_freq = 5
@@ -52,21 +55,21 @@ paths = [data_root / '2019-07-23_15-38-08_5000p',
          data_root / '2019-08-25_09-16-40_5000p',
          data_root / '2019-08-26_16-59-08_6000p']
 
-cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
 
-
-def create_dataGenerator_pressure_flowfront(paths, save_path=None):
+def create_dataGenerator_pressure_flowfront(paths, save_path=None, test_mode=False):
     try:
         generator = pipeline.ERFH5DataGenerator(data_paths=paths, num_validation_samples=num_validation_samples,
                                                 num_test_samples=num_test_samples,
                                                 batch_size=batch_size, epochs=epochs, max_queue_length=8096,
                                                 data_processing_function=dli.get_sensordata_and_flowfront,
                                                 data_gather_function=dg.get_filelist_within_folder,
-                                                num_workers=num_workers, cache_path=None, save_path=save_path, test_mode=True)
+                                                num_workers=num_workers, cache_path=cache_path, save_path=save_path,
+                                                test_mode=test_mode)
     except Exception as e:
         logger = logging.getLogger(__name__)
-        logger.addHandler(logging.StreamHandler)
-        logger.setLevel(logging.DEBUG)
+        h = logging.StreamHandler()
+        h.setLevel(logging.ERROR)
+        logger.addHandler(h)
         logger.error("Fatal Error:", e)
         logging.error("exception ", exc_info=1)
         exit()
@@ -88,7 +91,7 @@ def inference_on_test_set(path):
         model = nn.DataParallel(model).to('cuda:0')
     else:
         model = model.to('cuda:0')
-    gen = create_dataGenerator_pressure_flowfront(paths=[])
+    gen = create_dataGenerator_pressure_flowfront(paths=[], test_mode=True)
     eval_wrapper = MasterTrainer(model, gen, classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path))
     eval_wrapper.load_checkpoint(path / 'checkpoint.pth')
 
@@ -125,7 +128,7 @@ def run_training(save_path):
     logger = logging.getLogger(__name__)
 
     logger.info("Generating Generator")
-    generator = create_dataGenerator_pressure_flowfront(paths, save_path)
+    generator = create_dataGenerator_pressure_flowfront(paths, save_path, test_mode=False)
     logger.info("Generating Model")
     model = DeconvModel()
     logger.info("Model to GPU")
@@ -148,7 +151,7 @@ def run_training(save_path):
 
 
 if __name__ == "__main__":
-    train = False
+    train = True
     if train:
         run_training(save_path)
     else:

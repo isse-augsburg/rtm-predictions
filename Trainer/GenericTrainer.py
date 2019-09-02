@@ -9,6 +9,8 @@ import torch
 from collections import OrderedDict
 import numpy as np
 
+from Pipeline import erfh5_pipeline
+
 
 class MasterTrainer:
     """Class that runs train and evaluation loops of PyTorch models automatically.
@@ -105,7 +107,7 @@ class MasterTrainer:
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
-                self.eval(self.validationList, eval_step)
+                self.eval(self.validation_list, eval_step)
                 time_sum = 0
                 eval_step += 1
                 i_of_epoch = 0
