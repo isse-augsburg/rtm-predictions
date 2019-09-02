@@ -24,10 +24,20 @@ class MasterTrainer:
         classification_evaluator: Optional object for evaluating classification, see evaluation.py for more details 
     """
 
-    def __init__(self, model, generator: erfh5_pipeline.ERFH5DataGenerator, loss_criterion=torch.nn.MSELoss(),
-                 train_print_frequency=10, eval_frequency=100, savepath=Path("model.pth"), eval_func=None,
-                 comment="No custom comment added.", learning_rate=0.00001,
-                 calc_metrics=False, classification_evaluator=None):
+    def __init__(
+        self,
+        model,
+        generator,
+        loss_criterion=torch.nn.MSELoss(),
+        train_print_frequency=10,
+        eval_frequency=100,
+        savepath=Path("model.pth"),
+        eval_func=None,
+        comment="No custom comment added.",
+        learning_rate=0.00001,
+        calc_metrics=False,
+        classification_evaluator=None,
+    ):
         self.generator = generator
         self.validation_list = self.generator.get_validation_samples()
         self.model = model
@@ -38,9 +48,9 @@ class MasterTrainer:
         self.learning_rate = learning_rate
         self.loss_criterion = loss_criterion.cuda()
         self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.learning_rate)
-        self.device = torch.device(
-            "cuda:0" if torch.cuda.is_available() else "cpu")
+            self.model.parameters(), lr=self.learning_rate
+        )
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.comment = comment
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
@@ -54,7 +64,7 @@ class MasterTrainer:
         self.__print_info()
         self.__print_comment()
         self.__train()
-        self.logger.info('Test set missing. So no testing.')
+        self.logger.info("Test set missing. So no testing.")
         # self.__eval()
         self.logger.info(">>> INFO: TRAINING COMPLETE.")
 
@@ -62,8 +72,7 @@ class MasterTrainer:
         self.generator.load_test_set(path)
         test_list = self.generator.get_test_samples()
         self.generator.paths = test_list
-        dataset, _ = self.generator.__fill_separate_set_list(
-            len(self.generator.paths))
+        dataset, _ = self.generator.__fill_separate_set_list(len(self.generator.paths))
         self.eval(dataset)
 
     def __print_info(self):
@@ -101,11 +110,12 @@ class MasterTrainer:
                 time_delta = time.time() - start_time
                 time_sum += time_delta
                 self.logger.info(
-                    f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds; avg: {time_sum / i_of_epoch:10.2f}|| Q: {self.generator.get_current_queue_length()}")
+                    f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds; avg: {time_sum / i_of_epoch:10.2f}|| Q: {self.generator.get_current_queue_length()}"
+                )
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
-                self.eval(self.validationList, eval_step)
+                self.eval(self.validation_list, eval_step)
                 time_sum = 0
                 eval_step += 1
                 i_of_epoch = 0
@@ -129,7 +139,8 @@ class MasterTrainer:
 
                 if self.classification_evaluator is not None:
                     self.classification_evaluator.commit(
-                        output.cpu(), label.cpu())
+                        output.cpu(), label.cpu(), data.cpu()
+                    )
 
             loss = loss / len(data_set)
             self.logger.info(f">>> {eval_step} Mean Loss on Eval: {loss:8.4f}")
@@ -141,12 +152,15 @@ class MasterTrainer:
             self.model.train()
             if not test_mode:
                 if loss < self.best_loss:
-                    torch.save({
-                        'epoch': eval_step,
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        'loss': loss
-                    }, self.savepath / Path('checkpoint.pth'))
+                    torch.save(
+                        {
+                            "epoch": eval_step,
+                            "model_state_dict": self.model.state_dict(),
+                            "optimizer_state_dict": self.optimizer.state_dict(),
+                            "loss": loss,
+                        },
+                        self.savepath / Path("checkpoint.pth"),
+                    )
                     self.best_loss = loss
 
     # deprecated?
@@ -156,7 +170,7 @@ class MasterTrainer:
         Args:
             savepath (string): Path and filename to the model, eg 'model.pt'
         """
-        torch.save(self.model.state_dict(), self.savepath / Path('model.pth'))
+        torch.save(self.model.state_dict(), self.savepath / Path("model.pth"))
 
     # deprecated?
     def load_model(self, modelpath):
@@ -165,7 +179,7 @@ class MasterTrainer:
         ARgs: 
             modelpath (string): Path to the stored model.
         """
-        state_dict = torch.load(modelpath, map_location='cpu')
+        state_dict = torch.load(modelpath, map_location="cpu")
         new_state_dict = OrderedDict()
         for k, v in state_dict.items():
             name = k[7:]  # remove `module.`
@@ -184,13 +198,13 @@ class MasterTrainer:
 
         checkpoint = torch.load(path)
         new_model_state_dict = OrderedDict()
-        model_state_dict = checkpoint['model_state_dict']
+        model_state_dict = checkpoint["model_state_dict"]
         for k, v in model_state_dict.items():
             name = k[7:]  # remove `module.`
             new_model_state_dict[name] = v
         self.model.load_state_dict(new_model_state_dict)
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        epoch = checkpoint['epoch']
-        loss = checkpoint['loss']
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        epoch = checkpoint["epoch"]
+        loss = checkpoint["loss"]
 
         return epoch, loss

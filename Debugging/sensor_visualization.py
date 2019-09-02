@@ -46,7 +46,9 @@ def get_filelist_within_folder(root_directory, num_filenames=-1):
 
         for (dirpath, _, filenames) in tqdm(walk(dirs)):
             if filenames:
-                filenames = [dirpath + '/' + f for f in filenames if f.endswith('.erfh5')]
+                filenames = [
+                    dirpath + "/" + f for f in filenames if f.endswith(".erfh5")
+                ]
                 dataset_filenames.extend(filenames)
                 if num_filenames > 0 and len(dataset_filenames) > num_filenames:
                     break
@@ -55,11 +57,11 @@ def get_filelist_within_folder(root_directory, num_filenames=-1):
 
 
 def get_all_sensor_values(filename):
-    f = h5py.File(filename, 'r')
+    f = h5py.File(filename, "r")
 
-    pressure_array = \
-    f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1']['erfblock']['res'][
-        ()]
+    pressure_array = f["post"]["multistate"]["TIMESERIES1"]["multientityresults"][
+        "SENSOR"
+    ]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
     pressure_array = pressure_array / 100
 
     last_filling = pressure_array[-1]
@@ -76,7 +78,15 @@ def __plot_sensorgrid(all_sensors, values, text=""):
         v = int(values[sensor_id])
         # color = np.array([[min(value, 255), 255, 255]])
 
-        color = np.array([[min(max(255 - v, 0), 255), min(max(255 - v, 0), 255), min(max(255 - v, 0), 255)]])
+        color = np.array(
+            [
+                [
+                    min(max(255 - v, 0), 255),
+                    min(max(255 - v, 0), 255),
+                    min(max(255 - v, 0), 255),
+                ]
+            ]
+        )
         plt.scatter(x, y, c=color / 255)
 
     plt.figtext(0.02, 0.02, s=text)
@@ -94,14 +104,18 @@ def plot_sensor_series(filename_data, filename_sensorinfo):
             __plot_sensorgrid(all_sensors, v, "Filling percentage: " + str(percentage))
 
     print(">>> Plotting FINAL step")
-    __plot_sensorgrid(all_sensors, last_step, "Filling percentage: " + str(percentage) + " || Last step")
+    __plot_sensorgrid(
+        all_sensors,
+        last_step,
+        "Filling percentage: " + str(percentage) + " || Last step",
+    )
 
 
 def __plot_and_save_sensorstep(file, save_path=None):
     sensor_values, percentage = get_all_sensor_values(file)
     color = np.array([[0, 0, 1.0]])
-    save_path_negative = save_path + 'Negative/'
-    save_path_positive = save_path + 'Positive/'
+    save_path_negative = save_path + "Negative/"
+    save_path_positive = save_path + "Positive/"
 
     last_step = sensor_values[-1]
 
@@ -111,7 +125,7 @@ def __plot_and_save_sensorstep(file, save_path=None):
 
     if not save_path is None:
         timestamp = int(datetime.timestamp(datetime.now()))
-        fname = str(timestamp) + '.png'
+        fname = str(timestamp) + ".png"
 
         if percentage < 1:
             plt.savefig(save_path_negative + fname)
@@ -130,8 +144,8 @@ def plot_all_last_steps(root_directory, save_path=None, num_files=-1, num_worker
 
     all_files = get_filelist_within_folder([root_directory], num_filenames=num_files)
 
-    save_path_negative = save_path + 'Negative/'
-    save_path_positive = save_path + 'Positive/'
+    save_path_negative = save_path + "Negative/"
+    save_path_positive = save_path + "Positive/"
 
     if not os.path.exists(save_path_negative):
         os.makedirs(save_path_negative)
@@ -155,11 +169,11 @@ def plot_all_last_steps(root_directory, save_path=None, num_files=-1, num_worker
 
 
 if __name__ == "__main__":
-    filename_sensorinfo = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/39/2019-07-23_15-38-08_39d.out'
-    filename_data = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/39/2019-07-23_15-38-08_39_RESULT.erfh5'
+    filename_sensorinfo = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/39/2019-07-23_15-38-08_39d.out"
+    filename_data = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/39/2019-07-23_15-38-08_39_RESULT.erfh5"
     # root =  '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-06-05_15-30-52_1050p/'
-    save_path = '/home/lodes/DataAnalysis/Test/'
-    root = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p'
+    save_path = "/home/lodes/DataAnalysis/Test/"
+    root = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
     # parse_out_file(filename)
     # plot_sensor_series(filename_data, filename_sensorinfo)
     plot_all_last_steps(root, save_path=save_path, num_files=50, num_workers=6)

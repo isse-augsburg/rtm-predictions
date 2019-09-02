@@ -4,11 +4,10 @@ import pickle
 import socket
 from datetime import datetime
 from pathlib import Path
-
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel
+from Models.erfh5_DeconvModel import DeconvModel2x
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
@@ -23,7 +22,7 @@ initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 if socket.gethostname() == "swt-dgx1":
     data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-    batch_size = 256
+    batch_size = 128
     eval_freq = math.ceil(num_data_points / batch_size)
     if getpass.getuser() == "stiebesi":
         save_path = Path("/cfs/share/cache/output_simon")
@@ -35,6 +34,7 @@ if socket.gethostname() == "swt-dgx1":
     num_workers = 18
     num_validation_samples = 2000
     num_test_samples = 2000
+    cache_path = None
 
 elif socket.gethostname() == "swtse130":
     data_root = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
@@ -46,18 +46,26 @@ elif socket.gethostname() == "swtse130":
     num_validation_samples = 10
     num_test_samples = 10
 
+else:
+    data_root = Path("/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes")
+    save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache/output_niklas")
+    epochs = 2
+    num_workers = 4
+    num_validation_samples = 10
+    num_test_samples = 10
+    batch_size = 4
+    eval_freq = 5
+    cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
 
 paths = [
     data_root / "2019-07-23_15-38-08_5000p",
-    data_root / "2019-07-24_16-32-40_5000p",
-    data_root / "2019-07-29_10-45-18_5000p",
-    data_root / "2019-08-23_15-10-02_5000p",
-    data_root / "2019-08-24_11-51-48_5000p",
-    data_root / "2019-08-25_09-16-40_5000p",
-    data_root / "2019-08-26_16-59-08_6000p",
+    # data_root / "2019-07-24_16-32-40_5000p",
+    # data_root / "2019-07-29_10-45-18_5000p",
+    # data_root / "2019-08-23_15-10-02_5000p",
+    # data_root / "2019-08-24_11-51-48_5000p",
+    # data_root / "2019-08-25_09-16-40_5000p",
+    # data_root / "2019-08-26_16-59-08_6000p",
 ]
-
-cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
 
 
 def create_dataGenerator_pressure_flowfront(paths, save_path=None):
@@ -72,9 +80,9 @@ def create_dataGenerator_pressure_flowfront(paths, save_path=None):
             data_processing_function=dli.get_sensordata_and_flowfront,
             data_gather_function=dg.get_filelist_within_folder,
             num_workers=num_workers,
-            cache_path=None,
+            cache_path=cache_path,
             save_path=save_path,
-            test_mode=True,
+            test_mode=False,
         )
     except Exception as e:
         logger = logging.getLogger(__name__)
@@ -87,7 +95,7 @@ def create_dataGenerator_pressure_flowfront(paths, save_path=None):
 
 
 def get_comment():
-    return "Hallo"
+    return "SensorGrid halfed"
 
 
 def inference_on_test_set(path):
@@ -149,7 +157,7 @@ def run_training(save_path):
     logger.info("Generating Generator")
     generator = create_dataGenerator_pressure_flowfront(paths, save_path)
     logger.info("Generating Model")
-    model = DeconvModel()
+    model = DeconvModel2x()
     logger.info("Model to GPU")
     model = nn.DataParallel(model).to("cuda:0")
 
@@ -173,7 +181,7 @@ def run_training(save_path):
 
 
 if __name__ == "__main__":
-    train = False
+    train = True
     if train:
         run_training(save_path)
     else:

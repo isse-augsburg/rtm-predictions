@@ -8,16 +8,23 @@ from pathlib import Path
 import numpy as np
 import h5py
 import random
+
 # from PIL import Image
 from PIL import Image, ImageDraw
 
 from Pipeline.data_gather import get_filelist_within_folder
 
 # data_function must return [(data, label) ... (data, label)]
-from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_lautern
+from Pipeline.plots_and_images import (
+    draw_polygon_map,
+    plot_wrapper,
+    scale_coords_lautern,
+)
 
 
-def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label_offset=3):
+def get_image_state_sequence(
+    folder, start_state=0, end_state=100, step=5, label_offset=3
+):
     filelist = get_filelist_within_folder(folder)
     if len(filelist) == 0:
         return None
@@ -70,9 +77,10 @@ def normalize_coords(coords):
     coords[:, 1] = coords[:, 1] / (max_c - min_c)
     return coords
 
-
     # for new data 38 and 30.0
-def create_np_image(target_shape=(149, 117), norm_coords=None, data=None, ):
+
+
+def create_np_image(target_shape=(143, 111), norm_coords=None, data=None):
     if norm_coords is None or data is None:
         logger = logging.getLogger(__name__)
         logger.addHandler(logging.StreamHandler())
@@ -89,25 +97,30 @@ def create_np_image(target_shape=(149, 117), norm_coords=None, data=None, ):
     coords_value[:, 1] = coords_value[:, 1] * (target_shape[1] - 1)
     coords_value[:, 2] = coords_value[:, 2]
     # coords_value = coords_value.astype(np.int)
-    arr[coords_value[:, 0].astype(np.int), coords_value[:, 1].astype(np.int)] = coords_value[:, 2]
+    arr[
+        coords_value[:, 0].astype(np.int), coords_value[:, 1].astype(np.int)
+    ] = coords_value[:, 2]
 
     return arr
 
 
-def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsize=(155, 155)):
-    f = h5py.File(filename, 'r')
+def get_images_of_flow_front_and_permeability_map(
+    filename, wanted_num=10, imsize=(155, 155)
+):
+    f = h5py.File(filename, "r")
     im, scaled_coords, triangle_coords = get_local_properties_map(f, imsize)
 
-    all_states = list(f['post']['singlestate'].keys())
-    selected_states = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(all_states,
-                                                                                             wanted_num=wanted_num)
+    all_states = list(f["post"]["singlestate"].keys())
+    selected_states = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(
+        all_states, wanted_num=wanted_num
+    )
 
     fillings = []
     for i, state in enumerate(all_states):
         try:
-            filling_factor = \
-                f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
-                    'res'][()]
+            filling_factor = f["post"]["singlestate"][state]["entityresults"]["NODE"][
+                "FILLING_FACTOR"
+            ]["ZONE1_set1"]["erfblock"]["res"][()]
         except KeyError:
             return None
         fillings.append(filling_factor)
@@ -123,7 +136,7 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsiz
         except IndexError or OSError:
             logger = logging.getLogger(__name__)
             logger.addHandler(logging.StreamHandler())
-            logger.error(f'ERROR at {filename}, len(fillings): {len(fillings)}')
+            logger.error(f"ERROR at {filename}, len(fillings): {len(fillings)}")
             # raise
     # array of all images, array of the same permeability map
     # trues, falses = 0, 0
@@ -138,13 +151,15 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsiz
     return [(img_stack[0:wanted_num], label)]
 
 
-def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(input_list, wanted_num):
+def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(
+    input_list, wanted_num
+):
     num = len(input_list)
     dist = num / wanted_num
     if num == wanted_num:
         return input_list
     input_list.reverse()
-    x = input_list[::int(np.round(dist))]
+    x = input_list[:: int(np.round(dist))]
     input_list.reverse()
     x.reverse()
     res = []
@@ -155,53 +170,65 @@ def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(input
 
 
 def get_local_properties_map(f, imsize):
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
+    coord_as_np_array = f[
+        "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"
+    ][()]
     _all_coords = coord_as_np_array[:, :-1]
     scaled_coords = scale_coords_lautern(_all_coords)
     # norm_cords = normalize_coords(_all_coords)
-    triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
+    triangle_coords = f["post/constant/connectivities/SHELL/erfblock/ic"][()]
     triangle_coords = triangle_coords[:, :-1] - 1
-    data = f['post/constant/entityresults/SHELL/']
+    data = f["post/constant/entityresults/SHELL/"]
 
-    im = create_local_properties_map(data, scaled_coords, triangle_coords, 'FIBER_FRACTION')
+    im = create_local_properties_map(
+        data, scaled_coords, triangle_coords, "FIBER_FRACTION"
+    )
     if im.size != imsize:
         im = im.resize(imsize)
     return im, scaled_coords, triangle_coords
 
 
-def create_local_properties_map(data, scaled_coords, triangle_coords, _type='FIBER_FRACTION'):
-    values_for_triangles = data[_type]['ZONE1_set1']['erfblock']['res'][()]
+def create_local_properties_map(
+    data, scaled_coords, triangle_coords, _type="FIBER_FRACTION"
+):
+    values_for_triangles = data[_type]["ZONE1_set1"]["erfblock"]["res"][()]
     im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords)
     return im
 
 
 def get_sensordata_and_flowfront(file):
-    f = h5py.File(file, 'r')
+    f = h5py.File(file, "r")
     instances = []
     try:
-        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
+        coord_as_np_array = f[
+            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"
+        ][()]
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
 
         _coords = normalize_coords(_coords)
 
-        pressure_array = \
-            f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1'][
-                'erfblock'][
-                'res'][()]
-        pressure_array = pressure_array / 100000 # convert barye to bar ( smaller values are more stable while training)
-        all_states = f['post']['singlestate']
+        pressure_array = f["post"]["multistate"]["TIMESERIES1"]["multientityresults"][
+            "SENSOR"
+        ]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
+        pressure_array = (
+            pressure_array / 100000
+        )  # convert barye to bar ( smaller values are more stable while training)
+        all_states = f["post"]["singlestate"]
 
         filling_factors_at_certain_times = [
-            f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][
-                ()] for state in all_states]
+            f["post"]["singlestate"][state]["entityresults"]["NODE"]["FILLING_FACTOR"][
+                "ZONE1_set1"
+            ]["erfblock"]["res"][()]
+            for state in all_states
+        ]
         flat_fillings = np.squeeze(filling_factors_at_certain_times)
     except KeyError:
         return None
 
     for state, filling in zip(all_states, flat_fillings):
         try:
-            s = state.replace("state", '')
+            s = state.replace("state", "")
             state_num = int(s)
             sensordata = np.squeeze(pressure_array[state_num - 1])
             arr = create_np_image(norm_coords=_coords, data=filling)
@@ -230,4 +257,7 @@ def get_image_percentage(folder):
 
 
 if __name__ == "__main__":
-    get_sensordata_and_flowfront(Path(r'/home/schroeter/Desktop/2019-08-24_11-51-48_3_RESULT.erfh5'))
+    get_sensordata_and_flowfront(
+        Path(r"/home/schroeter/Desktop/2019-08-24_11-51-48_3_RESULT.erfh5")
+    )
+

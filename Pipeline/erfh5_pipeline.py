@@ -48,7 +48,6 @@ class ThreadSafeList:
 
     def put(self, element):
         """Appends a single element to the list. 
-        
         Args:
             element: Element that should be added.
         """
