@@ -47,8 +47,12 @@ elif socket.gethostname() == "swtse130":
     num_test_samples = 10
 
 else:
-    data_root = Path("/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes")
-    save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache/output_niklas")
+    data_root = Path(
+        "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes"
+    )
+    save_path = Path(
+        r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache/output_niklas"
+    )
     epochs = 2
     num_workers = 4
     num_validation_samples = 10
@@ -68,7 +72,7 @@ paths = [
 ]
 
 
-def create_dataGenerator_pressure_flowfront(paths, save_path=None):
+def create_dataGenerator_pressure_flowfront(paths, save_path=None, test_mode=False):
     try:
         generator = pipeline.ERFH5DataGenerator(
             data_paths=paths,
@@ -77,17 +81,18 @@ def create_dataGenerator_pressure_flowfront(paths, save_path=None):
             batch_size=batch_size,
             epochs=epochs,
             max_queue_length=8096,
-            data_processing_function=dli.get_sensordata_and_flowfront,
+            data_processing_function=dli.get_sensordata_and_flowfront_143x111,
             data_gather_function=dg.get_filelist_within_folder,
             num_workers=num_workers,
             cache_path=cache_path,
             save_path=save_path,
-            test_mode=False,
+            test_mode=test_mode,
         )
     except Exception as e:
         logger = logging.getLogger(__name__)
-        logger.addHandler(logging.StreamHandler)
-        logger.setLevel(logging.DEBUG)
+        h = logging.StreamHandler()
+        h.setLevel(logging.ERROR)
+        logger.addHandler(h)
         logger.error("Fatal Error:", e)
         logging.error("exception ", exc_info=1)
         exit()
@@ -95,7 +100,7 @@ def create_dataGenerator_pressure_flowfront(paths, save_path=None):
 
 
 def get_comment():
-    return "SensorGrid halfed"
+    return "Hallo"
 
 
 def inference_on_test_set(path):
@@ -111,7 +116,7 @@ def inference_on_test_set(path):
         model = nn.DataParallel(model).to("cuda:0")
     else:
         model = model.to("cuda:0")
-    gen = create_dataGenerator_pressure_flowfront(paths=[])
+    gen = create_dataGenerator_pressure_flowfront(paths=[], test_mode=True)
     eval_wrapper = MasterTrainer(
         model,
         gen,
@@ -155,7 +160,9 @@ def run_training(save_path):
     logger = logging.getLogger(__name__)
 
     logger.info("Generating Generator")
-    generator = create_dataGenerator_pressure_flowfront(paths, save_path)
+    generator = create_dataGenerator_pressure_flowfront(
+        paths, save_path, test_mode=False
+    )
     logger.info("Generating Model")
     model = DeconvModel2x()
     logger.info("Model to GPU")
@@ -172,7 +179,9 @@ def run_training(save_path):
         calc_metrics=False,
         train_print_frequency=2,
         eval_frequency=eval_freq,
-        classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path),
+        classification_evaluator=Sensor_Flowfront_Evaluator(
+            save_path=save_path, halfed=True
+        ),
     )
     logger.info("The Training Will Start Shortly")
 

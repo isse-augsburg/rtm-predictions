@@ -196,7 +196,16 @@ def create_local_properties_map(
     return im
 
 
-def get_sensordata_and_flowfront(file):
+def get_sensordata_and_flowfront_149x117(file, target_shape=(149, 117)):
+    return get_sensordata_and_flowfront(file, target_shape)
+
+
+def get_sensordata_and_flowfront_143x111(file, target_shape=(143, 111)):
+    return get_sensordata_and_flowfront(file, target_shape)
+
+
+
+def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
     f = h5py.File(file, "r")
     instances = []
     try:
@@ -231,7 +240,9 @@ def get_sensordata_and_flowfront(file):
             s = state.replace("state", "")
             state_num = int(s)
             sensordata = np.squeeze(pressure_array[state_num - 1])
-            arr = create_np_image(norm_coords=_coords, data=filling)
+            arr = create_np_image(
+                target_shape=(143, 111), norm_coords=_coords, data=filling
+            )
             instances.append((sensordata, arr))
         except IndexError:
             continue

@@ -9,6 +9,8 @@ import torch
 from collections import OrderedDict
 import numpy as np
 
+from Pipeline import erfh5_pipeline
+
 
 class MasterTrainer:
     """Class that runs train and evaluation loops of PyTorch models automatically.
