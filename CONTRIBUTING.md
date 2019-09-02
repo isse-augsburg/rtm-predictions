@@ -15,6 +15,12 @@ Pull requests to master will only be accepted with proper testing.
 Add documentation to your code: See `Pipeline/erfh5_pipeline.py` as reference.
 We use the [sphinx package](http://www.sphinx-doc.org/en/master/) for the creation of the documentation.
 
+# Code Style
+Please follow the official python guidelines to make the code readable: 
+https://www.python.org/dev/peps/pep-0008/
+In some IDEs, like PyCharm the style checks are automatically enabled. 
+In others, you might have to install a linter, first.
+
 # Checklist before merging
 - Make sure your code works
 - Test not only your model, but at least two others to make sure you did not wreck the pipeline

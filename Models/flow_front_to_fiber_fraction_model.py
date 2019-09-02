@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class FlowfrontFeatures_RNN(nn.Module):
     def __init__(self, input_dim, hidden_dim=512, batch_size=16, num_layers=3):
         super(FlowfrontFeatures_RNN, self).__init__()
@@ -86,9 +87,7 @@ class Flowfront_CNN(nn.Module):
 class FlowfrontToFiberfractionModel(nn.Module):
     def __init__(self):
         super(FlowfrontToFiberfractionModel, self).__init__()
-        print('>>> INFO: Generating CNN')
         self.cnn = Flowfront_CNN()
-        print('>>> INFO: Generating RNN')
         self.rnn = FlowfrontFeatures_RNN(input_dim=625)
 
     def forward(self, x):

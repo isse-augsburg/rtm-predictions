@@ -276,10 +276,8 @@ dmypy.json
 
 # From HiWis:
 
-*.png
 *.vscode
 *.pyc
-__pycache__/
 Output/
 Images/
 *.out

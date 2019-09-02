@@ -1,3 +1,4 @@
+import logging
 from functools import partial
 from multiprocessing.pool import Pool
 from pathlib import Path
@@ -6,7 +7,7 @@ from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader
     data_gather as dg
 
 from Trainer.evaluation import plot_predictions_and_label
-from Trainer.Generic_Trainer import Master_Trainer
+from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import Binary_Classification_Evaluator
 
 import torch
@@ -49,17 +50,18 @@ path = data_root / '2019-07-23_15-38-08_5000p'
 path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p'
 paths = [path]
 
-
+log_level = logging.DEBUG
+logger = logging.getLogger(__name__)
 
 
 def create_dataGenerator_index_sequence():
     try:
-        generator = pipeline.ERFH5_DataGenerator(
+        generator = pipeline.ERFH5DataGenerator(
             '/cfs/share/data/RTM/Lautern/clean_erfh5/', data_processing_function=dl.get_index_sequence,
             data_gather_function=dg.get_filelist_within_folder,
             batch_size=batchsize, epochs=epochs, max_queue_length=2048, num_validation_samples=10)
     except Exception as e:
-        print(">>>ERROR: Fatal Error:", e)
+        logger.error("Fatal Error:", e)
         exit()
 
     return generator
@@ -67,13 +69,13 @@ def create_dataGenerator_index_sequence():
 
 def create_dataGenerator_single_state():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths='/cfs/share/data/RTM/Lautern/clean_erfh5/',
-                                                 data_processing_function=dl.get_single_states_and_fillings,
-                                                 data_gather_function=dg.get_filelist_within_folder,
-                                                 batch_size=batchsize, epochs=epochs, max_queue_length=2048,
-                                                 num_validation_samples=3)
+        generator = pipeline.ERFH5DataGenerator(data_paths='/cfs/share/data/RTM/Lautern/clean_erfh5/',
+                                                data_processing_function=dl.get_single_states_and_fillings,
+                                                data_gather_function=dg.get_filelist_within_folder,
+                                                batch_size=batchsize, epochs=epochs, max_queue_length=2048,
+                                                num_validation_samples=3)
     except Exception as e:
-        print("Fatal Error:", e)
+        logger.error("Fatal Error:", e)
         exit()
     return generator
 
@@ -81,7 +83,7 @@ def create_dataGenerator_single_state():
 def create_dataGenerator_pressure_sequence():
     
         
-    generator = pipeline.ERFH5_DataGenerator(
+    generator = pipeline.ERFH5DataGenerator(
         paths, data_processing_function=dls.sensorgrid_simulationsuccess,
         data_gather_function=dg.get_filelist_within_folder,
         batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=70, cache_path=None)
@@ -90,27 +92,29 @@ def create_dataGenerator_pressure_sequence():
     return generator
 
 
-
 def get_comment():
     return "Using 38x30 Sensorgrid as net input"
 
+save_path = Path(r"Y:\cache\output_simon")
 
 if __name__ == "__main__":
-    
-    print(">>> INFO: Generating Model")
+    logging.basicConfig(filename=save_path / Path('output.log'),
+                        level=logging.DEBUG,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    logger.info("Generating Model")
     model = ERFH5_PressureSequence_Model()
-    print(">>> INFO: Generating Generator")
+    logger.info("Generating Generator")
     generator = create_dataGenerator_pressure_sequence()
-    print(">>> INFO: Model to GPU")
+    logger.info("Model to GPU")
     model = nn.DataParallel(model).to('cuda:0')
-    print(">>> INFO: Generating Trainer")
+    logger.info("Generating Trainer")
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
-    train_wrapper = Master_Trainer(model, generator, train_print_frequency=20, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
+    train_wrapper = MasterTrainer(model, generator, train_print_frequency=20, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   learning_rate=0.0005, classification_evaluator=Binary_Classification_Evaluator())
-    print(">>> INFO: The Training Will Start Shortly")
+    logger.info("The Training Will Start Shortly")
 
     train_wrapper.start_training()
     #train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
-    #print("Model saved.")
-   

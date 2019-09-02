@@ -1,10 +1,14 @@
+import logging
+
 import h5py
 import numpy as np
+
+
 # from PIL import Image
 
 # data_function must return [(data, label) ... (data, label)]
 
-def get_index_sequence(filename):#
+def get_index_sequence(filename):  #
     """ 
     Returns: 
         ([data, label)]: a sequence of simulation steps as data and the filling percentage of the last step as label
@@ -45,7 +49,8 @@ def get_index_sequence(filename):#
 def get_all_sequences_for_file(filename):
     """
     Returns: 
-        [(data, label)]:	All Sequences of a specified length that can be extracted from a file, filling percentage at that timestep.
+        [(data, label)]:	All Sequences of a specified length that can be extracted from a file,
+        filling percentage at that timestep.
     """
     all_sequences = list()
     t_begin = 0
@@ -81,7 +86,9 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
     try:
         f = h5py.File(filename, 'r')
     except OSError:
-        print(">>> ERROR: FILE", filename, "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
+        logger = logging.getLogger(__name__)
+        logger.addHandler(logging.StreamHandler())
+        logger.error(">>> ERROR: FILE", filename, "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
         return None
 
     all_states = f['post']['singlestate']
@@ -162,7 +169,6 @@ def get_single_states_and_fillings(filename):
     single_states = [(data, data) for data in flat_fillings]
 
     return single_states
-
 
 
 if __name__ == "__main__":

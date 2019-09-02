@@ -1,4 +1,5 @@
 import colorsys
+import logging
 
 import numpy as np
 from PIL import Image, ImageDraw
@@ -17,17 +18,17 @@ def scale_coords_leoben(input_coords):
 def plot_wrapper(triangle_coords, scaled_coords, fillings, imsize, index):
     fillings = np.squeeze(fillings)
     filling = fillings[index]
-   
-   
-    
+
     try:
         a = filling[triangle_coords]
         b = a.reshape(len(triangle_coords), 3)
         means_of_neighbour_nodes = b.mean(axis=1)
     except IndexError:
-        print('ERROR plot wrapper ... raising')
-        print(triangle_coords)
-        print(filling[triangle_coords])
+        logger = logging.getLogger(__name__)
+        logger.addHandler(logging.StreamHandler())
+        logger.error('ERROR plot wrapper ... raising')
+        logger.error(triangle_coords)
+        logger.error(filling[triangle_coords])
         raise
 
     im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)

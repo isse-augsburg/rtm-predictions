@@ -38,7 +38,7 @@ class FocalLoss(nn.Module):
         if self.reduction == 'sum':
             fl = fl.sum()
         else:
-            raise "Wrong reduction chosen!"
+            raise Exception("Wrong reduction chosen!")
         
         return fl
 

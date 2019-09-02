@@ -1,4 +1,5 @@
 import colorsys
+import logging
 import time
 from functools import partial
 from multiprocessing.pool import Pool
@@ -10,8 +11,7 @@ import random
 # from PIL import Image
 from PIL import Image, ImageDraw
 
-
-# from Pipeline.data_gather import get_filelist_within_folder
+from Pipeline.data_gather import get_filelist_within_folder
 
 # data_function must return [(data, label) ... (data, label)]
 from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_lautern
@@ -60,22 +60,25 @@ def get_image_state_sequence(folder, start_state=0, end_state=100, step=5, label
 
 def normalize_coords(coords):
     coords = np.array(coords)
-    max_c = np.max(coords[:,0])
-    min_c = np.min(coords[:,0])
-    coords[:,0] = coords[:,0] - min_c
-    coords[:,0] = coords[:,0] / (max_c - min_c)
-    max_c = np.max(coords[:,1])
-    min_c = np.min(coords[:,1])
-    coords[:,1] = coords[:,1] - min_c
-    coords[:,1] = coords[:,1] / (max_c - min_c)
+    max_c = np.max(coords[:, 0])
+    min_c = np.min(coords[:, 0])
+    coords[:, 0] = coords[:, 0] - min_c
+    coords[:, 0] = coords[:, 0] / (max_c - min_c)
+    max_c = np.max(coords[:, 1])
+    min_c = np.min(coords[:, 1])
+    coords[:, 1] = coords[:, 1] - min_c
+    coords[:, 1] = coords[:, 1] / (max_c - min_c)
     return coords
 
 
     #for new data 38 and 30.0
 def create_np_image(target_shape=(149, 117), norm_coords=None, data=None, ):
     if norm_coords is None or data is None:
-        print("ERROR")
+        logger = logging.getLogger(__name__)
+        logger.addHandler(logging.StreamHandler())
+        logger.error("ERROR in create_np_image")
         return
+
     assert np.shape(norm_coords)[0] == np.shape(data)[0]
 
     arr = np.zeros(target_shape)
@@ -85,19 +88,19 @@ def create_np_image(target_shape=(149, 117), norm_coords=None, data=None, ):
     coords_value[:, 0] = coords_value[:, 0] * (target_shape[0] - 1)
     coords_value[:, 1] = coords_value[:, 1] * (target_shape[1] - 1)
     coords_value[:, 2] = coords_value[:, 2]
-    #coords_value = coords_value.astype(np.int)
+    # coords_value = coords_value.astype(np.int)
     arr[coords_value[:, 0].astype(np.int), coords_value[:, 1].astype(np.int)] = coords_value[:, 2]
 
     return arr
 
 
 def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsize=(155, 155)):
-   
     f = h5py.File(filename, 'r')
     im, scaled_coords, triangle_coords = get_local_properties_map(f, imsize)
 
     all_states = list(f['post']['singlestate'].keys())
-    selected_states = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(all_states, wanted_num=wanted_num)
+    selected_states = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(all_states,
+                                                                                             wanted_num=wanted_num)
 
     fillings = []
     for i, state in enumerate(all_states):
@@ -109,17 +112,19 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsiz
             return None
         fillings.append(filling_factor)
 
-    #indices = [int(x.split('state')[1]) for x in selected_states]
+    # indices = [int(x.split('state')[1]) for x in selected_states]
     indices = selected_states
     label = np.asarray(im)
-    wrapper =  partial(plot_wrapper, triangle_coords, scaled_coords, fillings, imsize)
+    wrapper = partial(plot_wrapper, triangle_coords, scaled_coords, fillings, imsize)
     res = []
     for i in indices:
         try:
-            res.append(wrapper(i))           
+            res.append(wrapper(i))
         except IndexError or OSError:
-            print(f'ERROR at {filename}, len(fillings): {len(fillings)}')
-            #raise
+            logger = logging.getLogger(__name__)
+            logger.addHandler(logging.StreamHandler())
+            logger.error(f'ERROR at {filename}, len(fillings): {len(fillings)}')
+            # raise
     # array of all images, array of the same permeability map
     # trues, falses = 0, 0
     #
@@ -144,10 +149,10 @@ def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(input
     x.reverse()
     res = []
     for i in range(len(x)):
-        res.append((len(input_list) - 1) - i*int(np.round(dist)))
-    #return x
+        res.append((len(input_list) - 1) - i * int(np.round(dist)))
     res.reverse()
     return res
+
 
 def get_local_properties_map(f, imsize):
     coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
@@ -157,7 +162,7 @@ def get_local_properties_map(f, imsize):
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'][()]
     triangle_coords = triangle_coords[:, :-1] - 1
     data = f['post/constant/entityresults/SHELL/']
-   
+
     im = create_local_properties_map(data, scaled_coords, triangle_coords, 'FIBER_FRACTION')
     if im.size != imsize:
         im = im.resize(imsize)
@@ -177,7 +182,7 @@ def get_sensordata_and_flowfront(file):
         coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'][()]
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
-       
+
         _coords = normalize_coords(_coords)
 
         pressure_array = \
