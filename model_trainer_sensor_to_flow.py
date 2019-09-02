@@ -22,7 +22,7 @@ from PIL import Image
 import time
 import threading
 
-num_data_points = 10371
+num_data_points = 20366
 if os.name != 'nt':
     data_root = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
     batch_size = 256

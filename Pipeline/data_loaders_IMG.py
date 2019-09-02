@@ -72,7 +72,7 @@ def normalize_coords(coords):
 
 
     #for new data 38 and 30.0
-def create_np_image(target_shape=(147, 115), norm_coords=None, data=None, ):
+def create_np_image(target_shape=(149, 117), norm_coords=None, data=None, ):
     if norm_coords is None or data is None:
         print("ERROR")
         return
@@ -184,6 +184,7 @@ def get_sensordata_and_flowfront(file):
             f['post']['multistate']['TIMESERIES1']['multientityresults']['SENSOR']['PRESSURE']['ZONE1_set1'][
                 'erfblock'][
                 'res'][()]
+        pressure_array = pressure_array / 100000 # convert barye to bar ( smaller values are more stable while training)
         all_states = f['post']['singlestate']
 
         filling_factors_at_certain_times = [

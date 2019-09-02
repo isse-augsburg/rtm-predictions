@@ -8,9 +8,10 @@ cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/ca
 path = data_root / '2019-07-23_15-38-08_5000p'
 paths = [path]
 
+
 def create_dataGenerator_pressure_flowfront():
     try:
-        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=100,
+        generator = pipeline.ERFH5_DataGenerator(data_paths=paths, num_validation_samples=1,
                                                  batch_size=32, epochs=50, max_queue_length=8096,
                                                  data_processing_function=dli.get_sensordata_and_flowfront,
                                                  data_gather_function=dg.get_filelist_within_folder, num_workers=4, cache_path=cache_path)
@@ -26,7 +27,8 @@ if __name__ == "__main__":
         print(np.shape(inputs), np.shape(labels))
         a = inputs.numpy()
         c = labels.numpy()
-        b = np.reshape(a,[-1,38,30])
+        b = np.reshape(a, [-1, 38, 30])
+        b = b[::2, :]
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_title('colorMap')

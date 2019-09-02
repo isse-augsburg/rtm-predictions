@@ -1,10 +1,11 @@
-import torch
 import time
-from Pipeline import erfh5_pipeline
+import torch
+
+
 from collections import OrderedDict
 import numpy as np 
 import math
-
+from Pipeline import erfh5_pipeline
 
 class Master_Trainer():
     """Class that runs train and evaluation loops of PyTorch models automatically.
@@ -16,7 +17,7 @@ class Master_Trainer():
         train_print_frequency: Frequency of printing the current loss, in iterations. 
         eval_frequenxy: Frequency of running a evaluation frequency on held out validation set, in iterations. 
         comment: Optional message that is printed to the command line, helps with understanding your experiments afterwards
-        learning_rate: Optimizer's learning rate 
+        learning_rate: Optimizer's learning rate
         classification_evaluator: Optional object for evaluating classification, see evaluation.py for more details 
     """
     def __init__(self, model, generator: erfh5_pipeline.ERFH5_DataGenerator, loss_criterion=torch.nn.MSELoss(),
@@ -42,7 +43,7 @@ class Master_Trainer():
         """ Prints information about the used train config and starts the training of the trainer's model
         """
         self.__print_info()
-        self.__print_comment() 
+        self.__print_comment()
         self.__train()
         print('Test set missing. So no testing.')
         # self.__eval()
