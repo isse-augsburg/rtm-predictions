@@ -79,7 +79,7 @@ def get_comment():
 
 def inference_on_test_set(path):
     save_path = path / 'eval_on_test_set'
-    logging.basicConfig(filename=save_path / Path('output.log'),
+    logging.basicConfig(filename=save_path / Path('test_output.log'),
                         level=logging.DEBUG,
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -89,8 +89,7 @@ def inference_on_test_set(path):
     else:
         model = model.to('cuda:0')
     gen = create_dataGenerator_pressure_flowfront(paths=[])
-    eval_wrapper = MasterTrainer(model, gen, classification_evaluator=Sensor_Flowfront_Evaluator(
-        save_path=save_path))
+    eval_wrapper = MasterTrainer(model, gen, classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path))
     eval_wrapper.load_checkpoint(path / 'checkpoint.pth')
 
     test_set = pickle.load(open(path / 'test_set.p', 'rb'))
