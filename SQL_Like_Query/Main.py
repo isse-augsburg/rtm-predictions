@@ -12,7 +12,7 @@ def main():
     test.show_selection_options()
     # test.showObjects()
     # test.select("age", "2019-07-23_15-38-05", ">")
-    # test.select("output_frequency_type", 1, ">")
+    # test.select("output_frequency", 1, ">")
     # test.select("fibre_content_runners", -0.7, "=")
     # test.select("avg_level", 0.8, ">")
     # test.select("posy_circle", 50, "<")

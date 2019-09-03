@@ -16,6 +16,7 @@ class HDF5DBTest(unittest.TestCase):
     def setUp(self):
         # Metadata
         self.output_frequency_type = np.array([99])
+        self.output_frequency = np.array([0.01])
         self.general_sigma = np.array([99.999])
         self.num_rect = np.array([2])
         self.fibre_content_rect = np.array([0.09, 0.99])
@@ -59,6 +60,7 @@ class HDF5DBTest(unittest.TestCase):
 
         self.test_meta = {
             "output_frequency_type": self.output_frequency_type,
+            "output_frequency": self.output_frequency,
             "perturbation_factors": {
                 "General_Sigma": self.general_sigma,
                 "Shapes": {
@@ -168,6 +170,7 @@ class HDF5DBTest(unittest.TestCase):
             / Path("2019-08-30_12-23-59_test_meta_data.hdf5")
         )
         self.test_object.output_frequency_type = self.output_frequency_type
+        self.test_object.output_frequency = self.output_frequency
         self.test_object.general_sigma = self.general_sigma
         self.test_object.number_of_rectangles = self.num_rect
         self.test_object.fibre_content_rectangles = self.fibre_content_rect
@@ -265,6 +268,11 @@ class HDF5DBTest(unittest.TestCase):
         # Number of sensors
         self.temp = self.test_object.number_of_sensors - 1
         self.test_db.select("number_of_sensors", self.temp, ">")
+        self.assertGreater(
+            self.test_db.hdf5_object_list[0].number_of_sensors, self.temp
+        )
+        self.temp = self.test_object.output_frequency[0] - 0.001 
+        self.test_db.select("output_frequency", self.temp, ">")
         self.assertGreater(
             self.test_db.hdf5_object_list[0].number_of_sensors, self.temp
         )

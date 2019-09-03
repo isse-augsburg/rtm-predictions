@@ -12,6 +12,7 @@ from prettytable import PrettyTable
 class HDF5Object:
     def __init__(self, path_meta, path_result):
         self.output_frequency_type_path = "output_frequency_type"
+        self.output_frequency_path = "output_frequency"
         # Pertubations_Factors
         self.general_sigma_path = "perturbation_factors/General_Sigma"
         # -Shapes
@@ -62,6 +63,8 @@ class HDF5Object:
         self.path_meta = path_meta
         if self.output_frequency_type_path in m:
             self.output_frequency_type = m[self.output_frequency_type_path][()]
+        if self.output_frequency_path in m:
+            self.output_frequency = m[self.output_frequency_path][()]
 
         if self.general_sigma_path in m:
             self.general_sigma = m[self.general_sigma_path][()]
@@ -181,6 +184,8 @@ class HDF5Object:
         x.add_row(["Path_metadata", str(self.path_meta)])
         if hasattr(self, "output_frequency_type"):
             x.add_row(["Output_frequency_type", str(self.output_frequency_type)])
+        if hasattr(self, "output_frequency"):
+            x.add_row(["Output_frequency", str(self.output_frequency)])
 
         if hasattr(self, "general_sigma"):
             x.add_row(["General_sigma", str(self.general_sigma)])
