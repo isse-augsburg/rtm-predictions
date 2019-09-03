@@ -54,6 +54,11 @@ class HDF5DB:
                     and obj.output_frequency_type == value
                 ):
                     self.selected.append(obj)
+                elif (
+                    variable == "output_frequency"
+                    and obj.output_frequency == value
+                ):
+                    self.selected.append(obj)
                 elif variable == "general_sigma" and obj.general_Sigma == value:
                     self.selected.append(obj)
                 elif variable == "number_of_circles" and obj.number_of_circles == value:
@@ -153,6 +158,11 @@ class HDF5DB:
                 elif (
                     variable == "output_frequency_type"
                     and obj.output_frequency_type > value
+                ):
+                    self.selected.append(obj)
+                elif (
+                    variable == "output_frequency"
+                    and obj.output_frequency > value
                 ):
                     self.selected.append(obj)
                 elif variable == "general_sigma" and obj.general_sigma > value:
@@ -266,6 +276,11 @@ class HDF5DB:
                 elif (
                     variable == "output_frequency_type"
                     and obj.output_frequency_type < value
+                ):
+                    self.selected.append(obj)
+                elif (
+                    variable == "output_frequency"
+                    and obj.output_frequency < value
                 ):
                     self.selected.append(obj)
                 elif variable == "general_sigma" and obj.general_sigma < value:
@@ -412,6 +427,7 @@ class HDF5DB:
         # Metadata
         self.options.add_row(["path_meta"])
         self.options.add_row(["output_frequency_type"])
+        self.options.add_row(["output_frequency"])
         self.options.add_row(["general_sigma"])
         self.options.add_row(["number_of_circles"])
         self.options.add_row(["number_of_rectangles"])
