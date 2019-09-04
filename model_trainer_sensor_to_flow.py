@@ -15,7 +15,7 @@ from Pipeline import (
     data_gather as dg,
 )
 from Trainer.GenericTrainer import MasterTrainer
-from Trainer.evaluation import Sensor_Flowfront_Evaluator
+from Trainer.evaluation import SensorToFlowfrontEvaluator
 import getpass
 
 num_data_points = 31376
@@ -24,7 +24,7 @@ initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 if socket.gethostname() == "swt-dgx1":
     cache_path = None
     data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-    batch_size = 256
+    batch_size = 320
     eval_freq = math.ceil(num_data_points / batch_size)
     if getpass.getuser() == "stiebesi":
         save_path = Path("/cfs/share/cache/output_simon")
@@ -47,7 +47,7 @@ elif socket.gethostname() == "swtse130":
     epochs = 10
     num_workers = 10
     num_validation_samples = 10
-    num_test_samples = 10
+    num_test_samples = 2000
 
 
 paths = [
@@ -61,7 +61,7 @@ paths = [
 ]
 
 
-def create_dataGenerator_pressure_flowfront(paths, save_path=None, test_mode=False):
+def create_datagenerator_pressure_flowfront(paths, save_path=None, test_mode=False):
     try:
         generator = pipeline.ERFH5DataGenerator(
             data_paths=paths,
@@ -94,6 +94,7 @@ def get_comment():
 
 def inference_on_test_set(path):
     save_path = path / "eval_on_test_set"
+    save_path.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         filename=save_path / Path("test_output.log"),
         level=logging.DEBUG,
@@ -105,11 +106,11 @@ def inference_on_test_set(path):
         model = nn.DataParallel(model).to("cuda:0")
     else:
         model = model.to("cuda:0")
-    gen = create_dataGenerator_pressure_flowfront(paths=[], test_mode=True)
+    gen = create_datagenerator_pressure_flowfront(paths=[], test_mode=True)
     eval_wrapper = MasterTrainer(
         model,
         gen,
-        classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path),
+        classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
     )
     eval_wrapper.load_checkpoint(path / "checkpoint.pth")
 
@@ -149,7 +150,7 @@ def run_training(save_path):
     logger = logging.getLogger(__name__)
 
     logger.info("Generating Generator")
-    generator = create_dataGenerator_pressure_flowfront(
+    generator = create_datagenerator_pressure_flowfront(
         paths, save_path, test_mode=False
     )
     logger.info("Generating Model")
@@ -168,7 +169,7 @@ def run_training(save_path):
         calc_metrics=False,
         train_print_frequency=2,
         eval_frequency=eval_freq,
-        classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path),
+        classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
     )
     logger.info("The Training Will Start Shortly")
 
@@ -177,7 +178,7 @@ def run_training(save_path):
 
 
 if __name__ == "__main__":
-    train = True
+    train = False
     if train:
         run_training(save_path)
     else:
@@ -186,4 +187,4 @@ if __name__ == "__main__":
                 Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
             )
         else:
-            inference_on_test_set(Path(r"Y:\cache\output_simon\2019-08-29_16-45-59"))
+            inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-02_19-40-56"))

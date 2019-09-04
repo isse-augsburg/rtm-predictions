@@ -7,14 +7,14 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel2x
+from Models.erfh5_DeconvModel import DeconvModel2x, DeconvModel
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
     data_gather as dg,
 )
 from Trainer.GenericTrainer import MasterTrainer
-from Trainer.evaluation import Sensor_Flowfront_Evaluator
+from Trainer.evaluation import SensorToFlowfrontEvaluator
 import getpass
 
 num_data_points = 31376
@@ -72,7 +72,7 @@ paths = [
 ]
 
 
-def create_dataGenerator_pressure_flowfront(paths, save_path=None, test_mode=False):
+def create_datagenerator_pressure_flowfront(paths, save_path=None, test_mode=False):
     try:
         generator = pipeline.ERFH5DataGenerator(
             data_paths=paths,
@@ -116,11 +116,11 @@ def inference_on_test_set(path):
         model = nn.DataParallel(model).to("cuda:0")
     else:
         model = model.to("cuda:0")
-    gen = create_dataGenerator_pressure_flowfront(paths=[], test_mode=True)
+    gen = create_datagenerator_pressure_flowfront(paths=[], test_mode=True)
     eval_wrapper = MasterTrainer(
         model,
         gen,
-        classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path),
+        classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
     )
     eval_wrapper.load_checkpoint(path / "checkpoint.pth")
 
@@ -160,7 +160,7 @@ def run_training(save_path):
     logger = logging.getLogger(__name__)
 
     logger.info("Generating Generator")
-    generator = create_dataGenerator_pressure_flowfront(
+    generator = create_datagenerator_pressure_flowfront(
         paths, save_path, test_mode=False
     )
     logger.info("Generating Model")
@@ -179,7 +179,7 @@ def run_training(save_path):
         calc_metrics=False,
         train_print_frequency=2,
         eval_frequency=eval_freq,
-        classification_evaluator=Sensor_Flowfront_Evaluator(
+        classification_evaluator=SensorToFlowfrontEvaluator(
             save_path=save_path, halfed=True
         ),
     )

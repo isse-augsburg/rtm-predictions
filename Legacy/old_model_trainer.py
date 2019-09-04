@@ -7,7 +7,7 @@ from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader
 
 from Trainer.evaluation import plot_predictions_and_label
 from Trainer.GenericTrainer import MasterTrainer
-from Trainer.evaluation import Binary_Classification_Evaluator
+from Trainer.evaluation import BinaryClassificationEvaluator
 
 import torch
 import traceback
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
                                   #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
     train_wrapper = MasterTrainer(model, generator, loss_criterion=FocalLoss(gamma=0), comment=get_comment(),
-                                  learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
+                                  learning_rate=0.0001, classification_evaluator=BinaryClassificationEvaluator())
     print(">>> INFO: The Training Will Start Shortly")
 
     train_wrapper.start_training()

@@ -102,7 +102,7 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
     end_time = \
         f['post']['singlestate'][final_state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
             'indexval'][()]
-    if (end_time < t_target):
+    if end_time < t_target:
         raise Exception
 
     for state in all_states:
@@ -120,9 +120,9 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
                 filling_percentage = np.array(non_zeros / state_count)
                 t_target = 9999999
                 break
-            if (time >= t_finish):
+            if time >= t_finish:
                 continue
-            if (time >= t_now):
+            if time >= t_now:
                 filling_factor = \
                     f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1'][
                         'erfblock'][
@@ -138,7 +138,7 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
 
     flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
 
-    return (flat_fillings, filling_percentage)
+    return flat_fillings, filling_percentage
 
 
 def get_single_states_and_fillings(filename):

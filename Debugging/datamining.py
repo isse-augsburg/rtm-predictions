@@ -155,9 +155,9 @@ def get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
                 state_count = np.shape(target_fillingstate)[0]
                 filling_percentage = np.array(non_zeros / state_count)
                 t_target = 9999999
-            if (time >= t_finish):
+            if time >= t_finish:
                 continue
-            if (time >= t_now):
+            if time >= t_now:
                 filling_factor = \
                 f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
                     'res'][()]
@@ -169,7 +169,7 @@ def get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
 
     # label = f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
 
-    if (t_target != 9999999 or filling_factors_at_certain_times.__len__() != (t_finish - t_start) / t_delta):
+    if t_target != 9999999 or filling_factors_at_certain_times.__len__() != (t_finish - t_start) / t_delta:
         # print("Didn't",len(filling_factors_at_certain_times), t_target, filling_percentage)
         raise NoSequenceException
 
