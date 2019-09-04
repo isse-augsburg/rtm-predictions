@@ -14,7 +14,7 @@ from Pipeline import (
     data_gather as dg,
 )
 from Trainer.GenericTrainer import MasterTrainer
-from Trainer.evaluation import Sensor_Flowfront_Evaluator
+from Trainer.evaluation import SensorToFlowfrontEvaluator
 import getpass
 
 num_data_points = 31376
@@ -179,7 +179,7 @@ def run_training(save_path):
         calc_metrics=False,
         train_print_frequency=2,
         eval_frequency=eval_freq,
-        classification_evaluator=Sensor_Flowfront_Evaluator(
+        classification_evaluator=SensorToFlowfrontEvaluator(
             save_path=save_path, halfed=True
         ),
     )
