@@ -1,12 +1,9 @@
-import glob
-import os
 from datetime import datetime
 from pathlib import Path
 
 import h5py
 import numpy as np
 import regex as re
-from prettytable import PrettyTable
 
 
 class HDF5Object:
@@ -179,6 +176,7 @@ class HDF5Object:
         return s
 
     def show_object_content(self):
+        from prettytable import PrettyTable
         x = PrettyTable()
         x.field_names = ["Metaparameters", "Metadata"]
         x.add_row(["Path_metadata", str(self.path_meta)])
