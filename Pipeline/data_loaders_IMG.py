@@ -241,7 +241,7 @@ def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
             state_num = int(s)
             sensordata = np.squeeze(pressure_array[state_num - 1])
             arr = create_np_image(
-                target_shape=(143, 111), norm_coords=_coords, data=filling
+                target_shape=target_shape, norm_coords=_coords, data=filling
             )
             instances.append((sensordata, arr))
         except IndexError:
