@@ -7,7 +7,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel2x
+from Models.erfh5_DeconvModel import DeconvModel4x
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
@@ -81,7 +81,7 @@ def create_dataGenerator_pressure_flowfront(paths, save_path=None, test_mode=Fal
             batch_size=batch_size,
             epochs=epochs,
             max_queue_length=8096,
-            data_processing_function=dli.get_sensordata_and_flowfront_143x111,
+            data_processing_function=dli.get_sensordata_and_flowfront_135x103,
             data_gather_function=dg.get_filelist_within_folder,
             num_workers=num_workers,
             cache_path=cache_path,
@@ -111,7 +111,7 @@ def inference_on_test_set(path):
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    model = DeconvModel2x()
+    model = DeconvModel4x()
     if socket.gethostname() == "swt-dgx1":
         model = nn.DataParallel(model).to("cuda:0")
     else:
@@ -164,7 +164,7 @@ def run_training(save_path):
         paths, save_path, test_mode=False
     )
     logger.info("Generating Model")
-    model = DeconvModel2x()
+    model = DeconvModel4x()
     logger.info("Model to GPU")
     model = nn.DataParallel(model).to("cuda:0")
 
