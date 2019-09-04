@@ -55,7 +55,7 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=-10):
     except KeyError:
         return None
 
-    if (np.shape(pressure_array)[0] < frm):
+    if np.shape(pressure_array)[0] < frm:
         return None
     # pressure_array = pressure_array[frm:until, :, :]
     pressure_array = pressure_array[frm:, :, :]
@@ -66,7 +66,7 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=-10):
     # print(np.shape(pressure_array), filling_percentage)
 
     # return ([(pressure_array, filling_percentage)])
-    return ([(pressure_array, filling)])
+    return [(pressure_array, filling)]
 
 
 def sensorgrid_simulationsuccess(file, last_n=200):
@@ -79,7 +79,7 @@ def sensorgrid_simulationsuccess(file, last_n=200):
 
     pressure_array = np.reshape(pressure_array, (38, 30, -1))
 
-    return ([(pressure_array, label)])
+    return [(pressure_array, label)]
 
 
 def get_sensordata_and_filling_percentage_v2(file, until=400, frm=0):
@@ -105,11 +105,11 @@ def get_sensordata_and_filling_percentage_v2(file, until=400, frm=0):
     except KeyError:
         return None
 
-    if (np.shape(pressure_array)[0] < until):
+    if np.shape(pressure_array)[0] < until:
         return None
     pressure_array = pressure_array[frm:until, :, :]
     pressure_array = np.squeeze(pressure_array)
 
     # print(np.shape(pressure_array), filling_percentage)
 
-    return ([(pressure_array, filling_percentage)])
+    return [(pressure_array, filling_percentage)]

@@ -79,7 +79,7 @@ def save_img(path, _str, x, index):
         logger.error("ERROR: save_img")
 
 
-class Sensor_Flowfront_Evaluator(Evaluator):
+class SensorToFlowfrontEvaluator(Evaluator):
     def __init__(self, save_path=Path("/home/schroeter/Desktop/output"), halfed=False):
         self.num = 0
         self.save_path = save_path
@@ -113,7 +113,7 @@ class Sensor_Flowfront_Evaluator(Evaluator):
         pass
 
 
-class Binary_Classification_Evaluator(Evaluator):
+class BinaryClassificationEvaluator(Evaluator):
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
 

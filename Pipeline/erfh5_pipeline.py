@@ -406,7 +406,6 @@ class ERFH5DataGenerator:
         data = [i[0] for i in batch]
         labels = [i[1] for i in batch]
 
-        # FIXME does not work for batchsize > 1 if sizes of data are different - NS: This is not a bug, this is intended -> FIX TBD in dataloader
         data = torch.stack(data)
         labels = torch.stack(labels)
         return data, labels

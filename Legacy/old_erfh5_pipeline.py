@@ -1,3 +1,5 @@
+from multiprocessing.pool import Pool
+
 import h5py
 import matplotlib.pyplot as plt
 import matplotlib
@@ -13,8 +15,11 @@ import threading
 import random
 from enum import Enum
 
+from Debugging.datamining import get_states_and_fillings
+from Debugging.plots import plot_wrapper
 
-class Pipeline_Mode(Enum):
+
+class PipelineMode(Enum):
     index_sequence = 0
     single_instance = 1
     time_sequence = 2
@@ -25,8 +30,7 @@ class NoSequenceException(Exception):
 
 
 # Helper data structure that's thread safe and supports batch-wise get
-class Thread_Safe_List():
-
+class ThreadSafeList:
     def __init__(self, max_length=-1):
         self.list = []
         self.lock = threading.Lock()
@@ -65,7 +69,7 @@ class Thread_Safe_List():
     def get(self, number_of_elements):
 
         while len(self) < number_of_elements:
-            if (self.finished):
+            if self.finished:
                 raise StopIteration
             time.sleep(0.1)
 
@@ -78,7 +82,7 @@ class Thread_Safe_List():
     # class for providing batches of data. The number of epochs can be specified.
 
 
-class ERFH5_DataGenerator():
+class ERFH5DataGenerator:
 
     #####Parameters#####
     # data_path: root directory for ERFH5 files
@@ -86,7 +90,7 @@ class ERFH5_DataGenerator():
     # max_queue_length: number of instances that are preloaded to the batch queue
     # sequence: if true, instances consist of more than one state (exact number is specified with indices)
     def __init__(self, data_path='/home/', batch_size=64, epochs=80, indices=[0, 20, 40, 60, 80], max_queue_length=-1,
-                 pipeline_mode=Pipeline_Mode.single_instance, num_validation_samples=1, num_workers=2):
+                 pipeline_mode=PipelineMode.single_instance, num_validation_samples=1, num_workers=2):
         self.data_path = data_path
         self.batch_size = batch_size
         self.indices = indices
@@ -97,13 +101,13 @@ class ERFH5_DataGenerator():
         random.shuffle(self.paths)
 
         self.max_queue_length = max_queue_length
-        self.path_queue = Thread_Safe_List()
+        self.path_queue = ThreadSafeList()
         self.validation_list = []
 
         self.num_workers = num_workers
         self.epochs = epochs
 
-        self.batch_queue = Thread_Safe_List(max_length=self.max_queue_length)
+        self.batch_queue = ThreadSafeList(max_length=self.max_queue_length)
         self.threads = []
         self.barrier = threading.Barrier(self.num_workers)
         self.t_begin = 0
@@ -132,13 +136,13 @@ class ERFH5_DataGenerator():
         while len(self.validation_list) < self.num_validation_samples:
             sample = self.paths[0]
             self.paths = self.paths[1:]
-            if self.pipeline_mode == Pipeline_Mode.index_sequence:
+            if self.pipeline_mode == PipelineMode.index_sequence:
                 try:
                     instance = self.__create_data_instance(sample)
                 except IndexError as ie:
                     continue
                 self.validation_list.append(instance)
-            elif self.pipeline_mode == Pipeline_Mode.single_instance:
+            elif self.pipeline_mode == PipelineMode.single_instance:
                 try:
                     instance = self.__create_data_instance(sample)
                 except IndexError as ie:
@@ -148,7 +152,7 @@ class ERFH5_DataGenerator():
                 random.shuffle(instance)
                 for i in instance:
                     self.validation_list.append(i)
-            elif self.pipeline_mode == Pipeline_Mode.time_sequence:
+            elif self.pipeline_mode == PipelineMode.time_sequence:
                 try:
                     instance_list = self.__create_data_instances_for_a_land_before_our_time(sample)
                 except NoSequenceException as E:
@@ -156,7 +160,8 @@ class ERFH5_DataGenerator():
                 self.validation_list.extend(instance_list)
 
     # returns a list of all file paths in a root directory including sub-directories
-    def __get_paths_to_files(self, root_directory):
+    @staticmethod
+    def __get_paths_to_files(root_directory):
         dataset_filenames = []
         for (dirpath, dirnames, filenames) in walk(root_directory):
             if filenames:
@@ -173,24 +178,24 @@ class ERFH5_DataGenerator():
             except StopIteration as si:
                 break
 
-            if (len(self.path_queue) == 0):
+            if len(self.path_queue) == 0:
                 self.path_queue.kill()
 
-            if self.pipeline_mode == Pipeline_Mode.index_sequence or self.pipeline_mode == Pipeline_Mode.single_instance:
+            if self.pipeline_mode == PipelineMode.index_sequence or self.pipeline_mode == PipelineMode.single_instance:
                 try:
                     data = self.__create_data_instance(file)
                 except IndexError as ie:
                     continue
-            elif self.pipeline_mode == Pipeline_Mode.time_sequence:
+            elif self.pipeline_mode == PipelineMode.time_sequence:
                 try:
                     data = self.__create_data_instances_for_a_land_before_our_time(file)
                 except NoSequenceException as E:
                     continue
                 self.batch_queue.put_batch(data)
 
-            if self.pipeline_mode == Pipeline_Mode.index_sequence:
+            if self.pipeline_mode == PipelineMode.index_sequence:
                 self.batch_queue.put(data)
-            elif self.pipeline_mode == Pipeline_Mode.single_instance:
+            elif self.pipeline_mode == PipelineMode.single_instance:
                 data = data[0]
                 data = list(torch.unbind(data))
                 random.shuffle(data)
@@ -223,14 +228,14 @@ class ERFH5_DataGenerator():
                 raise NoSequenceException
         else:
             try:
-                instanceList = self.__get_all_sequences_for_file(filename, self.t_begin, self.t_end, self.t_delta,
+                instance_list = self.__get_all_sequences_for_file(filename, self.t_begin, self.t_end, self.t_delta,
                                                                  self.t_target_offset, self.t_sequnce_distance,
                                                                  self.t_final)
             except NoSequenceException as E:
                 self.data_dict[filename] = -1
                 raise E
 
-            for inst in instanceList:
+            for inst in instance_list:
                 sequence, label = torch.FloatTensor(inst[0]), torch.FloatTensor(inst[1])
                 tensor_instances.append((sequence, label))
 
@@ -263,7 +268,7 @@ class ERFH5_DataGenerator():
         instance = (states_and_fillings, label)
         #TODO cut out N frames 
          """
-        return (fillings, label)
+        return fillings, label
 
     def __get_all_sequences_for_file(self, filename, t_begin, t_end, t_delta, t_target_offset, t_sequence_distance,
                                      t_final):
@@ -283,7 +288,8 @@ class ERFH5_DataGenerator():
 
         return all_sequences
 
-    def __get_fillings_at_times(self, filename, t_start, t_finish, t_delta, t_target):
+    @staticmethod
+    def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
         t_now = t_start
 
         try:
@@ -310,9 +316,9 @@ class ERFH5_DataGenerator():
                     state_count = np.shape(target_fillingstate)[0]
                     filling_percentage = np.array(non_zeros / state_count)
                     t_target = 9999999
-                if (time >= t_finish):
+                if time >= t_finish:
                     continue
-                if (time >= t_now):
+                if time >= t_now:
                     filling_factor = \
                     f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1'][
                         'erfblock']['res'][()]
@@ -324,7 +330,7 @@ class ERFH5_DataGenerator():
 
         # label = f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
 
-        if (t_target != 9999999 or filling_factors_at_certain_times.__len__() != (t_finish - t_start) / t_delta):
+        if t_target != 9999999 or filling_factors_at_certain_times.__len__() != (t_finish - t_start) / t_delta:
             # print("Didn't",len(filling_factors_at_certain_times), t_target, filling_percentage)
             raise NoSequenceException
 
@@ -365,7 +371,7 @@ class ERFH5_DataGenerator():
         state_count = np.shape(last_filling)[0]
         filling_percentage = np.array(non_zeros / state_count)
 
-        if self.pipeline_mode == Pipeline_Mode.index_sequence:
+        if self.pipeline_mode == PipelineMode.index_sequence:
 
             try:
                 flat_fillings = [flat_fillings[j] for j in self.indices]
@@ -400,6 +406,7 @@ class ERFH5_DataGenerator():
     ###functions not relevant for using this file, still there in case someone needs them###
     ########################################################################################
 
+    @staticmethod
     def get_states_and_fillings(filename):
         f = h5py.File(filename, 'r')
 
@@ -415,8 +422,8 @@ class ERFH5_DataGenerator():
         states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
         return states_and_fillings
 
+    @staticmethod
     def run_erfh5(filename):
-
         states_and_fillings = get_states_and_fillings(filename)
 
         t0 = time.time()
@@ -424,7 +431,7 @@ class ERFH5_DataGenerator():
             res = p.map(partial(plot_wrapper, coords=_coords), states_and_fillings)
         print('Done after', time.time() - t0)
 
-    def plot_wrapper(states_and_filling, coords):
+    def plot_wrapper(self, states_and_filling, coords):
         filename = r'C:\Users\stiebesi\code\datamuddler\plots\lautern_flawless_hd\%s.png' % str(states_and_filling[0])
         if os.path.exists(filename):
             return False
@@ -436,7 +443,7 @@ class ERFH5_DataGenerator():
         fig.savefig(filename)
         return True
 
-    def create_filling_factors_dataset(filenames):
+    def create_filling_factors_dataset(self, filenames):
         dataset = []
         for filename in filenames:
             states_and_fillings = get_states_and_fillings(filename)
@@ -454,8 +461,8 @@ class ERFH5_DataGenerator():
 if __name__ == "__main__":
     data_folder = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
     # data_folder = '/home/niklas/Documents/Data'
-    generator = ERFH5_DataGenerator(data_path=data_folder, batch_size=4, epochs=1,
-                                    pipeline_mode=Pipeline_Mode.single_instance)
+    generator = ERFH5DataGenerator(data_path=data_folder, batch_size=4, epochs=1,
+                                   pipeline_mode=PipelineMode.single_instance)
 
     batch_data, batch_labels = generator.__next__()
 

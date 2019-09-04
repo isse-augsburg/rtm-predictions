@@ -112,7 +112,8 @@ class MasterTrainer:
                 time_delta = time.time() - start_time
                 time_sum += time_delta
                 self.logger.info(
-                    f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} seconds; avg: {time_sum / i_of_epoch:10.2f}|| Q: {self.generator.get_current_queue_length()}"
+                    f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s;"
+                    f"avg: {time_sum / i_of_epoch:10.2f} s || Q: {self.generator.get_current_queue_length()}"
                 )
                 start_time = time.time()
 

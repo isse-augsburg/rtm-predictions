@@ -7,9 +7,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class FlowfrontFeatures_RNN(nn.Module):
+class FlowfrontFeaturesRNN(nn.Module):
     def __init__(self, input_dim, hidden_dim=512, batch_size=16, num_layers=3):
-        super(FlowfrontFeatures_RNN, self).__init__()
+        super(FlowfrontFeaturesRNN, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.nlayers = num_layers
@@ -60,9 +60,9 @@ class FlowfrontFeatures_RNN(nn.Module):
         return out
 
 
-class Flowfront_CNN(nn.Module):
+class FlowfrontCNN(nn.Module):
     def __init__(self):
-        super(Flowfront_CNN, self).__init__()
+        super(FlowfrontCNN, self).__init__()
         self.conv1 = nn.Conv3d(1, 8, kernel_size=(1, 7, 7), stride=(1, 1, 1))
         self.conv2 = nn.Conv3d(8, 16, (1, 5, 5))
         self.conv3 = nn.Conv3d(16, 32, (1, 7, 7))
@@ -87,8 +87,8 @@ class Flowfront_CNN(nn.Module):
 class FlowfrontToFiberfractionModel(nn.Module):
     def __init__(self):
         super(FlowfrontToFiberfractionModel, self).__init__()
-        self.cnn = Flowfront_CNN()
-        self.rnn = FlowfrontFeatures_RNN(input_dim=625)
+        self.cnn = FlowfrontCNN()
+        self.rnn = FlowfrontFeaturesRNN(input_dim=625)
 
     def forward(self, x):
         # print('>>> INFO: Forward pass CNN')
