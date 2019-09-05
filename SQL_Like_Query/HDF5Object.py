@@ -177,6 +177,7 @@ class HDF5Object:
 
     def show_object_content(self):
         from prettytable import PrettyTable
+
         x = PrettyTable()
         x.field_names = ["Metaparameters", "Metadata"]
         x.add_row(["Path_metadata", str(self.path_meta)])
