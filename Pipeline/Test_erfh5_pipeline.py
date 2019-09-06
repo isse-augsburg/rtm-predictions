@@ -216,9 +216,11 @@ class TestShapes(unittest.TestCase):
         self.num_test_samples = 400
         self.generator = pipeline.ERFH5DataGenerator(data_paths=self.paths,
                                                      num_validation_samples=self.num_validation_samples,
-                                                     num_test_samples=self.num_test_samples, max_queue_length=8096,
+                                                     num_test_samples=self.num_test_samples,
+                                                     max_queue_length=8096,
                                                      data_processing_function=dli.get_sensordata_and_flowfront,
-                                                     data_gather_function=dg.get_filelist_within_folder, num_workers=10)
+                                                     data_gather_function=dg.get_filelist_within_folder,
+                                                     num_workers=10)
 
     def test_test_set(self):
         self.setup_test_train_validation_split()
