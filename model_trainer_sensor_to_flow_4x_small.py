@@ -45,6 +45,7 @@ elif socket.gethostname() == "swtse130":
     num_workers = 10
     num_validation_samples = 10
     num_test_samples = 10
+    cache_path = Path(r"C:\Users\stiebesi\CACHE")
 
 else:
     data_root = Path(
@@ -105,6 +106,7 @@ def get_comment():
 
 def inference_on_test_set(path):
     save_path = path / "eval_on_test_set"
+    save_path.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         filename=save_path / Path("test_output.log"),
         level=logging.DEBUG,
@@ -116,11 +118,13 @@ def inference_on_test_set(path):
         model = nn.DataParallel(model).to("cuda:0")
     else:
         model = model.to("cuda:0")
+
     gen = create_dataGenerator_pressure_flowfront(paths=[], test_mode=True)
+
     eval_wrapper = MasterTrainer(
         model,
         gen,
-        classification_evaluator=Sensor_Flowfront_Evaluator(save_path=save_path),
+        classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
     )
     eval_wrapper.load_checkpoint(path / "checkpoint.pth")
 
@@ -144,8 +148,8 @@ def inference_on_test_set(path):
             data_list = data_list[:num_test_samples]
             break
 
-    print(len(data_list), num_test_samples)
     eval_wrapper.eval(data_list, test_mode=True)
+    logging.shutdown()
 
 
 def run_training(save_path):
@@ -190,7 +194,7 @@ def run_training(save_path):
 
 
 if __name__ == "__main__":
-    train = True
+    train = False
     if train:
         run_training(save_path)
     else:
@@ -199,4 +203,4 @@ if __name__ == "__main__":
                 Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
             )
         else:
-            inference_on_test_set(Path(r"Y:\cache\output_simon\2019-08-29_16-45-59"))
+            inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-05_18-38-33"))

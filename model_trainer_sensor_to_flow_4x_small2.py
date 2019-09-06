@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel
+from Models.erfh5_DeconvModel import DeconvModel, DeconvModel4x
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
@@ -66,7 +66,7 @@ class SensorTrainer:
                 batch_size=self.batch_size,
                 epochs=self.epochs,
                 max_queue_length=8096,
-                data_processing_function=dli.get_sensordata_and_flowfront_149x117,
+                data_processing_function=dli.get_sensordata_and_flowfront_135x103,
                 data_gather_function=dg.get_filelist_within_folder,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
@@ -103,7 +103,8 @@ class SensorTrainer:
         eval_wrapper = MasterTrainer(
             model,
             self.test_data_generator,
-            classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
+            classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path,
+                                                                halfed=True),
         )
         eval_wrapper.load_checkpoint(path / "checkpoint.pth")
 
@@ -142,7 +143,7 @@ class SensorTrainer:
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
         logger.info("Generating Model")
-        model = DeconvModel()
+        model = DeconvModel4x()
         logger.info("Model to GPU")
         model = nn.DataParallel(model).to("cuda:0")
 
@@ -154,9 +155,10 @@ class SensorTrainer:
             savepath=save_path,
             learning_rate=0.0001,
             calc_metrics=False,
-            train_print_frequency=2,
+            train_print_frequency=5,
             eval_frequency=self.eval_freq,
-            classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
+            classification_evaluator=SensorToFlowfrontEvaluator(
+                save_path=save_path, halfed=True),
         )
         logger.info("The Training Will Start Shortly")
 
@@ -170,7 +172,7 @@ if __name__ == "__main__":
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        _batch_size = 320
+        _batch_size = 256
         _eval_freq = math.ceil(num_data_points / _batch_size)
         if getpass.getuser() == "stiebesi":
             _save_path = Path("/cfs/share/cache/output_simon")
@@ -179,7 +181,7 @@ if __name__ == "__main__":
             # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
         else:
             _save_path = Path("/cfs/share/cache/output")
-        _epochs = 10
+        _epochs = 100
         _num_workers = 18
         _num_validation_samples = 2000
         _num_test_samples = 2000
@@ -195,7 +197,7 @@ if __name__ == "__main__":
         _num_validation_samples = 10
         _num_test_samples = 2000
 
-    train = False
+    train = True
     if train:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",

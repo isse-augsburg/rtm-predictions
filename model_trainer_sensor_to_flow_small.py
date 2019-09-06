@@ -37,6 +37,7 @@ if socket.gethostname() == "swt-dgx1":
     cache_path = None
 
 elif socket.gethostname() == "swtse130":
+    cache_path = Path(r"C:\Users\stiebesi\CACHE")
     data_root = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
     batch_size = 1
     eval_freq = 5
@@ -44,7 +45,7 @@ elif socket.gethostname() == "swtse130":
     epochs = 10
     num_workers = 10
     num_validation_samples = 10
-    num_test_samples = 10
+    num_test_samples = 2000
 
 else:
     data_root = Path(
@@ -105,6 +106,7 @@ def get_comment():
 
 def inference_on_test_set(path):
     save_path = path / "eval_on_test_set"
+    save_path.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         filename=save_path / Path("test_output.log"),
         level=logging.DEBUG,
@@ -144,7 +146,6 @@ def inference_on_test_set(path):
             data_list = data_list[:num_test_samples]
             break
 
-    print(len(data_list), num_test_samples)
     eval_wrapper.eval(data_list, test_mode=True)
 
 
@@ -190,7 +191,7 @@ def run_training(save_path):
 
 
 if __name__ == "__main__":
-    train = True
+    train = False
     if train:
         run_training(save_path)
     else:
@@ -199,4 +200,4 @@ if __name__ == "__main__":
                 Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
             )
         else:
-            inference_on_test_set(Path(r"Y:\cache\output_simon\2019-08-29_16-45-59"))
+            inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-05_18-38-33"))

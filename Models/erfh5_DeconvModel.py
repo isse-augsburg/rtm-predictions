@@ -100,10 +100,9 @@ class DeconvModel4x(nn.Module):
 
     def forward(self, inputs):
         f = inputs
-        # f = F.relu(self.fc(inputs))
 
         fr = f.reshape((-1, 1, 38, 30))
-        fr = fr[:, :, 2::4, 2::4]
+        fr = fr[:, :, 2::4, 2::4]  # len = 63
 
         k = F.relu(self.ct1(fr))
         k2 = F.relu(self.ct2(k))
