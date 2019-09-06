@@ -41,6 +41,7 @@ class MasterTrainer:
         classification_evaluator=None,
     ):
         self.generator = generator
+        self.epochs = self.generator.epochs
         self.validation_list = self.generator.get_validation_samples()
         self.model = model
         self.train_print_frequency = train_print_frequency
@@ -122,6 +123,9 @@ class MasterTrainer:
                 time_sum = 0
                 eval_step += 1
                 i_of_epoch = 0
+
+            if eval_step >= self.epochs:
+                break
 
     def eval(self, data_set, eval_step=0, test_mode=False):
         """Evaluators must have a commit, print and reset function. commit updates the evaluator with the current step,

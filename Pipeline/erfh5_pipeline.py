@@ -127,11 +127,11 @@ class ERFH5DataGenerator:
         data_paths=["/home/"],
         data_processing_function=None,
         data_gather_function=None,
-        batch_size=64,
-        epochs=80,
-        max_queue_length=512,
-        num_validation_samples=1,
-        num_test_samples=1,
+        batch_size=1,
+        epochs=5,
+        max_queue_length=8096,
+        num_validation_samples=100,
+        num_test_samples=100,
         num_workers=4,
         cache_path=None,
         save_path=None,
@@ -194,19 +194,20 @@ class ERFH5DataGenerator:
             self.num_validation_samples
         )
         if save_path is not None:
-            pickle.dump(
-                fnames_validation, open(str(save_path / "validation_set.p"), "wb")
-            )
+            with open(save_path / "validation_set.p", "wb") as f:
+                pickle.dump(fnames_validation, f)
         self.logger.info(">>> Generator: Filling Validation List... Done.")
         self.logger.info(">>> Generator: Filling Test List...")
         self.test_list, fnames_test = self.__fill_separate_set_list(
             self.num_test_samples
         )
         if save_path is not None:
-            pickle.dump(fnames_test, open(str(save_path / "test_set.p"), "wb"))
+            with open(save_path / "test_set.p", "wb") as f:
+                pickle.dump(fnames_test, f)
         self.logger.info(">>> Generator: Filling Test List... Done.")
         if save_path is not None:
-            pickle.dump(self.paths, open(str(save_path / "training_set.p"), "wb"))
+            with open(save_path / "training_set.p", "wb") as f:
+                pickle.dump(self.paths, f)
         self.logger.info(">>> Generator: Filling Path Queue...")
         try:
             self.__fill_path_queue()
