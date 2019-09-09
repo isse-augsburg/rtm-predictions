@@ -92,7 +92,7 @@ class SensorTrainer:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
 
-        model = DeconvModel()
+        model = DeconvModel4x()
         if socket.gethostname() == "swt-dgx1":
             model = nn.DataParallel(model).to("cuda:0")
         else:
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         _num_validation_samples = 10
         _num_test_samples = 2000
 
-    train = True
+    train = False
     if train:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",
@@ -229,4 +229,4 @@ if __name__ == "__main__":
                 Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
             )
         else:
-            st.inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-02_19-40-56"))
+            st.inference_on_test_set(Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\2019-09-06_15-44-58_63_sensors"))
