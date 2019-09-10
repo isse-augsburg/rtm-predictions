@@ -1,0 +1,7 @@
+stages:
+  - test
+
+test:
+  stage: test
+  script:
+  - python3 -m unittest Test_erfh5_pipeline.Test_dataset_split

@@ -4,11 +4,11 @@ from pathlib import Path
 from time import time, sleep
 from Pipeline.data_loaders_IMG import get_images_of_flow_front_and_permeability_map, \
     get_fixed_number_of_elements_and_their_indices_from_various_sized_list
-
+import Tests.TestResources as Resources
 
 class TestDataLoaderIMG(unittest.TestCase):
     def setUp(self):
-        self.fn = Path(r'X:\s\t\stiebesi\code\tests\data_loader_IMG\2019-06-05_15-30-52_0_RESULT.erfh5')
+        self.fn = Resources.data_loader_img_file
 
     def test_get_fixed_number_of_elements_and_their_indices_from_various_sized_list(self):
         for i in [2, 10, 20, 33, 100]:

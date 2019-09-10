@@ -5,11 +5,12 @@ import unittest
 from pathlib import Path
 
 from model_trainer_sensor_to_flow import SensorTrainer
+import Tests.TestResources as resources
 
 
 class TestEval(unittest.TestCase):
     def setUp(self):
-        self.eval_path = Path(r'X:\s\t\stiebesi\code\tests\evaluation\2019-09-02_19-40-56')
+        self.eval_path = resources.test_eval_dir
         self.eval_path_to_delete = self.eval_path / 'eval_on_test_set'
 
         self.expected_loss = 0.0026  # 0.0022 for 10; 0.0026 for 100; 0.0035 for 2000
@@ -34,8 +35,6 @@ class TestEval(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.eval_path_to_delete)
         logging.shutdown()
-
-
 
 
 if __name__ == '__main__':
