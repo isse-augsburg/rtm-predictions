@@ -1,4 +1,5 @@
 import logging
+import socket
 
 from Pipeline import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
 import threading
@@ -124,6 +125,22 @@ def transform_to_tensor_and_cache(i, num, s_path, separate_set_list):
         torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
 
 
+def load_cached_data_and_label(instance_f, s_path, _list):
+    for i in range(len(instance_f) // 2):
+        data = torch.load(s_path.joinpath(instance_f[i * 2]))
+        label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
+        _list.append((data, label))
+    return _list
+
+
+def transform_list_of_linux_paths_to_windows(input_list):
+    win_paths = []
+    if socket.gethostname() == "swtse130":
+        for e in input_list:
+            if e[:4] == "/cfs":
+                win_paths.append(Path(e.replace("/cfs/home", "X:")))
+    return win_paths
+
 class ERFH5DataGenerator:
     """ Iterable object that generates batches of a specified size. 
 
@@ -171,10 +188,7 @@ class ERFH5DataGenerator:
         self.cache_path = None
         self.cache_path_flist = None
         if cache_path is not None:
-            self.cache_path = Path(cache_path).joinpath(self.data_function.__name__)
-            self.cache_path.mkdir(parents=True, exist_ok=True)
-            self.cache_path_flist = Path(cache_path).joinpath("filelists")
-            self.cache_path_flist.mkdir(parents=True, exist_ok=True)
+            self.init_cache_paths(cache_path)
 
         if self.data_function is None or self.data_gather is None:
             raise Exception("No data processing or reading function specified!")
@@ -194,6 +208,12 @@ class ERFH5DataGenerator:
 
         if not test_mode:
             self.init_generators_and_run(save_path, load_datasets_path)
+
+    def init_cache_paths(self, cache_path):
+        self.cache_path = Path(cache_path).joinpath(self.data_function.__name__)
+        self.cache_path.mkdir(parents=True, exist_ok=True)
+        self.cache_path_flist = Path(cache_path).joinpath("filelists")
+        self.cache_path_flist.mkdir(parents=True, exist_ok=True)
 
     def init_generators_and_run(self, save_path, load_path):
         for path in self.data_paths:
@@ -217,8 +237,18 @@ class ERFH5DataGenerator:
         self.logger.info("Gathering Data... Done.")
         self.barrier = threading.Barrier(self.num_workers)
         self.logger.info("Separating data sets ...")
-        self.validation_list, self.validation_fnames = self.__fill_separate_set_list(self.num_validation_samples)
-        self.test_list, self.test_fnames = self.__fill_separate_set_list(self.num_test_samples)
+        if load_path is None:
+            self.validation_list, self.validation_fnames = self.__fill_separate_set_list_from_all_paths(
+                self.num_validation_samples
+            )
+            self.test_list, self.test_fnames = self.__fill_separate_set_list_from_all_paths(
+                self.num_test_samples
+            )
+        else:
+            self.load_data_sets(load_path)
+            self.validation_list = self.__get_data_samples_from_list(self.validation_fnames,
+                                                                        self.num_validation_samples)
+            self.test_list = self.__get_data_samples_from_list(self.test_fnames, self.num_test_samples)
         if save_path is not None:
             self.save_data_sets(save_path)
         self.logger.info("Filling Path Queue...")
@@ -241,6 +271,19 @@ class ERFH5DataGenerator:
             pickle.dump(self.test_fnames, f)
         with open(save_path / "training_set.p", "wb") as f:
             pickle.dump(self.paths, f)
+
+    def load_data_sets(self, load_path):
+        with open(load_path / "validation_set.p", 'rb') as f:
+            self.validation_fnames = pickle.load(f)
+        with open(load_path / "test_set.p", 'rb') as f:
+            self.test_fnames = pickle.load(f)
+        with open(load_path / "training_set.p", 'rb') as f:
+            self.paths = pickle.load(f)
+        if socket.gethostname() == 'swtse130':
+            self.validation_fnames = transform_list_of_linux_paths_to_windows(self.validation_fnames)
+            self.test_fnames = transform_list_of_linux_paths_to_windows(self.test_fnames)
+            self.paths = transform_list_of_linux_paths_to_windows(self.paths)
+
 
     def __shuffle_batch_queue(self):
         while (
@@ -282,7 +325,24 @@ class ERFH5DataGenerator:
         self.logger.info(f"Number of validation samples: {self.num_validation_samples}")
         self.logger.info("###########################################")
 
-    def __fill_separate_set_list(self, wanted_len):
+    def __get_data_samples_from_list(self, input_list, wanted_len):
+        separate_set_list = []
+
+        for sample in input_list:
+            instance = self.data_function(sample)
+
+            if instance is None:
+                continue
+            else:
+                assert_instance_correctness(instance)
+                for num, i in enumerate(instance):
+                    transform_to_tensor_and_cache(i, num, None, separate_set_list)
+                    if len(separate_set_list) == wanted_len:
+                        break
+
+        return separate_set_list
+
+    def __fill_separate_set_list_from_all_paths(self, wanted_len):
         separate_set_list = []
         separate_fname_list = []
         if len(self.paths) == 0:
@@ -300,10 +360,9 @@ class ERFH5DataGenerator:
                 if s_path.exists():
                     instance_f = s_path.glob("*.pt")
                     instance_f = sorted(instance_f)
-                    for i in range(len(instance_f) // 2):
-                        data = torch.load(s_path.joinpath(instance_f[i * 2]))
-                        label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
-                        separate_set_list.append((data, label))
+                    # FIXME Niklas, do we really want to append to separate_set_list here or to another, new list?
+                    # FIXME Caching is broken atm, see test_erfh5_pipeline.test_caching()
+                    separate_set_list = load_cached_data_and_label(instance_f, s_path, separate_set_list)
                     continue
                 else:
                     s_path.mkdir(parents=True, exist_ok=True)
@@ -349,10 +408,7 @@ class ERFH5DataGenerator:
                         instance_f = s_path.glob("*.pt")
                         instance_f = sorted(instance_f)
                         instance = []
-                        for i in range(len(instance_f) // 2):
-                            data = torch.load(s_path.joinpath(instance_f[i * 2]))
-                            label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
-                            instance.append((data, label))
+                        instance = load_cached_data_and_label(instance_f, s_path, instance)
                         self.batch_queue.put_batch(instance)
                         self.data_dict[file] = instance
                         continue
@@ -425,6 +481,8 @@ class ERFH5DataGenerator:
 
     def load_test_set(self, path):
         self.test_list = pickle.load(open(path, "rb"))
+
+
 
 
 if __name__ == "__main__":

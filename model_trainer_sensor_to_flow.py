@@ -14,6 +14,7 @@ from Pipeline import (
     data_loaders_IMG as dli,
     data_gather as dg,
 )
+from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 import getpass
@@ -23,21 +24,11 @@ def get_comment():
     return "Hallo"
 
 
-def transform_list_of_linux_paths_to_windows(test_set):
-    if socket.gethostname() == "swtse130":
-        win_paths = []
-        for e in test_set:
-            if e[:4] == "/cfs":
-                win_paths.append(Path(e.replace("/cfs/home", "X:")))
-        test_set = win_paths
-    return test_set
-
-
 class SensorTrainer:
     def __init__(self,
                  data_source_paths,
                  save_datasets_path,
-                 load_datasets_path,
+                 load_datasets_path=None,
                  cache_path=None,
                  batch_size=1,
                  eval_freq=2,
@@ -59,7 +50,7 @@ class SensorTrainer:
         self.training_data_generator = None
         self.test_data_generator = None
 
-    def create_datagenerator(self, save_path, test_mode=True, load_path=None):
+    def create_datagenerator(self, save_path, test_mode=True):
         try:
             generator = pipeline.ERFH5DataGenerator(
                 data_paths=self.data_source_paths,
@@ -73,7 +64,7 @@ class SensorTrainer:
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 save_path=save_path,
-                load_datasets_path=load_path,
+                load_datasets_path=self.load_datasets_path,
                 test_mode=test_mode,
             )
         except Exception as e:
