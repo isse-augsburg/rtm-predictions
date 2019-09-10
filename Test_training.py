@@ -16,7 +16,7 @@ class TestTraining(unittest.TestCase):
 
     def test_training(self):
         st = SensorTrainer(data_source_paths=self.training_data_paths,
-                           save_path=self.training_save_path,
+                           save_datasets_path=self.training_save_path,
                            epochs=self.expected_num_epochs_during_training)
         st.run_training()
         dirs = [e for e in self.training_save_path.iterdir() if e.is_dir()]

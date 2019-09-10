@@ -104,6 +104,26 @@ class ThreadSafeList:
 #     sys.stdout.write("\033[F")
 
 
+def assert_instance_correctness(instance):
+    assert isinstance(
+        instance, list
+    ), '''The data loader seems to return instances in the wrong format. 
+            The required format is [(data_1, label1), ... , (data_n, label_n)] or None.'''
+    for i in instance:
+        assert (
+                isinstance(i, tuple) and len(i) == 2
+        ), '''The data loader seems to return instances in the wrong format. 
+                The required format is [(data_1, label1), ... , (data_n, label_n)] or None.'''
+
+
+def transform_to_tensor_and_cache(i, num, s_path, separate_set_list):
+    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
+    separate_set_list.append((data, label))
+    if s_path is not None:
+        torch.save(data, s_path.joinpath(str(num) + "-data" + ".pt"))
+        torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
+
+
 class ERFH5DataGenerator:
     """ Iterable object that generates batches of a specified size. 
 
@@ -135,6 +155,7 @@ class ERFH5DataGenerator:
         num_workers=4,
         cache_path=None,
         save_path=None,
+        load_datasets_path=None,
         test_mode=False,
     ):
         self.data_paths = [str(x) for x in data_paths]
@@ -160,66 +181,66 @@ class ERFH5DataGenerator:
 
         self.data_dict = dict()
         self.logger = logging.getLogger(__name__)
-        self.logger.info(">>> Generator: Gathering Data...")
+        self.logger.info("Gathering Data...")
         self.paths = []
         self.batch_queue = ThreadSafeList()
         self.path_queue = ThreadSafeList()
         self.validation_list = []
         self.test_list = []
-        if not test_mode:
-            self.init_generators_and_run(save_path)
 
-    def init_generators_and_run(self, save_path):
+        self.validation_fnames = []
+        self.test_fnames = []
+        self.training_fnames = []
+
+        if not test_mode:
+            self.init_generators_and_run(save_path, load_datasets_path)
+
+    def init_generators_and_run(self, save_path, load_path):
         for path in self.data_paths:
             if self.cache_path_flist is not None:
                 path_name = Path(path).stem
                 file = self.cache_path_flist.joinpath(path_name)
                 if os.path.isfile(file):
-                    self.paths.extend(pickle.load(open(file, "rb")))
+                    with open(file, "rb") as f:
+                        self.paths.extend(pickle.load(f))
                     continue
                 else:
                     gatherd = self.data_gather(path)
-                    pickle.dump(gatherd, open(file, "wb"))
+                    with open(file, "wb") as f:
+                        pickle.dump(gatherd, f)
                     self.paths.extend(gatherd)
             else:
                 gatherd = self.data_gather(path)
                 self.paths.extend(gatherd)
-        self.paths = self.paths
         if len(self.paths) > 1:
             random.shuffle(self.paths)
-        self.logger.info(">>> Generator: Gathering Data... Done.")
+        self.logger.info("Gathering Data... Done.")
         self.barrier = threading.Barrier(self.num_workers)
-        self.logger.info(">>> Generator: Filling Validation List...")
-        self.validation_list, fnames_validation = self.__fill_separate_set_list(
-            self.num_validation_samples
-        )
+        self.logger.info("Separating data sets ...")
+        self.validation_list, self.validation_fnames = self.__fill_separate_set_list(self.num_validation_samples)
+        self.test_list, self.test_fnames = self.__fill_separate_set_list(self.num_test_samples)
         if save_path is not None:
-            with open(save_path / "validation_set.p", "wb") as f:
-                pickle.dump(fnames_validation, f)
-        self.logger.info(">>> Generator: Filling Validation List... Done.")
-        self.logger.info(">>> Generator: Filling Test List...")
-        self.test_list, fnames_test = self.__fill_separate_set_list(
-            self.num_test_samples
-        )
-        if save_path is not None:
-            with open(save_path / "test_set.p", "wb") as f:
-                pickle.dump(fnames_test, f)
-        self.logger.info(">>> Generator: Filling Test List... Done.")
-        if save_path is not None:
-            with open(save_path / "training_set.p", "wb") as f:
-                pickle.dump(self.paths, f)
-        self.logger.info(">>> Generator: Filling Path Queue...")
+            self.save_data_sets(save_path)
+        self.logger.info("Filling Path Queue...")
         try:
             self.__fill_path_queue()
         except Exception as e:
             raise e
-        self.logger.info(">>> Generator: Filling Path Queue... Done.")
+        self.logger.info("Filling Path Queue... Done.")
         self.__print_info()
         for i in range(self.num_workers):
             t_batch = threading.Thread(target=self.__fill_batch_queue)
             t_batch.start()
         self.t_shuffle = threading.Thread(target=self.__shuffle_batch_queue)
         self.t_shuffle.start()
+
+    def save_data_sets(self, save_path):
+        with open(save_path / "validation_set.p", "wb") as f:
+            pickle.dump(self.validation_fnames, f)
+        with open(save_path / "test_set.p", "wb") as f:
+            pickle.dump(self.test_fnames, f)
+        with open(save_path / "training_set.p", "wb") as f:
+            pickle.dump(self.paths, f)
 
     def __shuffle_batch_queue(self):
         while (
@@ -293,22 +314,12 @@ class ERFH5DataGenerator:
             if instance is None:
                 continue
             else:
-                assert isinstance(
-                    instance, list
-                ), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
-                for i in instance:
-                    assert (
-                        isinstance(i, tuple) and len(i) == 2
-                    ), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)] or None."
-
+                assert_instance_correctness(instance)
                 for num, i in enumerate(instance):
-                    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-                    separate_set_list.append((data, label))
+                    transform_to_tensor_and_cache(i, num, s_path, separate_set_list)
                     if len(separate_set_list) == wanted_len:
                         break
-                    if s_path is not None:
-                        torch.save(data, s_path.joinpath(str(num) + "-data" + ".pt"))
-                        torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
+
         return separate_set_list, separate_fname_list
 
     def __fill_batch_queue(self):
@@ -355,27 +366,11 @@ class ERFH5DataGenerator:
                     self.data_dict[file] = None
                     continue
                 else:
-                    assert isinstance(
-                        instance, list
-                    ), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
-                    for i in instance:
-                        assert (
-                            isinstance(i, tuple) and len(i) == 2
-                        ), "The data loader seems to return instances in the wrong format. The required format is [(data_1, label1), ... , (data_n, label_n)]."
-
+                    assert_instance_correctness(instance)
                     tensor_instances = list()
 
                     for num, i in enumerate(instance):
-                        data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-
-                        tensor_instances.append((data, label))
-                        if s_path is not None:
-                            torch.save(
-                                data, s_path.joinpath(str(num) + "-data" + ".pt")
-                            )
-                            torch.save(
-                                label, s_path.joinpath(str(num) + "-label" + ".pt")
-                            )
+                        transform_to_tensor_and_cache(i, num, s_path, tensor_instances)
                     self.batch_queue.put_batch(tensor_instances)
                     self.data_dict[file] = tensor_instances
 
@@ -414,7 +409,6 @@ class ERFH5DataGenerator:
     def __len__(self):
         return self.epochs * len(self.paths)
 
-    # TODO unnecessary?
     def get_validation_samples(self):
         """
         Returns: 
@@ -422,7 +416,6 @@ class ERFH5DataGenerator:
         """
         return self.validation_list
 
-    # TODO unnecessary?
     def get_test_samples(self):
         """
         Returns:

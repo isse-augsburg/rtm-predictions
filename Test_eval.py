@@ -19,7 +19,8 @@ class TestEval(unittest.TestCase):
 
     def test_eval(self):
         st = SensorTrainer(data_source_paths=[],
-                           save_path=self.eval_path_to_delete,
+                           save_datasets_path=self.eval_path_to_delete,
+                           load_datasets_path=self.eval_path_to_delete,
                            num_test_samples=self.num_test_samples)
         st.inference_on_test_set(self.eval_path)
         with open(self.eval_path_to_delete / 'test_output.log') as f:

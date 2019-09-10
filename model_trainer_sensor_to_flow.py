@@ -36,7 +36,8 @@ def transform_list_of_linux_paths_to_windows(test_set):
 class SensorTrainer:
     def __init__(self,
                  data_source_paths,
-                 save_path,
+                 save_datasets_path,
+                 load_datasets_path,
                  cache_path=None,
                  batch_size=1,
                  eval_freq=2,
@@ -49,7 +50,8 @@ class SensorTrainer:
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
         self.eval_freq = eval_freq
-        self.save_path = save_path
+        self.save_datasets_path = save_datasets_path
+        self.load_datasets_path = load_datasets_path
         self.epochs = epochs
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
@@ -57,7 +59,7 @@ class SensorTrainer:
         self.training_data_generator = None
         self.test_data_generator = None
 
-    def create_datagenerator(self, save_path, test_mode=True):
+    def create_datagenerator(self, save_path, test_mode=True, load_path=None):
         try:
             generator = pipeline.ERFH5DataGenerator(
                 data_paths=self.data_source_paths,
@@ -71,6 +73,7 @@ class SensorTrainer:
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 save_path=save_path,
+                load_datasets_path=load_path,
                 test_mode=test_mode,
             )
         except Exception as e:
@@ -128,7 +131,7 @@ class SensorTrainer:
         logging.shutdown()
 
     def run_training(self):
-        save_path = self.save_path / self.initial_timestamp
+        save_path = self.save_datasets_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)
 
         logging.basicConfig(
@@ -209,15 +212,19 @@ if __name__ == "__main__":
     else:
         _data_source_paths=[]
 
+    # Running with the same dataset as with 63 Sensors, because that was the longest training
+    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
+
     st = SensorTrainer(cache_path=_cache_path,
-                     data_source_paths=_data_source_paths,
-                     batch_size=_batch_size,
-                     eval_freq=_eval_freq,
-                     save_path=_save_path,
-                     epochs=_epochs,
-                     num_workers=_num_workers,
-                     num_validation_samples=_num_validation_samples,
-                     num_test_samples=_num_test_samples)
+                       data_source_paths=_data_source_paths,
+                       batch_size=_batch_size,
+                       eval_freq=_eval_freq,
+                       save_datasets_path=_save_path,
+                       load_datasets_path=_load_datasets_path,
+                       epochs=_epochs,
+                       num_workers=_num_workers,
+                       num_validation_samples=_num_validation_samples,
+                       num_test_samples=_num_test_samples)
 
     if train:
         st.run_training()
