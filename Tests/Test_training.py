@@ -50,16 +50,6 @@ class TestTrainingWithFixedDataset(unittest.TestCase):
                            num_validation_samples=self.num_validation_samples)
         self.gen = st.create_datagenerator(save_path=None, test_mode=False)
 
-        with open(self.load_datasets_path / "validation_set.p", 'rb') as f:
-            self.validation_fnames = pickle.load(f)
-        with open(self.load_datasets_path / "test_set.p", 'rb') as f:
-            self.test_fnames = pickle.load(f)
-        with open(self.load_datasets_path / "training_set.p", 'rb') as f:
-            self.training_fnames = pickle.load(f)
-        if socket.gethostname() == 'swtse130':
-            self.validation_fnames = transform_list_of_linux_paths_to_windows(self.validation_fnames)
-            self.test_fnames = transform_list_of_linux_paths_to_windows(self.test_fnames)
-            self.training_fnames = transform_list_of_linux_paths_to_windows(self.training_fnames)
 
     def test_len_validation_set(self):
         self.assertEqual(self.num_validation_samples, len(self.gen.validation_list))
@@ -68,13 +58,25 @@ class TestTrainingWithFixedDataset(unittest.TestCase):
         self.assertEqual(self.num_test_samples, len(self.gen.test_list))
 
     def test_gen_validation_fnames(self):
+        with open(self.load_datasets_path / "validation_set.p", 'rb') as f:
+            self.validation_fnames = pickle.load(f)
+        if socket.gethostname() == 'swtse130':
+            self.validation_fnames = transform_list_of_linux_paths_to_windows(self.validation_fnames)
         self.assertEqual(self.validation_fnames, self.gen.validation_fnames)
 
     def test_gen_test_fnames(self):
+        with open(self.load_datasets_path / "test_set.p", 'rb') as f:
+            self.test_fnames = pickle.load(f)
+        if socket.gethostname() == 'swtse130':
+            self.test_fnames = transform_list_of_linux_paths_to_windows(self.test_fnames)
         self.assertEqual(self.test_fnames, self.gen.test_fnames)
 
     def test_gen_training_fnames(self):
-        self.assertEqual(self.training_fnames, self.gen.paths)
+        with open(self.load_datasets_path / "training_set.p", 'rb') as f:
+            self.training_fnames = pickle.load(f)
+        if socket.gethostname() == 'swtse130':
+            self.training_fnames = transform_list_of_linux_paths_to_windows(self.training_fnames)
+        self.assertEqual(sorted(self.training_fnames), sorted(self.gen.paths))
 
 
 if __name__ == '__main__':
