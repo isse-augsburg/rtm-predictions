@@ -72,7 +72,7 @@ class ERFH5_RNN(nn.Module):
         out = F.relu(self.hidden2hidden5(out))
         out = self.hidden2value(out)
         # out = F.softmax(out)
-        out = F.sigmoid(out)
+        out = torch.sigmoid(out)
         return out
 
 
@@ -145,7 +145,7 @@ class ERFH5_Pressure_FC(nn.Module):
         out = F.relu(self.hidden4(out))
         out = F.relu(self.hidden5(out))
         out = F.relu(self.hidden6(out))
-        out = F.sigmoid(self.out_layer(out))
+        out = torch.sigmoid(self.out_layer(out))
         return out
 
 

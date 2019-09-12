@@ -14,6 +14,7 @@ from Pipeline import (
     data_loaders_IMG as dli,
     data_gather as dg,
 )
+from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 import getpass
@@ -23,20 +24,11 @@ def get_comment():
     return "Hallo"
 
 
-def transform_list_of_linux_paths_to_windows(test_set):
-    if socket.gethostname() == "swtse130":
-        win_paths = []
-        for e in test_set:
-            if e[:4] == "/cfs":
-                win_paths.append(Path(e.replace("/cfs/home", "X:")))
-        test_set = win_paths
-    return test_set
-
-
 class SensorTrainer:
     def __init__(self,
                  data_source_paths,
-                 save_path,
+                 save_datasets_path,
+                 load_datasets_path=None,
                  cache_path=None,
                  batch_size=1,
                  eval_freq=2,
@@ -49,7 +41,8 @@ class SensorTrainer:
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
         self.eval_freq = eval_freq
-        self.save_path = save_path
+        self.save_datasets_path = save_datasets_path
+        self.load_datasets_path = load_datasets_path
         self.epochs = epochs
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
@@ -71,6 +64,7 @@ class SensorTrainer:
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 save_path=save_path,
+                load_datasets_path=self.load_datasets_path,
                 test_mode=test_mode,
             )
         except Exception as e:
@@ -91,6 +85,7 @@ class SensorTrainer:
             level=logging.DEBUG,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
+        logger = logging.getLogger(__name__)
 
         model = DeconvModel()
         if socket.gethostname() == "swt-dgx1":
@@ -98,6 +93,7 @@ class SensorTrainer:
         else:
             model = model.to("cuda:0")
 
+        logger.info("Generating Test Generator")
         self.test_data_generator = self.create_datagenerator(save_path, test_mode=True)
 
         eval_wrapper = MasterTrainer(
@@ -125,10 +121,9 @@ class SensorTrainer:
                 break
 
         eval_wrapper.eval(data_list, test_mode=True)
-        logging.shutdown()
 
     def run_training(self):
-        save_path = self.save_path / self.initial_timestamp
+        save_path = self.save_datasets_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)
 
         logging.basicConfig(
@@ -137,7 +132,7 @@ class SensorTrainer:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         logger = logging.getLogger(__name__)
-
+        print(__name__)
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
@@ -209,15 +204,19 @@ if __name__ == "__main__":
     else:
         _data_source_paths=[]
 
+    # Running with the same dataset as with 63 Sensors, because that was the longest training
+    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
+
     st = SensorTrainer(cache_path=_cache_path,
-                     data_source_paths=_data_source_paths,
-                     batch_size=_batch_size,
-                     eval_freq=_eval_freq,
-                     save_path=_save_path,
-                     epochs=_epochs,
-                     num_workers=_num_workers,
-                     num_validation_samples=_num_validation_samples,
-                     num_test_samples=_num_test_samples)
+                       data_source_paths=_data_source_paths,
+                       batch_size=_batch_size,
+                       eval_freq=_eval_freq,
+                       save_datasets_path=_save_path,
+                       load_datasets_path=_load_datasets_path,
+                       epochs=_epochs,
+                       num_workers=_num_workers,
+                       num_validation_samples=_num_validation_samples,
+                       num_test_samples=_num_test_samples)
 
     if train:
         st.run_training()
@@ -228,3 +227,4 @@ if __name__ == "__main__":
             )
         else:
             st.inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-02_19-40-56"))
+    logging.shutdown()

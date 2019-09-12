@@ -197,7 +197,7 @@ if __name__ == "__main__":
         _num_validation_samples = 10
         _num_test_samples = 2000
 
-    train = False
+    train = True
     if train:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",

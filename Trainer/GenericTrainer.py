@@ -75,7 +75,7 @@ class MasterTrainer:
         self.generator.load_test_set(path)
         test_list = self.generator.get_test_samples()
         self.generator.paths = test_list
-        dataset, _ = self.generator.__fill_separate_set_list(len(self.generator.paths))
+        dataset, _ = self.generator.__fill_separate_set_list_from_all_paths(len(self.generator.paths))
         self.eval(dataset)
 
     def __print_info(self):
