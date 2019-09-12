@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from model_trainer_sensor_to_flow import SensorTrainer
-import Tests.TestResources as resources
+import Tests.resources_for_testing as resources
 
 
 class TestEval(unittest.TestCase):
@@ -19,11 +19,11 @@ class TestEval(unittest.TestCase):
         self.expected_num_epochs_during_training = 5
 
     def test_eval(self):
-        st = SensorTrainer(data_source_paths=[],
+        self.st = SensorTrainer(data_source_paths=[],
                            save_datasets_path=self.eval_path_to_delete,
                            load_datasets_path=self.eval_path_to_delete,
                            num_test_samples=self.num_test_samples)
-        st.inference_on_test_set(self.eval_path)
+        self.st.inference_on_test_set(self.eval_path)
         with open(self.eval_path_to_delete / 'test_output.log') as f:
             content = f.read()
             loss = float(re.findall('\d+.\d+', re.findall('Eval:   \d+\.\d+',  content)[0])[0])
@@ -33,6 +33,7 @@ class TestEval(unittest.TestCase):
         self.assertEqual(len(list_all_imgs), self.expected_num_frames)
 
     def tearDown(self) -> None:
+        self.st.test_data_generator.end_threads()
         shutil.rmtree(self.eval_path_to_delete)
         logging.shutdown()
 

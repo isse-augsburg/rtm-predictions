@@ -4,7 +4,7 @@ from pathlib import Path
 from time import time, sleep
 from Pipeline.data_loaders_IMG import get_images_of_flow_front_and_permeability_map, \
     get_fixed_number_of_elements_and_their_indices_from_various_sized_list
-import Tests.TestResources as Resources
+import Tests.resources_for_testing as Resources
 
 class TestDataLoaderIMG(unittest.TestCase):
     def setUp(self):

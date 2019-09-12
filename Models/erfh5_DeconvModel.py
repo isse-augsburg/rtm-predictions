@@ -12,7 +12,7 @@ inputs = torch.randn(1, 360)
 class DeconvModel(nn.Module):
     def __init__(self, input_dim=1140):
         super(DeconvModel, self).__init__()
-        # self.fc = Linear(input_dim, 1140)
+        self.fc = Linear(input_dim, 1140)
 
         self.ct1 = ConvTranspose2d(1, 16, 3, stride=2, padding=0)
         self.ct2 = ConvTranspose2d(16, 32, 7, stride=2, padding=0)

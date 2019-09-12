@@ -121,11 +121,13 @@ def transform_to_tensor_and_cache(i, num, s_path, separate_set_list):
     data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
     separate_set_list.append((data, label))
     if s_path is not None:
+        s_path.mkdir(parents=True, exist_ok=True)
         torch.save(data, s_path.joinpath(str(num) + "-data" + ".pt"))
         torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
 
 
-def load_cached_data_and_label(instance_f, s_path, _list):
+def load_cached_data_and_label(instance_f, s_path):
+    _list = []
     for i in range(len(instance_f) // 2):
         data = torch.load(s_path.joinpath(instance_f[i * 2]))
         label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
@@ -175,11 +177,15 @@ class ERFH5DataGenerator:
         load_datasets_path=None,
         test_mode=False,
     ):
+        self.kill_t_shuffle = False
+        self.kill_t_batch = False
+        self.threadlist = []
         self.data_paths = [str(x) for x in data_paths]
         self.batch_size = batch_size
         self.epochs = epochs
         self.max_queue_length = max_queue_length
         assert max_queue_length > 0
+        assert num_workers > 0
         self.num_validation_samples = num_validation_samples
         self.num_test_samples = num_test_samples
         self.num_workers = num_workers
@@ -214,6 +220,11 @@ class ERFH5DataGenerator:
         self.cache_path.mkdir(parents=True, exist_ok=True)
         self.cache_path_flist = Path(cache_path).joinpath("filelists")
         self.cache_path_flist.mkdir(parents=True, exist_ok=True)
+
+    def end_threads(self):
+        self.kill_t_batch = True
+        self.kill_t_shuffle = True
+        [x.join() for x in self.threadlist]
 
     def init_generators_and_run(self, save_path, load_path):
         for path in self.data_paths:
@@ -260,8 +271,10 @@ class ERFH5DataGenerator:
         self.__print_info()
         for i in range(self.num_workers):
             t_batch = threading.Thread(target=self.__fill_batch_queue)
+            self.threadlist.append(t_batch)
             t_batch.start()
         self.t_shuffle = threading.Thread(target=self.__shuffle_batch_queue)
+        self.threadlist.append(self.t_shuffle)
         self.t_shuffle.start()
 
     def save_data_sets(self, save_path):
@@ -287,8 +300,9 @@ class ERFH5DataGenerator:
 
     def __shuffle_batch_queue(self):
         while (
-            len(self.path_queue) > self.batch_size
-            or len(self.batch_queue) > self.batch_size
+            not self.kill_t_shuffle and
+            (len(self.path_queue) > self.batch_size
+            or len(self.batch_queue) > self.batch_size)
         ):
             self.batch_queue.randomise()
             sleep(10)
@@ -360,9 +374,8 @@ class ERFH5DataGenerator:
                 if s_path.exists():
                     instance_f = s_path.glob("*.pt")
                     instance_f = sorted(instance_f)
-                    # FIXME Niklas, do we really want to append to separate_set_list here or to another, new list?
                     # FIXME Caching is broken atm, see test_erfh5_pipeline.test_caching()
-                    separate_set_list = load_cached_data_and_label(instance_f, s_path, separate_set_list)
+                    separate_set_list.extend(load_cached_data_and_label(instance_f, s_path))
                     continue
                 else:
                     s_path.mkdir(parents=True, exist_ok=True)
@@ -382,7 +395,7 @@ class ERFH5DataGenerator:
         return separate_set_list, separate_fname_list
 
     def __fill_batch_queue(self):
-        while len(self.batch_queue) < self.max_queue_length:
+        while not self.kill_t_batch and (len(self.batch_queue) < self.max_queue_length):
             s_path = None
             if len(self.path_queue) < self.batch_size:
                 return
@@ -407,8 +420,8 @@ class ERFH5DataGenerator:
                     if s_path.exists():
                         instance_f = s_path.glob("*.pt")
                         instance_f = sorted(instance_f)
-                        instance = []
-                        instance = load_cached_data_and_label(instance_f, s_path, instance)
+
+                        instance = load_cached_data_and_label(instance_f, s_path)
                         self.batch_queue.put_batch(instance)
                         self.data_dict[file] = instance
                         continue
