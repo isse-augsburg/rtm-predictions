@@ -5,14 +5,15 @@ import unittest
 from pathlib import Path
 
 from model_trainer_sensor_to_flow import SensorTrainer
+from model_trainer_ok_notok import SuccessTrainer
 
 
 class TestTraining(unittest.TestCase):
     def setUp(self):
-        self.training_save_path = Path(r'X:\s\t\stiebesi\code\tests\training')
+        self.training_save_path = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/l/o/lodesluk/code/tests/training')
         self.training_data_paths = [
-            Path(r'X:\s\t\stiebesi\code\tests\training_data_source\2019-07-11_15-14-48_100p')]
-        self.expected_num_epochs_during_training = 5
+            Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/code/tests/training_data_source/2019-07-11_15-14-48_100p')]
+        self.expected_num_epochs_during_training = 1
 
     def test_training(self):
         st = SensorTrainer(data_source_paths=self.training_data_paths,
@@ -30,5 +31,5 @@ class TestTraining(unittest.TestCase):
         logging.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

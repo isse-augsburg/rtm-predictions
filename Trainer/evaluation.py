@@ -117,7 +117,7 @@ class BinaryClassificationEvaluator(Evaluator):
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
 
-    def __init__(self, save_path):
+    def __init__(self, save_path=None):
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
         self.save_path = save_path
@@ -155,34 +155,30 @@ class BinaryClassificationEvaluator(Evaluator):
         logger = logging.getLogger(__name__)
 
         logger.info(
-            ">>>True positives:",
-            self.tp,
-            ">False positives:",
-            self.fp,
-            ">True negatives:",
-            self.tn,
-            ">False negatives:",
-            self.fn,
+            "True positives: %s, False positives: %s, True negatives: %s, False negatives: %s",
+            str(self.tp),
+            str(self.fp),
+            str(self.tn),
+            str(self.fn)
         )
+
         logger.info(
-            ">>>Accuracy:",
+            "Accuracy: %s, Precision: %s, Recall: %s, Specificity: %s",
             "{:7.4f}".format(
                 self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
             ),
-            ">Precision:",
             "{:7.4f}".format(
                 self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
             ),
-            ">Recall:",
             "{:7.4f}".format(
                 self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
             ),
-            ">Specificity:",
             "{:7.4f}".format(
                 self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
             ),
         )
-        logger.info(">>>Confusion matrix:", self.confusion_matrix)
+
+        logger.info("Confusion matrix: %s", str(self.confusion_matrix))
 
     def reset(self):
         """Resets the internal counters for the next evaluation loop. 
