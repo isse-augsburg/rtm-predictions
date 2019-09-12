@@ -1,12 +1,9 @@
 import logging
-from functools import partial
-from multiprocessing.pool import Pool
 from pathlib import Path
 
-from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, data_loader_sensor as dls, data_loaders_IMG as dli, \
+from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, \
+    data_loader_sensor as dls, data_loaders_IMG as dli, \
     data_gather as dg
-
-from Trainer.evaluation import plot_predictions_and_label
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 
@@ -15,106 +12,169 @@ import traceback
 from torch import nn
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Models.custom_loss import FocalLoss
-
-from Models.flow_front_to_fiber_fraction_model import FlowfrontToFiberfractionModel
-from Models.erfh5_DeconvModel import DeconvModel
 import os
 import numpy as np
-from PIL import Image
+
 import time
-import threading
-
-#TODO
-batchsize = 16
-max_Q_len = 64
-epochs = 300
-
-
-
-
-### DEBUG
-data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes')
-cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
-###
-
-
-
-# paths = [data_root / '2019-04-23_13-00-58_200p']#, data_root / '2019-04-23_10-23-20_200p']
-path = data_root / '2019-07-23_15-38-08_5000p'
-# path = data_root / '2019-05-17_16-45-57_3000p' / '0'
-path = data_root / '2019-07-23_15-38-08_5000p'
-# path = data_root / '2019-05-17_16-45-57_3000p'
-
-
-#Debug path
-path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p'
-paths = [path]
-
-log_level = logging.DEBUG
-logger = logging.getLogger(__name__)
-
-
-def create_dataGenerator_index_sequence():
-    try:
-        generator = pipeline.ERFH5DataGenerator(
-            '/cfs/share/data/RTM/Lautern/clean_erfh5/', data_processing_function=dl.get_index_sequence,
-            data_gather_function=dg.get_filelist_within_folder,
-            batch_size=batchsize, epochs=epochs, max_queue_length=2048, num_validation_samples=10)
-    except Exception as e:
-        logger.error("Fatal Error:", e)
-        exit()
-
-    return generator
-
-
-def create_dataGenerator_single_state():
-    try:
-        generator = pipeline.ERFH5DataGenerator(data_paths='/cfs/share/data/RTM/Lautern/clean_erfh5/',
-                                                data_processing_function=dl.get_single_states_and_fillings,
-                                                data_gather_function=dg.get_filelist_within_folder,
-                                                batch_size=batchsize, epochs=epochs, max_queue_length=2048,
-                                                num_validation_samples=3)
-    except Exception as e:
-        logger.error("Fatal Error:", e)
-        exit()
-    return generator
-
-
-def create_dataGenerator_pressure_sequence():
-    
-        
-    generator = pipeline.ERFH5DataGenerator(
-        paths, data_processing_function=dls.sensorgrid_simulationsuccess,
-        data_gather_function=dg.get_filelist_within_folder,
-        batch_size=batchsize, epochs=epochs, max_queue_length=max_Q_len, num_validation_samples=70, cache_path=None)
-
-
-    return generator
+from datetime import datetime
+import socket 
+import getpass
 
 
 def get_comment():
-    return "Using 38x30 Sensorgrid as net input"
+    return "Trying 38x30 sensor grid as input for a conventional CNN"
 
-save_path = Path(r"Y:\cache\output_simon")
+
+class SuccessTrainer:
+    def __init__(self,
+                 data_source_paths,
+                 save_path,
+                 cache_path=None,
+                 batch_size=1,
+                 eval_freq=2,
+                 epochs=10,
+                 num_workers=10,
+                 num_validation_samples=10,
+                 num_test_samples=10):
+        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.cache_path = cache_path
+        self.data_source_paths = data_source_paths
+        self.batch_size = batch_size
+        self.eval_freq = eval_freq
+        self.save_path = save_path
+        self.epochs = epochs
+        self.num_workers = num_workers
+        self.num_validation_samples = num_validation_samples
+        self.num_test_samples = num_test_samples
+        self.training_data_generator = None
+        self.test_data_generator = None
+
+    def create_datagenerator(self, save_path, test_mode=True):
+        try:
+            generator = pipeline.ERFH5DataGenerator(
+                self.data_source_paths,
+                data_processing_function=dls.sensorgrid_simulationsuccess,
+                data_gather_function=dg.get_filelist_within_folder,
+                batch_size=self.batch_size,
+                epochs=self.epochs,
+                max_queue_length=256,
+                num_validation_samples=self.num_validation_samples,
+                num_test_samples=self.num_test_samples,
+                cache_path=self.cache_path
+            )
+
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            h = logging.StreamHandler()
+            h.setLevel(logging.ERROR)
+            logger.addHandler(h)
+            logger.error("Fatal Error:", e)
+            logging.error("exception ", exc_info=1)
+            exit()
+        return generator
+
+    def run_training(self):
+        save_path = self.save_path / self.initial_timestamp
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        logging.basicConfig(
+            filename=save_path / Path("output.log"),
+            level=logging.DEBUG,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+        logger = logging.getLogger(__name__)
+
+        logger.info("Generating Generator")
+        self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
+
+        logger.info("Generating Model")
+        model = ERFH5_PressureSequence_Model()
+        logger.info("Model to GPU")
+        model = nn.DataParallel(model).to("cuda:0")
+
+        train_wrapper = MasterTrainer(
+            model,
+            self.training_data_generator,
+            comment=get_comment(),
+            loss_criterion=torch.nn.BCELoss(),
+            savepath=save_path,
+            learning_rate=0.0001,
+            calc_metrics=False,
+            train_print_frequency=50,
+            eval_frequency=self.eval_freq,
+            classification_evaluator=BinaryClassificationEvaluator(),
+        )
+        logger.info("The Training Will Start Shortly")
+
+        train_wrapper.start_training()
+        logging.shutdown()
 
 if __name__ == "__main__":
-    logging.basicConfig(filename=save_path / Path('output.log'),
-                        level=logging.DEBUG,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    logger = logging.getLogger(__name__)
 
-    logger.info("Generating Model")
-    model = ERFH5_PressureSequence_Model()
-    logger.info("Generating Generator")
-    generator = create_dataGenerator_pressure_sequence()
-    logger.info("Model to GPU")
-    model = nn.DataParallel(model).to('cuda:0')
-    logger.info("Generating Trainer")
-    #train_wrapper = Master_Trainer(model, generator, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
-                                  #learning_rate=0.0001, classification_evaluator=Binary_Classification_Evaluator())
-    train_wrapper = MasterTrainer(model, generator, train_print_frequency=20, loss_criterion=torch.nn.BCELoss(), comment=get_comment(),
-                                  learning_rate=0.0005, classification_evaluator=BinaryClassificationEvaluator())
-    logger.info("The Training Will Start Shortly")
+    if socket.gethostname() == "swt-dgx1":
+        """ _cache_path = None
+        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+        _batch_size = 320
+        _eval_freq = 50
+        
+        if getpass.getuser() == "stiebesi":
+            _save_path = Path("/cfs/share/cache/output_simon")
+        elif getpass.getuser() == "schroeni":
+            _save_path = Path("/cfs/share/cache/output_niklas")
+            # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
+        else:
+            _save_path = Path("/cfs/share/cache/output")
+        _epochs = 10
+        _num_workers = 18
+        _num_validation_samples = 2000
+        _num_test_samples = 2000 """
 
-    train_wrapper.start_training()
-    #train_wrapper.save_model('/cfs/home/l/o/lodesluk/models/crnn_1505_1045.pt')
+        print("TODO Fix paths for DGX")
+
+    else:
+        _cache_path = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache')
+        # _cache_path = None
+        # _data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes')
+        _data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
+        _batch_size = 4
+        _eval_freq = 50
+        _save_path = Path('/home/lodes/Train_Out')
+        _epochs = 200
+        _num_workers = 4
+        _num_validation_samples = 50
+        _num_test_samples = 50
+
+    train = True
+    if train:
+        _data_source_paths = [
+            _data_root / "2019-07-23_15-38-08_5000p",
+            _data_root / "2019-07-24_16-32-40_5000p",
+            _data_root / "2019-07-29_10-45-18_5000p",
+            _data_root / "2019-08-23_15-10-02_5000p",
+            _data_root / "2019-08-24_11-51-48_5000p",
+            _data_root / "2019-08-25_09-16-40_5000p",
+            _data_root / "2019-08-26_16-59-08_6000p",
+        ]
+    else:
+        _data_source_paths = []
+
+    st = SuccessTrainer(cache_path=_cache_path,
+                        data_source_paths=_data_source_paths,
+                        batch_size=_batch_size,
+                        eval_freq=_eval_freq,
+                        save_path=_save_path,
+                        epochs=_epochs,
+                        num_workers=_num_workers,
+                        num_validation_samples=_num_validation_samples, 
+                        num_test_samples=_num_test_samples
+                        )
+
+    if train:
+        st.run_training()
+    """ else:
+        if socket.gethostname() != "swtse130":
+            st.inference_on_test_set(
+                Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
+            )
+        else:
+            st.inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-02_19-40-56")) """
