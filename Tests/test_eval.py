@@ -34,8 +34,10 @@ class TestEval(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.st.test_data_generator.end_threads()
-        shutil.rmtree(self.eval_path_to_delete)
         logging.shutdown()
+        r = logging.getLogger("")
+        [r.removeHandler(x) for x in r.handlers]
+        shutil.rmtree(self.eval_path_to_delete)
 
 
 if __name__ == '__main__':

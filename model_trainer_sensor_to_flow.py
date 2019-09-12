@@ -85,6 +85,7 @@ class SensorTrainer:
             level=logging.DEBUG,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
+        logger = logging.getLogger(__name__)
 
         model = DeconvModel()
         if socket.gethostname() == "swt-dgx1":
@@ -92,6 +93,7 @@ class SensorTrainer:
         else:
             model = model.to("cuda:0")
 
+        logger.info("Generating Test Generator")
         self.test_data_generator = self.create_datagenerator(save_path, test_mode=True)
 
         eval_wrapper = MasterTrainer(
@@ -119,7 +121,6 @@ class SensorTrainer:
                 break
 
         eval_wrapper.eval(data_list, test_mode=True)
-        logging.shutdown()
 
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
@@ -131,7 +132,7 @@ class SensorTrainer:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         logger = logging.getLogger(__name__)
-
+        print(__name__)
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
@@ -226,3 +227,4 @@ if __name__ == "__main__":
             )
         else:
             st.inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-02_19-40-56"))
+    logging.shutdown()
