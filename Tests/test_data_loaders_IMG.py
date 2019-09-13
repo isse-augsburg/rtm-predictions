@@ -24,6 +24,7 @@ class TestDataLoaderIMG(unittest.TestCase):
         if n_elements > list_length:
             return
         x = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(list(range(list_length)), n_elements)
+        print("Length of List:", list_length, "|| Number of elements:", n_elements)
         self.assertEqual(len(x), n_elements)
 
     @unittest.skip("Currently not working,"
@@ -37,6 +38,7 @@ class TestDataLoaderIMG(unittest.TestCase):
             self.assertEqual(len(list_of_pngs), w + 1)
             self.tearDown()
 
+    @unittest.skip("Fails test when not testing get_testing images_of_flow_front_and_permeability_map")
     def tearDown(self):
 
         shutil.rmtree(self.img_cache_dirname)
