@@ -12,7 +12,7 @@ class TestDataLoaderIMG(unittest.TestCase):
     def setUp(self):
         self.img_cache_dirname = Resources.data_loader_img_file
 
-    @unittest.skip("Currently not working")
+    #@unittest.skip("Currently not working")
     def test_get_fixed_number_of_elements_and_their_indices_from_various_sized_list(self):
         for i in [2, 10, 20, 33, 100]:
             for j in [2, 5, 8, 10, 20]:

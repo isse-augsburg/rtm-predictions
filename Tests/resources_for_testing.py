@@ -5,8 +5,11 @@ if getpass.getuser() == 'stiebesi':
     test_out_dir = Path(r'X:\s\t\stiebesi\code\tests')
     test_src_dir = Path(r'X:\s\t\stiebesi\code\tests')
 elif getpass.getuser() == 'lodesluk':
-    test_out_dir = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/l/o/lodesluk/code/tests"
-    test_src_dir = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/code/tests'
+    test_out_dir = Path(r'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/l/o/lodesluk/code/tests')
+    test_src_dir = Path(r'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/code/tests')
+elif getpass.getuser() == 'lodes':
+    test_out_dir = Path(r'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/l/o/lodesluk/code/tests')
+    test_src_dir = Path(r'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/code/tests')
 else:
     raise Exception("User not defined. Please define username.")
 
