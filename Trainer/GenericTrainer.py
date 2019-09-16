@@ -143,8 +143,8 @@ class MasterTrainer:
             for i, (data, label) in enumerate(self.__batched(data_set, self.generator.batch_size)):
                 data = data.to(self.device)
                 label = label.to(self.device)
-                #data = torch.unsqueeze(data, 0)
-                #label = torch.unsqueeze(label, 0)
+                # data = torch.unsqueeze(data, 0)
+                # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
