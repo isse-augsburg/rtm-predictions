@@ -1,6 +1,4 @@
 import os
-from functools import partial
-from multiprocessing.pool import Pool
 from pathlib import Path
 
 import h5py
@@ -28,6 +26,7 @@ def search_broken_pngs(path):
             print('Broken Image', e)
             e.unlink()
 
+
 def search_very_short_erfh5_states(path):
     all_erfh5 = path.glob('**/*.erfh5')
     for e in all_erfh5:
@@ -46,6 +45,6 @@ def search_very_short_erfh5_states(path):
 #         print('Broken Image', e)
 
 
-if __name__== "__main__":
+if __name__ == "__main__":
     search_very_short_erfh5_states(path)
     # search_broken_pngs(path)

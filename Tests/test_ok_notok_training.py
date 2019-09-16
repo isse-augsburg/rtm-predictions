@@ -2,10 +2,10 @@ import logging
 import re
 import shutil
 import unittest
-from pathlib import Path
 
-from model_trainer_ok_notok import SuccessTrainer
 import Tests.resources_for_testing as resources
+from model_trainer_ok_notok import SuccessTrainer
+
 
 class TestOkNotOkTraining(unittest.TestCase):
     def setUp(self):
@@ -36,7 +36,6 @@ class TestOkNotOkTraining(unittest.TestCase):
         r = logging.getLogger("")
         [r.removeHandler(x) for x in r.handlers]
         shutil.rmtree(self.training_save_path)
-
 
 
 if __name__ == "__main__":

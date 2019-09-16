@@ -1,6 +1,6 @@
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn import ConvTranspose2d, Conv2d, Linear
 
 inputs = torch.randn(1, 360)

@@ -7,7 +7,9 @@ def add_filling_percentage(h5pyfile, grp):
     all_states = f['post']['singlestate']
     _tmp = [state for state in all_states]
     last_filling = \
-    f['post']['singlestate'][_tmp[-1]]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+        f['post']['singlestate'][_tmp[-1]]['entityresults']['NODE'][
+            'FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][
+            ()]
     non_zeros = np.count_nonzero(last_filling)
     state_count = np.shape(last_filling)[0]
     filling_percentage = np.array(non_zeros / state_count)
@@ -19,8 +21,10 @@ def add_finished_time(h5pyfile, grp):
     all_states = f['post']['singlestate']
     _tmp = [state for state in all_states]
     time = \
-    f['post']['singlestate'][_tmp[-1]]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][
-        ()]
+        f['post']['singlestate'][_tmp[-1]]['entityresults']['NODE'][
+            'FILLING_FACTOR']['ZONE1_set1']['erfblock'][
+            'indexval'][
+            ()]
     grp.create_dataset('finish_time', data=time)
 
 

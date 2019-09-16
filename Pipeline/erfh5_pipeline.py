@@ -1,23 +1,24 @@
 import logging
-import socket
-
-from Pipeline import data_loaders as dl, data_gather as dg, data_loader_sensor as dls
-import threading
-from time import time, sleep
+import os
 import pickle
 import random
-import torch
-import sys
-import os
+import socket
+import threading
 from pathlib import Path
-import typing
+from time import sleep
+
+import torch
+
+from Pipeline import data_gather as dg, data_loader_sensor as dls
 
 
 class ThreadSafeList:
-    """Implements a thread safe list that is much faster than built-in python lists. 
+    """Implements a thread safe list that is much faster than built-in
+    python lists.
 
     Args:
-            max_length (int): Max length the list can have. Should be specified if the memory consumption is a problem.
+            max_length (int): Max length the list can have. Should be specified
+            if the memory consumption is a problem.
     """
 
     def __init__(self):
@@ -27,7 +28,8 @@ class ThreadSafeList:
 
     # if called, the thread using this queue will commit suicide
     def kill(self):
-        """Sets a flag that raises a StopIteration when get is called. Prevents threads from waiting infinitely
+        """Sets a flag that raises a StopIteration when get is called. Prevents
+        threads from waiting infinitely
         long for enough elements.
         """
         self.finished = True
@@ -39,7 +41,8 @@ class ThreadSafeList:
         return length
 
     def randomise(self):
-        """Shuffles the list every 10 seconds. Used for shuffling sequences that were extracted from the same file.
+        """Shuffles the list every 10 seconds. Used for shuffling sequences
+        that were extracted from the same file.
         """
 
         self.lock.acquire()
@@ -59,10 +62,12 @@ class ThreadSafeList:
         self.lock.release()
 
     def put_batch(self, batch):
-        """Appends multiple elements elementwise to the list (uses extend instead of append). 
+        """Appends multiple elements elementwise to the list
+        (uses extend instead of append).
 
         Args:
-            batch (array-like): List of elements that should be added to the list. 
+            batch (array-like): List of elements that should be added
+            to the list.
 
         Example:
             >>> list = [1, 2, 3, 4]
@@ -82,11 +87,10 @@ class ThreadSafeList:
         """
         Args:
             number_of_elements (int): number of elements that should be returned
-        
-        Returns:
-            List: list consisting of the first number_of_elements elements of the thread safe list.
 
-        
+        Returns:
+            List: list consisting of the first number_of_elements elements
+            of the thread safe list.
         """
 
         if len(self) < number_of_elements:
@@ -109,12 +113,14 @@ def assert_instance_correctness(instance):
     assert isinstance(
         instance, list
     ), '''The data loader seems to return instances in the wrong format. 
-            The required format is [(data_1, label1), ... , (data_n, label_n)] or None.'''
+            The required format is [(data_1, label1), ... , 
+            (data_n, label_n)] or None.'''
     for i in instance:
         assert (
-                isinstance(i, tuple) and len(i) == 2
+            isinstance(i, tuple) and len(i) == 2
         ), '''The data loader seems to return instances in the wrong format. 
-                The required format is [(data_1, label1), ... , (data_n, label_n)] or None.'''
+                The required format is [(data_1, label1), ... , 
+                (data_n, label_n)] or None.'''
 
 
 def transform_to_tensor_and_cache(i, num, s_path, separate_set_list):
@@ -143,39 +149,46 @@ def transform_list_of_linux_paths_to_windows(input_list):
                 win_paths.append(Path(e.replace("/cfs/home", "X:")))
     return win_paths
 
+
 class ERFH5DataGenerator:
     """ Iterable object that generates batches of a specified size. 
 
     Args: 
         data_path (string): path to the root directory of the data
-        data_processing_function (function): function that transforms a file path to extracted data;
-        MUST return the following format: [(data_1, label_1), ... , (data_n, label_n)]
-        data_gather_function (function): function that returns a list of paths to all files that should be
+        data_processing_function (function): function that transforms a file
+        path to extracted data;
+        MUST return the following format:
+        [(data_1, label_1), ... , (data_n, label_n)]
+        data_gather_function (function): function that returns a list of paths
+        to all files that should be
         used for training
         batch_size (int): size of the generated batches 
         epochs (int): number of epochs 
-        max_queue_length (int): restricts the number of pre-loaded batches. Batch_size * 4 is usually a good value
-        num_validation_samples (int): number of instances that are used as validation samples,
+        max_queue_length (int): restricts the number of pre-loaded batches.
+        Batch_size * 4 is usually a good value
+        num_validation_samples (int): number of instances that are used as
+        validation samples,
         instances mean single frames, not entire runs
-        num_test_samples (int): number of instances that are used as test samples
+        num_test_samples (int): number of instances that are used as test
+        samples
         num_workers (int): number of threads that transform file paths to data. 
     """
 
     def __init__(
-        self,
-        data_paths=["/home/"],
-        data_processing_function=None,
-        data_gather_function=None,
-        batch_size=1,
-        epochs=5,
-        max_queue_length=8096,
-        num_validation_samples=100,
-        num_test_samples=100,
-        num_workers=4,
-        cache_path=None,
-        save_path=None,
-        load_datasets_path=None,
-        test_mode=False,
+            self,
+            data_paths=["/home/"],
+            data_processing_function=None,
+            data_gather_function=None,
+            batch_size=1,
+            epochs=5,
+            max_queue_length=8096,
+            num_validation_samples=100,
+            num_test_samples=100,
+            num_workers=4,
+            cache_path=None,
+            save_path=None,
+            load_datasets_path=None,
+            test_mode=False,
     ):
         self.kill_t_shuffle = False
         self.kill_t_batch = False
@@ -249,17 +262,22 @@ class ERFH5DataGenerator:
         self.barrier = threading.Barrier(self.num_workers)
         self.logger.info("Separating data sets ...")
         if load_path is None:
-            self.validation_list, self.validation_fnames = self.__fill_separate_set_list_from_all_paths(
-                self.num_validation_samples
-            )
-            self.test_list, self.test_fnames = self.__fill_separate_set_list_from_all_paths(
-                self.num_test_samples
-            )
+            self.validation_list, self.validation_fnames = \
+                self.__fill_separate_set_list_from_all_paths(
+                    self.num_validation_samples
+                )
+            self.test_list, self.test_fnames = \
+                self.__fill_separate_set_list_from_all_paths(
+                    self.num_test_samples
+                )
         else:
             self.load_data_sets(load_path)
-            self.validation_list = self.__get_data_samples_from_list(self.validation_fnames,
-                                                                        self.num_validation_samples)
-            self.test_list = self.__get_data_samples_from_list(self.test_fnames, self.num_test_samples)
+            self.validation_list = self.__get_data_samples_from_list(
+                self.validation_fnames,
+                self.num_validation_samples)
+            self.test_list = \
+                self.__get_data_samples_from_list(self.test_fnames,
+                                                  self.num_test_samples)
         if save_path is not None:
             self.save_data_sets(save_path)
         self.logger.info("Filling Path Queue...")
@@ -293,16 +311,17 @@ class ERFH5DataGenerator:
         with open(load_path / "training_set.p", 'rb') as f:
             self.paths = pickle.load(f)
         if socket.gethostname() == 'swtse130':
-            self.validation_fnames = transform_list_of_linux_paths_to_windows(self.validation_fnames)
-            self.test_fnames = transform_list_of_linux_paths_to_windows(self.test_fnames)
+            self.validation_fnames = transform_list_of_linux_paths_to_windows(
+                self.validation_fnames)
+            self.test_fnames = transform_list_of_linux_paths_to_windows(
+                self.test_fnames)
             self.paths = transform_list_of_linux_paths_to_windows(self.paths)
-
 
     def __shuffle_batch_queue(self):
         while (
-            not self.kill_t_shuffle and
-            (len(self.path_queue) > self.batch_size
-            or len(self.batch_queue) > self.batch_size)
+                not self.kill_t_shuffle
+                and (len(self.path_queue) > self.batch_size
+                     or len(self.batch_queue) > self.batch_size)
         ):
             self.batch_queue.randomise()
             sleep(10)
@@ -336,7 +355,8 @@ class ERFH5DataGenerator:
         self.logger.info(f"Batchsize: {self.batch_size}")
         self.logger.info(f"Number of unique samples: {len(self.paths)}")
         self.logger.info(f"Number of total samples: {self.__len__()}")
-        self.logger.info(f"Number of validation samples: {self.num_validation_samples}")
+        self.logger.info(
+            f"Number of validation samples: {self.num_validation_samples}")
         self.logger.info("###########################################")
 
     def __get_data_samples_from_list(self, input_list, wanted_len):
@@ -350,7 +370,8 @@ class ERFH5DataGenerator:
             else:
                 assert_instance_correctness(instance)
                 for num, i in enumerate(instance):
-                    transform_to_tensor_and_cache(i, num, None, separate_set_list)
+                    transform_to_tensor_and_cache(i, num, None,
+                                                  separate_set_list)
                     if len(separate_set_list) == wanted_len:
                         break
 
@@ -374,8 +395,8 @@ class ERFH5DataGenerator:
                 if s_path.exists():
                     instance_f = s_path.glob("*.pt")
                     instance_f = sorted(instance_f)
-                    # FIXME Caching is broken atm, see test_erfh5_pipeline.test_caching()
-                    separate_set_list.extend(load_cached_data_and_label(instance_f, s_path))
+                    separate_set_list.extend(
+                        load_cached_data_and_label(instance_f, s_path))
                     continue
                 else:
                     s_path.mkdir(parents=True, exist_ok=True)
@@ -388,14 +409,16 @@ class ERFH5DataGenerator:
             else:
                 assert_instance_correctness(instance)
                 for num, i in enumerate(instance):
-                    transform_to_tensor_and_cache(i, num, s_path, separate_set_list)
+                    transform_to_tensor_and_cache(i, num, s_path,
+                                                  separate_set_list)
                     if len(separate_set_list) == wanted_len:
                         break
 
         return separate_set_list, separate_fname_list
 
     def __fill_batch_queue(self):
-        while not self.kill_t_batch and (len(self.batch_queue) < self.max_queue_length):
+        while not self.kill_t_batch and (
+                len(self.batch_queue) < self.max_queue_length):
             s_path = None
             if len(self.path_queue) < self.batch_size:
                 return
@@ -421,7 +444,8 @@ class ERFH5DataGenerator:
                         instance_f = s_path.glob("*.pt")
                         instance_f = sorted(instance_f)
 
-                        instance = load_cached_data_and_label(instance_f, s_path)
+                        instance = load_cached_data_and_label(instance_f,
+                                                              s_path)
                         self.batch_queue.put_batch(instance)
                         self.data_dict[file] = instance
                         continue
@@ -439,7 +463,8 @@ class ERFH5DataGenerator:
                     tensor_instances = list()
 
                     for num, i in enumerate(instance):
-                        transform_to_tensor_and_cache(i, num, s_path, tensor_instances)
+                        transform_to_tensor_and_cache(i, num, s_path,
+                                                      tensor_instances)
                     self.batch_queue.put_batch(tensor_instances)
                     self.data_dict[file] = tensor_instances
 
@@ -448,8 +473,8 @@ class ERFH5DataGenerator:
 
     def __next__(self):
         if (
-            len(self.path_queue) < self.batch_size
-            and len(self.batch_queue) < self.batch_size
+                len(self.path_queue) < self.batch_size
+                and len(self.batch_queue) < self.batch_size
         ):
             raise StopIteration
 
@@ -460,8 +485,8 @@ class ERFH5DataGenerator:
         batch = self.batch_queue.get(self.batch_size)
         if len(self.batch_queue) < self.max_queue_length / 4:
             if (
-                threading.active_count() < self.num_workers + 1
-                and len(self.path_queue) > self.batch_size
+                    threading.active_count() < self.num_workers + 1
+                    and len(self.path_queue) > self.batch_size
             ):
 
                 for _ in range(self.num_workers):
@@ -481,14 +506,16 @@ class ERFH5DataGenerator:
     def get_validation_samples(self):
         """
         Returns: 
-            List: list containing self.num_validation_samples instances for validation. 
+            List: list containing self.num_validation_samples
+            instances for validation.
         """
         return self.validation_list
 
     def get_test_samples(self):
         """
         Returns:
-            List: list containing self.num_test_samples instances for validation.
+            List: list containing self.num_test_samples
+            instances for validation.
         """
         return self.test_list
 
@@ -496,16 +523,21 @@ class ERFH5DataGenerator:
         self.test_list = pickle.load(open(path, "rb"))
 
 
-
-
 if __name__ == "__main__":
-    # generator = ERFH5_DataGenerator(data_path= ["/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images"],
-    # batch_size=1, epochs=2, max_queue_length=16, data_processing_function=get_image_state_sequence, data_gather_function=get_folders_within_folder) """
-    # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
-    # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
+    # generator = ERFH5_DataGenerator(data_path=
+    # ["/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images"],
+    # batch_size=1, epochs=2, max_queue_length=16,
+    # data_processing_function=get_image_state_sequence,
+    # data_gather_function=get_folders_within_folder) """
+    # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,
+    # share=share/data/RTM/Lautern/1_solved_simulations/20_auto_solver_inputs/'
+    # '/run/user/1001/gvfs/smb-share:server=137.250.170.56,
+    # share=share/data/RTM/Lautern/clean_erfh5/'
     generator = ERFH5DataGenerator(
         data_paths=[
-            "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-05-13_16-28-01_200p/0"
+            "/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
+            "share=share/data/RTM/Lautern/output/with_shapes/"
+            "2019-05-13_16-28-01_200p/0"
         ],
         data_processing_function=dls.get_sensordata_and_filling_percentage,
         data_gather_function=dg.get_filelist_within_folder,

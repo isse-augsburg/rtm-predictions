@@ -1,19 +1,17 @@
-from multiprocessing.pool import Pool
-
-import h5py
-import matplotlib.pyplot as plt
-import matplotlib
 import os
+import random
+import threading
 import time
-import numpy as np
-import torch
-
+from enum import Enum
 from functools import partial
+from multiprocessing.pool import Pool
 from os import walk
 
-import threading
-import random
-from enum import Enum
+import h5py
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
 from Debugging.datamining import get_states_and_fillings
 from Debugging.plots import plot_wrapper
@@ -89,8 +87,10 @@ class ERFH5DataGenerator:
     # indices: elements of filling factors sequence that should be contained in an instance
     # max_queue_length: number of instances that are preloaded to the batch queue
     # sequence: if true, instances consist of more than one state (exact number is specified with indices)
-    def __init__(self, data_path='/home/', batch_size=64, epochs=80, indices=[0, 20, 40, 60, 80], max_queue_length=-1,
-                 pipeline_mode=PipelineMode.single_instance, num_validation_samples=1, num_workers=2):
+    def __init__(self, data_path='/home/', batch_size=64, epochs=80,
+                 indices=[0, 20, 40, 60, 80], max_queue_length=-1,
+                 pipeline_mode=PipelineMode.single_instance,
+                 num_validation_samples=1, num_workers=2):
         self.data_path = data_path
         self.batch_size = batch_size
         self.indices = indices
@@ -154,7 +154,8 @@ class ERFH5DataGenerator:
                     self.validation_list.append(i)
             elif self.pipeline_mode == PipelineMode.time_sequence:
                 try:
-                    instance_list = self.__create_data_instances_for_a_land_before_our_time(sample)
+                    instance_list = self.__create_data_instances_for_a_land_before_our_time(
+                        sample)
                 except NoSequenceException as E:
                     continue
                 self.validation_list.extend(instance_list)
@@ -188,7 +189,8 @@ class ERFH5DataGenerator:
                     continue
             elif self.pipeline_mode == PipelineMode.time_sequence:
                 try:
-                    data = self.__create_data_instances_for_a_land_before_our_time(file)
+                    data = self.__create_data_instances_for_a_land_before_our_time(
+                        file)
                 except NoSequenceException as E:
                     continue
                 self.batch_queue.put_batch(data)
@@ -228,15 +230,20 @@ class ERFH5DataGenerator:
                 raise NoSequenceException
         else:
             try:
-                instance_list = self.__get_all_sequences_for_file(filename, self.t_begin, self.t_end, self.t_delta,
-                                                                 self.t_target_offset, self.t_sequnce_distance,
-                                                                 self.t_final)
+                instance_list = self.__get_all_sequences_for_file(filename,
+                                                                  self.t_begin,
+                                                                  self.t_end,
+                                                                  self.t_delta,
+                                                                  self.t_target_offset,
+                                                                  self.t_sequnce_distance,
+                                                                  self.t_final)
             except NoSequenceException as E:
                 self.data_dict[filename] = -1
                 raise E
 
             for inst in instance_list:
-                sequence, label = torch.FloatTensor(inst[0]), torch.FloatTensor(inst[1])
+                sequence, label = torch.FloatTensor(inst[0]), torch.FloatTensor(
+                    inst[1])
                 tensor_instances.append((sequence, label))
 
             self.data_dict[filename] = tensor_instances
@@ -255,10 +262,12 @@ class ERFH5DataGenerator:
 
             try:
                 fillings, label = self.__get_states_and_fillings(filename)
-                fillings, label = torch.FloatTensor(fillings), torch.FloatTensor(label)
+                fillings, label = torch.FloatTensor(
+                    fillings), torch.FloatTensor(label)
                 self.data_dict[filename] = (fillings, label)
             except IndexError as ie:
-                print(">>>WARNING: File", filename, "does not have enough steps.")
+                print(">>>WARNING: File", filename,
+                      "does not have enough steps.")
                 self.data_dict[filename] = -1
                 raise ie
 
@@ -270,13 +279,16 @@ class ERFH5DataGenerator:
          """
         return fillings, label
 
-    def __get_all_sequences_for_file(self, filename, t_begin, t_end, t_delta, t_target_offset, t_sequence_distance,
+    def __get_all_sequences_for_file(self, filename, t_begin, t_end, t_delta,
+                                     t_target_offset, t_sequence_distance,
                                      t_final):
         all_sequences = list()
 
         try:
             while t_end + t_target_offset < t_final:
-                instance = self.__get_fillings_at_times(filename, t_begin, t_end, t_delta, t_end + t_target_offset)
+                instance = self.__get_fillings_at_times(filename, t_begin,
+                                                        t_end, t_delta,
+                                                        t_end + t_target_offset)
                 t_begin = t_begin + t_sequence_distance
                 t_end = t_end + t_sequence_distance
                 all_sequences.append(instance)
@@ -295,7 +307,8 @@ class ERFH5DataGenerator:
         try:
             f = h5py.File(filename, 'r')
         except OSError as E:
-            print(">>> ERROR: FILE", filename, "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
+            print(">>> ERROR: FILE", filename,
+                  "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
             raise NoSequenceException
 
         all_states = f['post']['singlestate']
@@ -305,13 +318,16 @@ class ERFH5DataGenerator:
         for state in all_states:
             try:
                 time = \
-                f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
-                    'indexval'][()]
+                    f['post']['singlestate'][state]['entityresults']['NODE'][
+                        'FILLING_FACTOR']['ZONE1_set1'][
+                        'erfblock'][
+                        'indexval'][()]
 
                 if time >= t_target:
                     target_fillingstate = filling_factor = \
-                    f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1'][
-                        'erfblock']['res'][()]
+                        f['post']['singlestate'][state]['entityresults'][
+                            'NODE']['FILLING_FACTOR']['ZONE1_set1'][
+                            'erfblock']['res'][()]
                     non_zeros = np.count_nonzero(target_fillingstate)
                     state_count = np.shape(target_fillingstate)[0]
                     filling_percentage = np.array(non_zeros / state_count)
@@ -320,8 +336,9 @@ class ERFH5DataGenerator:
                     continue
                 if time >= t_now:
                     filling_factor = \
-                    f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1'][
-                        'erfblock']['res'][()]
+                        f['post']['singlestate'][state]['entityresults'][
+                            'NODE']['FILLING_FACTOR']['ZONE1_set1'][
+                            'erfblock']['res'][()]
                     filling_factors_at_certain_times.append(filling_factor)
                     t_now += t_delta
 
@@ -330,7 +347,8 @@ class ERFH5DataGenerator:
 
         # label = f['post']['singlestate'][j]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
 
-        if t_target != 9999999 or filling_factors_at_certain_times.__len__() != (t_finish - t_start) / t_delta:
+        if t_target != 9999999 or filling_factors_at_certain_times.__len__() != (
+                t_finish - t_start) / t_delta:
             # print("Didn't",len(filling_factors_at_certain_times), t_target, filling_percentage)
             raise NoSequenceException
 
@@ -344,7 +362,8 @@ class ERFH5DataGenerator:
     def __get_states_and_fillings(self, filename):
 
         f = h5py.File(filename, 'r')
-        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+        coord_as_np_array = f[
+            'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
         all_states = f['post']['singlestate']
@@ -356,8 +375,10 @@ class ERFH5DataGenerator:
         for state in all_states:
             try:
                 filling_factor = \
-                f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
-                    'res'][()]
+                    f['post']['singlestate'][state]['entityresults']['NODE'][
+                        'FILLING_FACTOR']['ZONE1_set1'][
+                        'erfblock'][
+                        'res'][()]
                 # label = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['indexval'][()]
             except KeyError as e:
                 continue
@@ -410,16 +431,19 @@ class ERFH5DataGenerator:
     def get_states_and_fillings(filename):
         f = h5py.File(filename, 'r')
 
-        coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+        coord_as_np_array = f[
+            'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
         all_states = f['post']['singlestate']
         filling_factors_at_certain_times = [
-            f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][
+            f['post']['singlestate'][state]['entityresults']['NODE'][
+                'FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][
                 ()] for state in all_states]
         states_as_list = [x[-5:] for x in list(all_states.keys())]
         flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
-        states_and_fillings = [(i, j) for i, j in zip(states_as_list, flat_fillings)]
+        states_and_fillings = [(i, j) for i, j in
+                               zip(states_as_list, flat_fillings)]
         return states_and_fillings
 
     @staticmethod
@@ -428,18 +452,22 @@ class ERFH5DataGenerator:
 
         t0 = time.time()
         with Pool(6) as p:
-            res = p.map(partial(plot_wrapper, coords=_coords), states_and_fillings)
+            res = p.map(partial(plot_wrapper, coords=_coords),
+                        states_and_fillings)
         print('Done after', time.time() - t0)
 
     def plot_wrapper(self, states_and_filling, coords):
-        filename = r'C:\Users\stiebesi\code\datamuddler\plots\lautern_flawless_hd\%s.png' % str(states_and_filling[0])
+        filename = r'C:\Users\stiebesi\code\datamuddler\plots\lautern_flawless_hd\%s.png' % str(
+            states_and_filling[0])
         if os.path.exists(filename):
             return False
         fig = plt.gcf()
         fig.set_size_inches(18.5, 18.5)
         areas = len(states_and_filling[1]) * [3]
-        norm = matplotlib.cm.colors.Normalize(vmax=states_and_filling[1].max(), vmin=states_and_filling[1].min())
-        plt.scatter(coords[:, 0], coords[:, 1], c=states_and_filling[1], s=areas, norm=norm)
+        norm = matplotlib.cm.colors.Normalize(vmax=states_and_filling[1].max(),
+                                              vmin=states_and_filling[1].min())
+        plt.scatter(coords[:, 0], coords[:, 1], c=states_and_filling[1],
+                    s=areas, norm=norm)
         fig.savefig(filename)
         return True
 
@@ -461,7 +489,8 @@ class ERFH5DataGenerator:
 if __name__ == "__main__":
     data_folder = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/'
     # data_folder = '/home/niklas/Documents/Data'
-    generator = ERFH5DataGenerator(data_path=data_folder, batch_size=4, epochs=1,
+    generator = ERFH5DataGenerator(data_path=data_folder, batch_size=4,
+                                   epochs=1,
                                    pipeline_mode=PipelineMode.single_instance)
 
     batch_data, batch_labels = generator.__next__()

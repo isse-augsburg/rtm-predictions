@@ -3,11 +3,11 @@ Small playground file for experiments.
 """
 
 import h5py
-import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
-from os import walk
+import numpy as np
 from PIL import Image
+
+from Pipeline.data_gather import get_filelist_within_folder
 
 
 def get_coordinates_of_rectangle(filename, lower_left, height, width):
@@ -24,7 +24,9 @@ def get_coordinates_of_rectangle(filename, lower_left, height, width):
 
     f = h5py.File(filename, 'r')
 
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+    coord_as_np_array = f[
+        'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/'
+        'erfblock/res'].value
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
 
@@ -36,7 +38,8 @@ def get_coordinates_of_rectangle(filename, lower_left, height, width):
     current_rect = []
     for i in np.arange(lower_left[0], lower_left[0] + width, 0.125):
         for j in np.arange(lower_left[1], lower_left[1] + height, 0.125):
-            index = np.where((_all_coords[:, 0] == [i]) & (_all_coords[:, 1] == [j]))
+            index = np.where(
+                (_all_coords[:, 0] == [i]) & (_all_coords[:, 1] == [j]))
             index = index[0]
             if index.size != 0:
                 current_rect.append(index)
@@ -58,7 +61,9 @@ def get_coordinates_of_rectangle(filename, lower_left, height, width):
 def get_coordinates_of_circle(filename, circles):
     f = h5py.File(filename, 'r')
 
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+    coord_as_np_array = f[
+        'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/'
+        'erfblock/res'].value
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
 
@@ -73,7 +78,8 @@ def get_coordinates_of_circle(filename, circles):
             for j in np.arange(centre[1] - radius, centre[1] + radius, 0.125):
                 distance = (i - centre[0]) ** 2 + (j - centre[1]) ** 2
                 if distance <= radius ** 2:
-                    index = np.where((_all_coords[:, 0] == [i]) & (_all_coords[:, 1] == [j]))
+                    index = np.where(
+                        (_all_coords[:, 0] == [i]) & (_all_coords[:, 1] == [j]))
                     index = index[0]
                     if index.size != 0:
                         current_indices.append(index)
@@ -89,7 +95,9 @@ def get_elements_in_shape(filename, shape):
     f = h5py.File(filename, 'r')
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'].value
     triangle_coords = triangle_coords[:, :-1]
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+    coord_as_np_array = f[
+        'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/'
+        'erfblock/res'].value
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
 
@@ -104,11 +112,14 @@ def get_elements_in_shape(filename, shape):
     return indices_of_elements
 
 
-def get_indices_of_elements_in_circles(filename, circles=(([-5, -5], 1.25), ([5, 5], 2), ([7, 0], 0.5))):
+def get_indices_of_elements_in_circles(filename, circles=(
+                                ([-5, -5], 1.25), ([5, 5], 2), ([7, 0], 0.5))):
     f = h5py.File(filename, 'r')
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'].value
     triangle_coords = triangle_coords[:, :-1]
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+    coord_as_np_array = f[
+        'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/'
+        'erfblock/res'].value
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
 
@@ -126,15 +137,19 @@ def get_indices_of_elements_in_circles(filename, circles=(([-5, -5], 1.25), ([5,
     return indices_of_elements
 
 
-def get_indices_of_elements_in_rectangle(filename, lower_left=[-5, -8], height=3, width=0.5):
+def get_indices_of_elements_in_rectangle(filename, lower_left=[-5, -8],
+                                         height=3, width=0.5):
     f = h5py.File(filename, 'r')
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'].value
     triangle_coords = triangle_coords[:, :-1]
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+    coord_as_np_array = f[
+        'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/'
+        'erfblock/res'].value
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
 
-    indices_of_rectangle = get_coordinates_of_rectangle(filename, lower_left, height, width)
+    indices_of_rectangle = get_coordinates_of_rectangle(filename, lower_left,
+                                                        height, width)
     indices_of_elements = get_elements_in_shape(filename, indices_of_rectangle)
 
     for i in indices_of_elements:
@@ -150,7 +165,9 @@ def get_indices_of_elements_in_rectangle(filename, lower_left=[-5, -8], height=3
 def plot_weird_coordinates(filename):
     f = h5py.File(filename, 'r')
 
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
+    coord_as_np_array = f[
+        'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/'
+        'erfblock/res'].value
     # Cut off last column (z), since it is filled with 1s anyway
     _all_coords = coord_as_np_array[:, :-1]
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'].value
@@ -168,11 +185,21 @@ def plot_weird_coordinates(filename):
 
 def perm_map(filename):
     f = h5py.File(filename, 'r')
-    coord_as_np_array = f['post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res'].value
-    perm1 = f['post/constant/entityresults/SHELL/PERMEABILITY1/ZONE1_set1/erfblock/res'].value
-    perm2 = f['post/constant/entityresults/SHELL/PERMEABILITY2/ZONE1_set1/erfblock/res'].value
-    perm3 = f['post/constant/entityresults/SHELL/PERMEABILITY3/ZONE1_set1/erfblock/res'].value
-    fvc = f['post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res'].value
+    coord_as_np_array = f[
+        'post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/'
+        'erfblock/res'].value
+    perm1 = f[
+        'post/constant/entityresults/SHELL/PERMEABILITY1/ZONE1_set1/'
+        'erfblock/res'].value
+    perm2 = f[
+        'post/constant/entityresults/SHELL/PERMEABILITY2/ZONE1_set1/'
+        'erfblock/res'].value
+    perm3 = f[
+        'post/constant/entityresults/SHELL/PERMEABILITY3/ZONE1_set1/'
+        'erfblock/res'].value
+    fvc = f[
+        'post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/'
+        'erfblock/res'].value
     perm1 = perm1[:, 0]
     perm2 = perm2[:, 1]
     perm3 = perm3[:, 2]
@@ -221,11 +248,19 @@ def create_np_image(target_shape=(1000, 1000, 1), norm_coords=None, data=None):
 
 
 if __name__ == "__main__":
-    list2 = get_filelist_within_folder([
-        '/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-26_15-09-31_100p_20_shapes'])
-    # get_coordinates_of_rectangle('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5')
+    list2 = get_filelist_within_folder(
+        '/run/user/1002/gvfs/smb-share:server=137.250.170.56,share='
+        'share/data/RTM/Lautern/output/with_shapes/'
+        '2019-04-26_15-09-31_100p_20_shapes')
+    # get_coordinates_of_rectangle('/run/user/1001/gvfs/
+    # smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/
+    # 2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5')
     for el in list2:
         perm_map(el)
-    # plot_weird_coordinates('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5')
+    # plot_weird_coordinates('/run/user/1001/gvfs/smb-share:
+    # server=137.250.170.56,share=share/data/RTM/Lautern/clean_erfh5/
+    # 2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5')
     coords = get_indices_of_elements_in_rectangle(
-        'Y:/data/RTM/Lautern/clean_erfh5/2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT.erfh5')
+        'Y:/data/RTM/Lautern/clean_erfh5/'
+        '2019-04-01_14-02-51_k1_pertubated_sigma1.110e-11_mu0.0_369_RESULT'
+        '.erfh5')
