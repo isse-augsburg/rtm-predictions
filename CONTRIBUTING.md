@@ -20,6 +20,9 @@ Please follow the official python guidelines to make the code readable:
 https://www.python.org/dev/peps/pep-0008/
 In some IDEs, like PyCharm the style checks are automatically enabled. 
 In others, you might have to install a linter, first.
+Before every merge with the master, flake8 linter will be invoked.
+Specialities: Linelength: 120, currently ignored errors: W291, W503, W504.
+Your commit will be rejected, unless it is compatible.
 
 # Checklist before merging
 - Make sure your code works

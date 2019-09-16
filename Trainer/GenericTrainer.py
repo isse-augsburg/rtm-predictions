@@ -1,44 +1,44 @@
 import logging
+import time
+from collections import OrderedDict
 from pathlib import Path
 
-import torch
-import time
-import torch
-
-
-from collections import OrderedDict
 import numpy as np
-
-from Pipeline import erfh5_pipeline
+import torch
 
 
 class MasterTrainer:
-    """Class that runs train and evaluation loops of PyTorch models automatically.
+    """Class that runs train and evaluation loops of PyTorch models
+    automatically.
 
     Args: 
         model: PyTorch model that should be trained.
         generator: ERFH5_DataGenerator that provides the data.
         loss_criterion: Loss criterion for training.
-        train_print_frequency: Frequency of printing the current loss, in iterations. 
-        eval_frequency: Frequency of running a evaluation frequency on held out validation set, in iterations.
-        comment: Optional message that is printed to the command line, helps understanding your experiments afterwards
+        train_print_frequency: Frequency of printing the current loss, in
+        iterations.
+        eval_frequency: Frequency of running a evaluation frequency on held out
+        validation set, in iterations.
+        comment: Optional message that is printed to the command line, helps
+        understanding your experiments afterwards
         learning_rate: Optimizer's learning rate
-        classification_evaluator: Optional object for evaluating classification, see evaluation.py for more details 
+        classification_evaluator: Optional object for evaluating
+        classification, see evaluation.py for more details
     """
 
     def __init__(
-        self,
-        model,
-        generator,
-        loss_criterion=torch.nn.MSELoss(),
-        train_print_frequency=10,
-        eval_frequency=100,
-        savepath=Path("model.pth"),
-        eval_func=None,
-        comment="No custom comment added.",
-        learning_rate=0.00001,
-        calc_metrics=False,
-        classification_evaluator=None,
+            self,
+            model,
+            generator,
+            loss_criterion=torch.nn.MSELoss(),
+            train_print_frequency=10,
+            eval_frequency=100,
+            savepath=Path("model.pth"),
+            eval_func=None,
+            comment="No custom comment added.",
+            learning_rate=0.00001,
+            calc_metrics=False,
+            classification_evaluator=None,
     ):
         self.generator = generator
         self.epochs = self.generator.epochs
@@ -53,7 +53,8 @@ class MasterTrainer:
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate
         )
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda:0" if torch.cuda.is_available() else "cpu")
         self.comment = comment
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
@@ -62,7 +63,8 @@ class MasterTrainer:
         self.logger = logging.getLogger(__name__)
 
     def start_training(self):
-        """ Prints information about the used train config and starts the training of the trainer's model
+        """ Prints information about the used train config and starts the
+        training of the trainer's model
         """
         self.__print_info()
         self.__print_comment()
@@ -75,7 +77,8 @@ class MasterTrainer:
         self.generator.load_test_set(path)
         test_list = self.generator.get_test_samples()
         self.generator.paths = test_list
-        dataset, _ = self.generator.__fill_separate_set_list_from_all_paths(len(self.generator.paths))
+        dataset, _ = self.generator.__fill_separate_set_list_from_all_paths(
+            len(self.generator.paths))
         self.eval(dataset, test_mode=True)
 
     def __print_info(self):
@@ -128,8 +131,10 @@ class MasterTrainer:
                 break
 
     def eval(self, data_set, eval_step=0, test_mode=False):
-        """Evaluators must have a commit, print and reset function. commit updates the evaluator with the current step,
-            print can show all relevant stats and reset resets the internal structure if needed." 
+        """Evaluators must have a commit, print and reset function. commit
+            updates the evaluator with the current step,
+            print can show all relevant stats and reset resets the internal
+            structure if needed."
         """
 
         with torch.no_grad():
@@ -141,8 +146,8 @@ class MasterTrainer:
                 #data = torch.unsqueeze(data, 0)
                 #label = torch.unsqueeze(label, 0)
                 output = self.model(data)
-                l = self.loss_criterion(output, label).item()
-                loss = loss + l
+                current_loss = self.loss_criterion(output, label).item()
+                loss = loss + current_loss
                 output = output.cpu()
                 label = label.cpu()
                 data = data.cpu()
@@ -184,7 +189,8 @@ class MasterTrainer:
 
     # deprecated?
     def load_model(self, modelpath):
-        """Loads the parameters of a previously saved model. See the official PyTorch docs for more details.
+        """Loads the parameters of a previously saved model.
+        See the official PyTorch docs for more details.
 
         ARgs: 
             modelpath (string): Path to the stored model.
@@ -198,15 +204,19 @@ class MasterTrainer:
         self.model.load_state_dict(new_state_dict)
 
     def load_checkpoint(self, path):
-        """Loads the parameters of a previously saved model and optimizer, loss and epoch.
+        """Loads the parameters of a previously saved model and optimizer,
+        loss and epoch.
         See the official PyTorch docs for more details:
         https://pytorch.org/tutorials/beginner/saving_loading_models.html
 
         ARgs:
             path (string): Path to the stored checkpoint.
         """
+        if torch.cuda.is_available():
+            checkpoint = torch.load(path)
+        else:
+            checkpoint = torch.load(path, map_location='cpu')
 
-        checkpoint = torch.load(path)
         new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
         for k, v in model_state_dict.items():

@@ -1,24 +1,15 @@
 import logging
+import socket
+from datetime import datetime
 from pathlib import Path
 
-from Pipeline import erfh5_pipeline as pipeline, data_loaders as dl, \
-    data_loader_sensor as dls, data_loaders_IMG as dli, \
+import torch
+
+from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
+from Pipeline import erfh5_pipeline as pipeline, data_loader_sensor as dls, \
     data_gather as dg
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
-
-import torch
-import traceback
-from torch import nn
-from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
-from Models.custom_loss import FocalLoss
-import os
-import numpy as np
-
-import time
-from datetime import datetime
-import socket 
-import getpass
 
 
 def get_comment():
@@ -36,7 +27,8 @@ class SuccessTrainer:
                  num_workers=10,
                  num_validation_samples=10,
                  num_test_samples=10):
-        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.initial_timestamp = str(
+            datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
@@ -84,12 +76,13 @@ class SuccessTrainer:
         )
         logger = logging.getLogger(__name__)
         logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
+        self.training_data_generator = self.create_datagenerator(save_path,
+                                                                 test_mode=False)
 
         logger.info("Generating Model")
         model = ERFH5_PressureSequence_Model()
         logger.info("Model to GPU")
-        model = nn.DataParallel(model).to("cuda:0")
+        model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         train_wrapper = MasterTrainer(
             model,
@@ -108,19 +101,22 @@ class SuccessTrainer:
         train_wrapper.start_training()
         logging.shutdown()
 
+
 if __name__ == "__main__":
 
     if socket.gethostname() == "swt-dgx1":
         """ _cache_path = None
-        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/
+        output/with_shapes")
         _batch_size = 320
         _eval_freq = 50
-        
+
         if getpass.getuser() == "stiebesi":
             _save_path = Path("/cfs/share/cache/output_simon")
         elif getpass.getuser() == "schroeni":
             _save_path = Path("/cfs/share/cache/output_niklas")
-            # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
+            # cache_path = "/run/user/1001/gvfs/smb-share:
+            server=137.250.170.56,share=share/cache"
         else:
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 10
@@ -131,10 +127,15 @@ if __name__ == "__main__":
         print("TODO Fix paths for DGX")
 
     else:
-        _cache_path = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache')
+        _cache_path = Path(
+            '/run/user/1001/gvfs/smb-share:server=137.250.170.56,'
+            'share=share/cache')
         # _cache_path = None
-        # _data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes')
-        _data_root = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
+        # _data_root = Path('/run/user/1001/gvfs/smb-share:
+        # server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes')
+        _data_root = Path(
+            '/run/user/1001/gvfs/smb-share:server=137.250.170.56,'
+            'share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
         _batch_size = 4
         _eval_freq = 50
         _save_path = Path('/home/lodes/Train_Out')
@@ -164,16 +165,17 @@ if __name__ == "__main__":
                         save_path=_save_path,
                         epochs=_epochs,
                         num_workers=_num_workers,
-                        num_validation_samples=_num_validation_samples, 
+                        num_validation_samples=_num_validation_samples,
                         num_test_samples=_num_test_samples
                         )
 
     if train:
         st.run_training()
-    """ else:
+    r""" else:
         if socket.gethostname() != "swtse130":
             st.inference_on_test_set(
                 Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
             )
         else:
-            st.inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-02_19-40-56")) """
+            st.inference_on_test_set(
+            Path(r"Y:\cache\output_simon\2019-09-02_19-40-56")) """

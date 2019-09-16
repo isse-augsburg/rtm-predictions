@@ -1,7 +1,8 @@
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
+
 from Models import erfh5_autoencoder as autoencoder
 
 # from apex import amp
@@ -23,7 +24,8 @@ class ERFH5_RNN(nn.Module):
         self.nlayers = num_layers
 
         self.lstm = nn.LSTM(input_dim, hidden_dim,
-                            batch_first=False, num_layers=self.nlayers, bidirectional=False, dropout=0)
+                            batch_first=False, num_layers=self.nlayers,
+                            bidirectional=False, dropout=0)
 
         self.hidden2hidden1 = nn.Linear(int(hidden_dim), 1024)
         self.hidden2hidden2 = nn.Linear(1024, 512)
@@ -50,8 +52,10 @@ class ERFH5_RNN(nn.Module):
 
     def init_hidden(self):
         return [
-            Variable(torch.zeros(self.nlayers, self.batch_size, self.hidden_dim)),
-            Variable(torch.zeros(self.nlayers, self.batch_size, self.hidden_dim)),
+            Variable(
+                torch.zeros(self.nlayers, self.batch_size, self.hidden_dim)),
+            Variable(
+                torch.zeros(self.nlayers, self.batch_size, self.hidden_dim)),
         ]
 
     def forward(self, x):
@@ -79,7 +83,8 @@ class ERFH5_RNN(nn.Module):
 
 class Net(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim, batch_size, num_layers=4, encoder_path='/home', split_gpus=True,
+    def __init__(self, input_dim, hidden_dim, batch_size, num_layers=4,
+                 encoder_path='/home', split_gpus=True,
                  parallel=True):
         super(Net, self).__init__()
         self.hidden_dim = hidden_dim
@@ -88,13 +93,16 @@ class Net(nn.Module):
         self.encoder_path = encoder_path
         self.input_dim = input_dim
 
-        self.rnn = ERFH5_RNN(self.input_dim, self.hidden_dim, self.batch_size, self.nlayers)
+        self.rnn = ERFH5_RNN(self.input_dim, self.hidden_dim, self.batch_size,
+                             self.nlayers)
         self.encoder = autoencoder.load_stacked_fc(self.encoder_path)
         self.encoder.eval()
 
         if split_gpus and parallel:
-            self.encoder = nn.DataParallel(self.encoder, device_ids=[0, 1, 2, 3]).to('cuda:0')
-            self.rnn = nn.DataParallel(self.rnn, device_ids=[4, 5, 6, 7]).to('cuda:4')
+            self.encoder = nn.DataParallel(self.encoder,
+                                           device_ids=[0, 1, 2, 3]).to('cuda:0')
+            self.rnn = nn.DataParallel(self.rnn, device_ids=[4, 5, 6, 7]).to(
+                'cuda:4')
             # self.encoder = nn.DataParallel(self.encoder).to('cuda:0')
             # self.rnn = nn.DataParallel(self.rnn).to('cuda:0')
 
