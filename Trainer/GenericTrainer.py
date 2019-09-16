@@ -79,7 +79,7 @@ class MasterTrainer:
         self.generator.paths = test_list
         dataset, _ = self.generator.__fill_separate_set_list_from_all_paths(
             len(self.generator.paths))
-        self.eval(dataset)
+        self.eval(dataset, test_mode=True)
 
     def __print_info(self):
         self.logger.info("###########################################")
@@ -140,19 +140,22 @@ class MasterTrainer:
         with torch.no_grad():
             self.model.eval()
             loss = 0
-            for i, (data, label) in enumerate(data_set):
+            for i, (data, label) in enumerate(self.__batched(data_set, self.generator.batch_size)):
                 data = data.to(self.device)
                 label = label.to(self.device)
-                data = torch.unsqueeze(data, 0)
-                label = torch.unsqueeze(label, 0)
+                # data = torch.unsqueeze(data, 0)
+                # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
-
+                output = output.cpu()
+                label = label.cpu()
+                data = data.cpu()
                 if self.classification_evaluator is not None:
-                    self.classification_evaluator.commit(
-                        output.cpu(), label.cpu(), data.cpu()
-                    )
+                    for c in range(output.size()[0]):
+                        self.classification_evaluator.commit(
+                            output[c], label[c], data[c]
+                        )
 
             loss = loss / len(data_set)
             self.logger.info(f">>> {eval_step} Mean Loss on Eval: {loss:8.4f}")
@@ -225,3 +228,16 @@ class MasterTrainer:
         loss = checkpoint["loss"]
 
         return epoch, loss
+
+    def __batched(self, data_l: list, batch_size: int):
+        dats = []
+        labs = []
+        for data, label in data_l:
+            dats.append(data)
+            labs.append(label)
+            if len(dats) == batch_size:
+                yield torch.stack(dats), torch.stack(labs)
+                dats = []
+                labs = []
+        if(len(dats) > 1):
+            yield torch.stack(dats), torch.stack(labs)

@@ -1,4 +1,3 @@
-import getpass
 import logging
 import math
 import pickle
@@ -18,6 +17,7 @@ from Pipeline import (
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
+import getpass
 
 
 def get_comment():
@@ -89,7 +89,6 @@ class SensorTrainer:
         logger = logging.getLogger(__name__)
 
         model = DeconvModel()
-
         if socket.gethostname() == "swt-dgx1":
             model = nn.DataParallel(model).to("cuda:0")
         else:
@@ -197,7 +196,22 @@ if __name__ == "__main__":
         _num_validation_samples = 10
         _num_test_samples = 2000
 
-    train = False
+    elif socket.gethostname() == "swthiwi158":
+        _cache_path = \
+            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache")
+        _data_root = \
+            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
+                 r"share=share/data/RTM/Leoben/output/with_shapes")
+        _batch_size = 8
+        _eval_freq = 5
+        _save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
+                          r"share=share/cache/output_niklas")
+        _epochs = 5
+        _num_workers = 10
+        _num_validation_samples = 1000
+        _num_test_samples = 2000
+
+    train = True
     if train:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",
@@ -220,7 +234,7 @@ if __name__ == "__main__":
                        batch_size=_batch_size,
                        eval_freq=_eval_freq,
                        save_datasets_path=_save_path,
-                       load_datasets_path=_load_datasets_path,
+                       load_datasets_path=None,
                        epochs=_epochs,
                        num_workers=_num_workers,
                        num_validation_samples=_num_validation_samples,
