@@ -1,4 +1,3 @@
-import colorsys
 import logging
 
 import numpy as np
@@ -31,10 +30,11 @@ def plot_wrapper(triangle_coords, scaled_coords, fillings, imsize, index):
         logger.error(filling[triangle_coords])
         raise
 
-    im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords, triangle_coords, colored=False)
+    im = draw_polygon_map(means_of_neighbour_nodes, scaled_coords,
+                          triangle_coords, colored=False)
     # im = create_np_image((465,465), scaled_coords, filling)
     # im_t = Image.fromarray(im,mode='L')
-       
+
     if im.size != imsize:
         im = im.resize(imsize)
     dat = np.asarray(im)
@@ -42,7 +42,8 @@ def plot_wrapper(triangle_coords, scaled_coords, fillings, imsize, index):
     return dat, index
 
 
-def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords, colored=False, size=(465, 465)):
+def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords,
+                     colored=False, size=(465, 465)):
     mode = 'RGB' if colored else 'L'
     im = Image.new(mode, size)
     draw = ImageDraw.Draw(im)

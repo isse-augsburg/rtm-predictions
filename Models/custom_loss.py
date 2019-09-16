@@ -1,6 +1,6 @@
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 
 
 def focal_loss(p, y):
@@ -40,7 +40,8 @@ class FocalLoss(nn.Module):
         return fl
 
     def __str__(self):
-        string = "Focal Loss with gamma = " + str(self.gamma) + " and reduction = " + str(self.reduction)
+        string = "Focal Loss with gamma = " + str(
+            self.gamma) + " and reduction = " + str(self.reduction)
         return string
 
 

@@ -1,7 +1,3 @@
-import os
-from pathlib import Path
-
-from torch.autograd import Variable
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -116,7 +112,7 @@ if __name__ == "__main__":
     #     batch_size=1, epochs=1, max_queue_length=1, num_validation_samples=1)
     # model = FlowfrontToFiberfractionModel()
     # loss_criterion = nn.MSELoss()
-    
+
     # for inputs, labels in generator:
     #     print("inputs", inputs.size())
     #     out = model(inputs)

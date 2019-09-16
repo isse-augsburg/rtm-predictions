@@ -1,13 +1,14 @@
+import multiprocessing as mp
+import os.path
+import time
+from datetime import datetime
+from functools import partial
+from os import walk
+
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-from os import walk
-import os.path
 from tqdm import tqdm
-from datetime import datetime
-import multiprocessing as mp
-from functools import partial
-import time
 
 
 # returns list of (id, (x ,y)) of sensors
@@ -59,7 +60,8 @@ def get_filelist_within_folder(root_directory, num_filenames=-1):
 def get_all_sensor_values(filename):
     f = h5py.File(filename, "r")
 
-    pressure_array = f["post"]["multistate"]["TIMESERIES1"]["multientityresults"][
+    pressure_array = \
+    f["post"]["multistate"]["TIMESERIES1"]["multientityresults"][
         "SENSOR"
     ]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
     pressure_array = pressure_array / 100
@@ -101,7 +103,8 @@ def plot_sensor_series(filename_data, filename_sensorinfo):
 
     for i, v in enumerate(sensor_values):
         if i % 50 == 0:
-            __plot_sensorgrid(all_sensors, v, "Filling percentage: " + str(percentage))
+            __plot_sensorgrid(all_sensors, v,
+                              "Filling percentage: " + str(percentage))
 
     print(">>> Plotting FINAL step")
     __plot_sensorgrid(
@@ -138,11 +141,13 @@ def __plot_and_save_sensorstep(file, save_path=None):
         plt.clf()
 
 
-def plot_all_last_steps(root_directory, save_path=None, num_files=-1, num_workers=-1):
+def plot_all_last_steps(root_directory, save_path=None, num_files=-1,
+                        num_workers=-1):
     print("Getting all filenames.")
     # save_path = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/l/o/lodesluk/Data Analysis/'
 
-    all_files = get_filelist_within_folder([root_directory], num_filenames=num_files)
+    all_files = get_filelist_within_folder([root_directory],
+                                           num_filenames=num_files)
 
     save_path_negative = save_path + "Negative/"
     save_path_positive = save_path + "Positive/"
@@ -158,7 +163,8 @@ def plot_all_last_steps(root_directory, save_path=None, num_files=-1, num_worker
     if num_workers > 0:
         start_time = time.time()
         pool = mp.Pool(processes=num_workers)
-        pool.map(partial(__plot_and_save_sensorstep, save_path=save_path), all_files)
+        pool.map(partial(__plot_and_save_sensorstep, save_path=save_path),
+                 all_files)
         end_time = time.time()
         delta = end_time - start_time
         print("Calculation took:", delta)
