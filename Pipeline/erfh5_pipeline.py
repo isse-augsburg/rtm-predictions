@@ -143,6 +143,7 @@ def transform_list_of_linux_paths_to_windows(input_list):
                 win_paths.append(Path(e.replace("/cfs/home", "X:")))
     return win_paths
 
+
 class ERFH5DataGenerator:
     """ Iterable object that generates batches of a specified size. 
 

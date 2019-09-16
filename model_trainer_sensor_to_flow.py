@@ -190,7 +190,18 @@ if __name__ == "__main__":
         _num_validation_samples = 10
         _num_test_samples = 2000
 
-    train = False
+    elif socket.gethostname() == "swthiwi158":
+        _cache_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache")
+        _data_root = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes")
+        _batch_size = 8
+        _eval_freq = 5
+        _save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache/output_niklas")
+        _epochs = 5
+        _num_workers = 10
+        _num_validation_samples = 1000
+        _num_test_samples = 2000
+
+    train = True
     if train:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",
@@ -205,14 +216,14 @@ if __name__ == "__main__":
         _data_source_paths=[]
 
     # Running with the same dataset as with 63 Sensors, because that was the longest training
-    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
+    #_load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
 
     st = SensorTrainer(cache_path=_cache_path,
                        data_source_paths=_data_source_paths,
                        batch_size=_batch_size,
                        eval_freq=_eval_freq,
                        save_datasets_path=_save_path,
-                       load_datasets_path=_load_datasets_path,
+                       load_datasets_path=None,
                        epochs=_epochs,
                        num_workers=_num_workers,
                        num_validation_samples=_num_validation_samples,
