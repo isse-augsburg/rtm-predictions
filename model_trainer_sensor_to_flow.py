@@ -32,10 +32,12 @@ class SensorTrainer:
                  cache_path=None,
                  batch_size=1,
                  eval_freq=2,
+                 train_print_freq=2,
                  epochs=10,
                  num_workers=10,
                  num_validation_samples=10,
                  num_test_samples=10):
+        self.train_print_frequency = train_print_freq
         self.initial_timestamp = str(
             datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
@@ -135,7 +137,6 @@ class SensorTrainer:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         logger = logging.getLogger(__name__)
-        print(__name__)
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path,
                                                                  test_mode=False)
@@ -143,7 +144,10 @@ class SensorTrainer:
         logger.info("Generating Model")
         model = DeconvModel()
         logger.info("Model to GPU")
-        model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+        if socket.gethostname() == "swt-dgx1":
+            model = nn.DataParallel(model).to("cuda:0")
+        else:
+            model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         train_wrapper = MasterTrainer(
             model,
@@ -153,7 +157,7 @@ class SensorTrainer:
             savepath=save_path,
             learning_rate=0.0001,
             calc_metrics=False,
-            train_print_frequency=2,
+            train_print_frequency=self.train_print_frequency,
             eval_frequency=self.eval_freq,
             classification_evaluator=SensorToFlowfrontEvaluator(
                 save_path=save_path),
@@ -166,7 +170,7 @@ class SensorTrainer:
 
 if __name__ == "__main__":
     num_data_points = 31376
-
+    _train_print_freq = 10
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path(
@@ -180,7 +184,7 @@ if __name__ == "__main__":
             # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
         else:
             _save_path = Path("/cfs/share/cache/output")
-        _epochs = 10
+        _epochs = 1000
         _num_workers = 18
         _num_validation_samples = 2000
         _num_test_samples = 2000
@@ -233,6 +237,7 @@ if __name__ == "__main__":
                        data_source_paths=_data_source_paths,
                        batch_size=_batch_size,
                        eval_freq=_eval_freq,
+                       train_print_freq=_train_print_freq,
                        save_datasets_path=_save_path,
                        load_datasets_path=_load_datasets_path,
                        epochs=_epochs,
