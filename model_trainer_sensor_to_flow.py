@@ -116,6 +116,7 @@ class SensorTrainer:
         data_list = []
         full = False
         for p in test_set:
+            sys.stderr.write(f"path: {p}")
             instance = self.test_data_generator.data_function(p)
             for num, i in enumerate(instance):
                 data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
