@@ -3,6 +3,7 @@ import logging
 import math
 import pickle
 import socket
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -79,6 +80,7 @@ class SensorTrainer:
         return generator
 
     def inference_on_test_set(self, output_path, source_path):
+        sys.stderr.write(f"out: {output_path}, source: {source_path}")
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
         logging.basicConfig(
