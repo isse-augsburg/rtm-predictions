@@ -152,7 +152,6 @@ def transform_list_of_linux_paths_to_windows(input_list):
         return input_list
 
 
-
 class ERFH5DataGenerator:
     """ Iterable object that generates batches of a specified size. 
 
