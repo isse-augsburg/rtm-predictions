@@ -108,10 +108,10 @@ class SensorTrainer:
                 save_path=save_path),
         )
         eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
-
+        sys.stderr.write(f"src path: {source_path / 'test_set.p'}")
         with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
-
+        sys.stderr.write(f"test_set before: {test_set}")
         test_set = transform_list_of_linux_paths_to_windows(test_set)
         data_list = []
         full = False
