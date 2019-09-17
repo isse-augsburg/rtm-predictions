@@ -22,7 +22,8 @@ class TestEval(unittest.TestCase):
         self.expected_num_frames = self.num_test_samples * 3
         self.expected_num_epochs_during_training = 5
 
-    # @unittest.skip("Currently not working due to /cfs mount issues")
+    @unittest.skipIf(resources.running_in_docker(),
+                     "Skipped only on runner / in docker: not enough memory: currently not working")
     def test_eval(self):
         self.st = SensorTrainer(
             data_source_paths=[],
