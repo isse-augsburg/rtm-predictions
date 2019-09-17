@@ -2,6 +2,7 @@ import operator
 import os
 import pickle
 from datetime import datetime
+from multiprocessing import Pool
 from pathlib import Path
 
 import h5py
@@ -24,277 +25,63 @@ class HDF5DB:
             self.hdf5_object_list.append(object)
 
     def add_objects_from_path(self, path):
+        self.get_meta_path_list()
         self.temp = len(self.hdf5_object_list)
+        self.erfh5_path = []
+        self.hdf5_path = []
+        self.newObjects = []
         dirpath = os.getcwd() / Path(path)
         if dirpath.is_dir():
             # List all hdf5-files
-            hdf5File = dirpath.rglob("**/*.hdf5")
+            # hdf5File = dirpath.rglob("**/*.hdf5")
             print("Data is being retrieved...")
-            hdf5File_list = [el for el in tqdm(hdf5File)]
-            for i in tqdm(hdf5File_list):
+            # hdf5File_list = [el for el in tqdm(dirpath.rglob("**/*.hdf5"))]
+            for i in tqdm([el for el in tqdm(dirpath.rglob("**/*.hdf5"))]):
                 # Check that only *.hdf5 and *.erfh5 files will be opened
                 if h5py.is_hdf5(i.as_posix()):
                     erfh5File = Path(str(i).replace("meta_data.hdf5", "RESULT.erfh5"))
                     if erfh5File.exists():
-                        self.newObject = HDF5Object(i.as_posix(), erfh5File.as_posix())
-                        if self.newObject.path_meta not in self.meta:
-                            self.hdf5_object_list.append(self.newObject)
-                        # self.hdf5_object_list.append(
-                        #     HDF5Object(i.as_posix(), erfh5File.as_posix())
-                        # )
-                    # else:
-                    #     print(
-                    #         erfh5File.as_posix()
-                    #         + " does not exist. The folder was skipped."
-                    #     )
+                        self.hdf5_path.append(i.as_posix())
+                        self.erfh5_path.append(erfh5File.as_posix())
                 else:
                     print(i.as_posix() + " does not exist. The folder was skipped.")
-            print(str(abs(self.temp - len(self.hdf5_object_list))) + " Objects have been added.")
+            print("H5-files are currently being scanned...")
+            with Pool(20) as p:
+                self.newObjects = p.starmap(
+                    HDF5Object, zip(self.hdf5_path, self.erfh5_path)
+                )
+            print("Objects are currently being added...")
+            for i in self.newObjects:
+                if i.path_meta not in self.meta:
+                    self.hdf5_object_list.append(i)
+            print(
+                str(abs(self.temp - len(self.hdf5_object_list)))
+                + " Objects have been added."
+            )
         else:
             print("The path " + path + " does not exist! No objects were added!")
 
     def select(self, variable, value, comparisonOperator="="):
-        self.selected = []
-        self.operator = None
-        self.operator2 = None
-        for obj in self.hdf5_object_list:
-            if hasattr(obj, variable):
-                if comparisonOperator == "=":
-                    self.operator = operator.eq
-                    self.operator2 = operator.contains
-                elif comparisonOperator == ">":
-                    self.operator = operator.gt
-                    self.operator2 = np.amin
-                elif comparisonOperator == "<":
-                    self.operator = operator.lt
-                    self.operator2 = np.amax
+        my_variable = []
+        my_value = []
+        my_comparison_operator = []
+        selected = []
+        for i in range(len(self.hdf5_object_list)):
+            my_variable.append(variable)
+            my_value.append(value)
+            my_comparison_operator.append(comparisonOperator)
 
-                # Standardized queries
-                # Metadata-queries
-                if variable == "path_meta" and self.operator(obj.path_meta, value):
-                    self.selected.append(obj)
-                elif variable == "output_frequency_type" and self.operator(
-                    obj.output_frequency_type, value
-                ):
-                    self.selected.append(obj)
-                elif variable == "output_frequency" and self.operator(
-                    obj.output_frequency, value
-                ):
-                    self.selected.append(obj)
-                elif variable == "general_sigma" and self.operator(
-                    obj.general_sigma, value
-                ):
-                    self.selected.append(obj)
-                elif variable == "number_of_circles" and self.operator(
-                    obj.number_of_circles, value
-                ):
-                    self.selected.append(obj)
-                elif variable == "number_of_rectangles" and self.operator(
-                    obj.number_of_rectangles, value
-                ):
-                    self.selected.append(obj)
-                elif variable == "number_of_runners" and self.operator(
-                    obj.number_of_runners, value
-                ):
-                    self.selected.append(obj)
-                elif variable == "number_of_shapes" and self.operator(
-                    obj.number_of_shapes, value
-                ):
-                    self.selected.append(obj)
-                # Result-queries
-                elif variable == "path_result" and self.operator(
-                    obj.path_result, value
-                ):
-                    self.selected.append(obj)
-                elif variable == "avg_level" and self.operator(obj.avg_level, value):
-                    self.selected.append(obj)
-                elif variable == "age":
-                    self.temp = re.search(
-                        "([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})",
-                        value,
-                    )
-                    if self.temp != None and self.operator(
-                        obj.age,
-                        datetime.strptime(self.temp.group(1), "%Y-%m-%d_%H-%M-%S"),
-                    ):
-                        self.selected.append(obj)
-                elif variable == "number_of_sensors" and self.operator(
-                    obj.number_of_sensors, value
-                ):
-                    self.selected.append(obj)
+        for (a, b, c, d) in zip(
+            self.hdf5_object_list, my_variable, my_value, my_comparison_operator
+        ):
+            selected.append(self.select_per_object(a, b, c, d))
+        # with Pool(6) as p:
+        #     selected = p.starmap(
+        #         self.select, zip(self.hdf5_object_list, my_variable, my_value, my_comparison_operator)
+        #     )
+        selected = [a for a in selected if a is not None]
 
-                # Non-standardizable queries (=)
-                # Meta-queries
-                if comparisonOperator == "=":
-                    if (
-                        variable == "fibre_content_circles"
-                        and np.amin(obj.fibre_content_circles) <= value
-                        and np.amax(obj.fibre_content_circles) >= value
-                    ):
-                        self.selected.append(obj)
-                    elif (
-                        variable == "fibre_content_rectangles"
-                        and np.amin(obj.fibre_content_rectangles) <= value
-                        and np.amax(obj.fibre_content_rectangles) >= value
-                    ):
-                        self.selected.append(obj)
-                    elif (
-                        variable == "fibre_content_runners"
-                        and np.amin(obj.fibre_content_runners) <= value
-                        and np.amax(obj.fibre_content_runners) >= value
-                    ):
-                        self.selected.append(obj)
-                    # Circle
-                    elif variable == "fvc_circle" and self.operator2(
-                        obj.fvc_circle, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "radius_circle" and self.operator2(
-                        obj.radius_circle, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "pox_circle" and self.operator2(
-                        obj.posx_circle, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posy_circle" and self.operator2(
-                        obj.posy_circle, value
-                    ):
-                        self.selected.append(obj)
-                    # Rectangle
-                    elif variable == "fvc_rectangle" and self.operator2(
-                        obj.fvc_rectangle, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "height_rectangle" and self.operator2(
-                        obj.height_rectangle, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "width_rectangle" and self.operator2(
-                        obj.width_rectangle, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posx_rectangle" and self.operator2(
-                        obj.posx_rectangle, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posy_rectangle" and self.operator2(
-                        obj.posy_rectangle, value
-                    ):
-                        self.selected.append(obj)
-                    # Runner
-                    elif variable == "fvc_runner" and self.operator2(
-                        obj.fvc_runner, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "height_runner" and self.operator2(
-                        obj.height_runner, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "width_runner" and self.operator2(
-                        obj.width_runner, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posx_runner" and self.operator2(
-                        obj.posx_runner, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posy_runner" and self.operator2(
-                        obj.posy_runner, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "pos_lower_leftx_runner" and self.operator2(
-                        obj.pos_lower_leftx_runner, value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "pos_lower_lefty_runner" and self.operator2(
-                        obj.pos_lower_lefty_runner, value
-                    ):
-                        self.selected.append(obj)
-
-                # Standardized queries for > and <
-                elif comparisonOperator == ">" or comparisonOperator == "<":
-                    if variable == "fibre_content_circles" and self.operator(
-                        self.operator2(obj.fibre_content_circles), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "fibre_content_rectangles" and self.operator(
-                        self.operator2(obj.fibre_content_rectangles), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "fibre_content_runners" and self.operator(
-                        self.operator2(obj.fibre_content_runners), value
-                    ):
-                        self.selected.append(obj)
-                    # Circle
-                    elif variable == "fvc_circle" and self.operator(
-                        self.operator2(obj.fvc_circle), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "radius_circle" and self.operator(
-                        self.operator2(obj.radius_circle), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posx_circle" and self.operator(
-                        self.operator2(obj.posx_circle), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posy_circle" and self.operator(
-                        self.operator2(obj.posy_circle), value
-                    ):
-                        self.selected.append(obj)
-                    # Rectangle
-                    elif variable == "fvc_rectangle" and self.operator(
-                        self.operator2(obj.fvc_rectangle), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "height_rectangle" and self.operator(
-                        self.operator2(obj.height_rectangle), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "width_rectangle" and self.operator(
-                        self.operator2(obj.width_rectangle), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posx_rectangle" and self.operator(
-                        self.operator2(obj.posx_rectangle), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posy_rectangle" and self.operator(
-                        self.operator2(obj.posy_rectangle), value
-                    ):
-                        self.selected.append(obj)
-                    # Runner
-                    elif variable == "fvc_runner" and self.operator(
-                        self.operator2(obj.fvc_runner), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "height_runner" and self.operator(
-                        self.operator2(obj.height_runner), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "width_runner" and self.operator(
-                        self.operator2(obj.width_runner), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posx_runner" and self.operator(
-                        self.operator2(obj.posx_runner), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "posy_runner" and self.operator(
-                        self.operator2(obj.posy_runner), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "pos_lower_leftx_runner" and self.operator(
-                        self.operator2(obj.pos_lower_leftx_runner), value
-                    ):
-                        self.selected.append(obj)
-                    elif variable == "pos_lower_lefty_runner" and self.operator(
-                        self.operator2(obj.pos_lower_lefty_runner), value
-                    ):
-                        self.selected.append(obj)
-
-        if len(self.selected) == 0:
+        if len(selected) is 0:
             print(
                 "No matches were found for "
                 + str(variable)
@@ -305,8 +92,8 @@ class HDF5DB:
                 + ". No filter was applied!"
             )
         else:
-            self.HDF5Object = self.selected
-            if len(self.selected) > 1:
+            self.HDF5Object = selected
+            if len(selected) > 1:
                 print(
                     "The filter "
                     + str(variable)
@@ -315,11 +102,11 @@ class HDF5DB:
                     + " "
                     + str(value)
                     + " was applied. "
-                    + str(len(self.selected))
+                    + str(len(selected))
                     + " objects were found."
                 )
-                self.meta = [obj.path_meta for obj in self.hdf5_object_list]
-                self.result = [obj.path_result for obj in self.hdf5_object_list]
+                meta = [obj.path_meta for obj in self.hdf5_object_list]
+                result = [obj.path_result for obj in self.hdf5_object_list]
             else:
                 print(
                     "The filter "
@@ -329,10 +116,226 @@ class HDF5DB:
                     + " "
                     + str(value)
                     + " was applied. "
-                    + str(len(self.selected))
+                    + str(len(selected))
                     + " object was found."
                 )
-            self.hdf5_object_list = self.selected
+
+    def select_per_object(self, obj, variable, value, comparisonOperator):
+        if hasattr(obj, str(variable)):
+            if comparisonOperator == "=":
+                operator1 = operator.eq
+                operator2 = operator.contains
+            elif comparisonOperator == ">":
+                operator1 = operator.gt
+                operator2 = np.amin
+            elif comparisonOperator == "<":
+                operator1 = operator.lt
+                operator2 = np.amax
+
+            # Standardized queries
+            # Metadata-queries
+            if variable == "path_meta" and operator1(obj.path_meta, value):
+                return obj
+            elif variable == "output_frequency_type" and operator1(
+                obj.output_frequency_type, value
+            ):
+                return obj
+            elif variable == "output_frequency" and operator1(
+                obj.output_frequency, value
+            ):
+                return obj
+            elif variable == "general_sigma" and operator1(obj.general_sigma, value):
+                return obj
+            elif variable == "number_of_circles" and operator1(
+                obj.number_of_circles, value
+            ):
+                return obj
+            elif variable == "number_of_rectangles" and operator1(
+                obj.number_of_rectangles, value
+            ):
+                return obj
+            elif variable == "number_of_runners" and operator1(
+                obj.number_of_runners, value
+            ):
+                return obj
+            elif variable == "number_of_shapes" and operator1(
+                obj.number_of_shapes, value
+            ):
+                return obj
+            # Result-queries
+            elif variable == "path_result" and operator1(obj.path_result, value):
+                return obj
+            elif variable == "avg_level" and operator1(obj.avg_level, value):
+                return obj
+            elif variable == "age":
+                temp = re.search(
+                    "([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})", value
+                )
+                if temp is not None and operator1(
+                    obj.age, datetime.strptime(temp.group(1), "%Y-%m-%d_%H-%M-%S")
+                ):
+                    return obj
+            elif variable == "number_of_sensors" and operator1(
+                obj.number_of_sensors, value
+            ):
+                return obj
+
+            # Non-standardizable queries (=)
+            # Meta-queries
+            if comparisonOperator == "=":
+                if (
+                    variable == "fibre_content_circles"
+                    and np.amin(obj.fibre_content_circles) <= value
+                    and np.amax(obj.fibre_content_circles) >= value
+                ):
+                    return obj
+                elif (
+                    variable == "fibre_content_rectangles"
+                    and np.amin(obj.fibre_content_rectangles) <= value
+                    and np.amax(obj.fibre_content_rectangles) >= value
+                ):
+                    return obj
+                elif (
+                    variable == "fibre_content_runners"
+                    and np.amin(obj.fibre_content_runners) <= value
+                    and np.amax(obj.fibre_content_runners) >= value
+                ):
+                    return obj
+                # Circle
+                elif variable == "fvc_circle" and operator2(obj.fvc_circle, value):
+                    return obj
+                elif variable == "radius_circle" and operator2(
+                    obj.radius_circle, value
+                ):
+                    return obj
+                elif variable == "pox_circle" and operator2(obj.posx_circle, value):
+                    return obj
+                elif variable == "posy_circle" and operator2(obj.posy_circle, value):
+                    return obj
+                # Rectangle
+                elif variable == "fvc_rectangle" and operator2(
+                    obj.fvc_rectangle, value
+                ):
+                    return obj
+                elif variable == "height_rectangle" and operator2(
+                    obj.height_rectangle, value
+                ):
+                    return obj
+                elif variable == "width_rectangle" and operator2(
+                    obj.width_rectangle, value
+                ):
+                    return obj
+                elif variable == "posx_rectangle" and operator2(
+                    obj.posx_rectangle, value
+                ):
+                    return obj
+                elif variable == "posy_rectangle" and operator2(
+                    obj.posy_rectangle, value
+                ):
+                    return obj
+                # Runner
+                elif variable == "fvc_runner" and operator2(obj.fvc_runner, value):
+                    return obj
+                elif variable == "height_runner" and operator2(
+                    obj.height_runner, value
+                ):
+                    return obj
+                elif variable == "width_runner" and operator2(obj.width_runner, value):
+                    return obj
+                elif variable == "posx_runner" and operator2(obj.posx_runner, value):
+                    return obj
+                elif variable == "posy_runner" and operator2(obj.posy_runner, value):
+                    return obj
+                elif variable == "pos_lower_leftx_runner" and operator2(
+                    obj.pos_lower_leftx_runner, value
+                ):
+                    return obj
+                elif variable == "pos_lower_lefty_runner" and operator2(
+                    obj.pos_lower_lefty_runner, value
+                ):
+                    return obj
+
+            # Standardized queries for > and <
+            elif comparisonOperator == ">" or comparisonOperator == "<":
+                if variable == "fibre_content_circles" and operator1(
+                    operator2(obj.fibre_content_circles), value
+                ):
+                    return obj
+                elif variable == "fibre_content_rectangles" and operator1(
+                    operator2(obj.fibre_content_rectangles), value
+                ):
+                    return obj
+                elif variable == "fibre_content_runners" and operator1(
+                    operator2(obj.fibre_content_runners), value
+                ):
+                    return obj
+                # Circle
+                elif variable == "fvc_circle" and operator1(
+                    operator2(obj.fvc_circle), value
+                ):
+                    return obj
+                elif variable == "radius_circle" and operator1(
+                    operator2(obj.radius_circle), value
+                ):
+                    return obj
+                elif variable == "posx_circle" and operator1(
+                    operator2(obj.posx_circle), value
+                ):
+                    return obj
+                elif variable == "posy_circle" and operator1(
+                    operator2(obj.posy_circle), value
+                ):
+                    return obj
+                # Rectangle
+                elif variable == "fvc_rectangle" and operator1(
+                    operator2(obj.fvc_rectangle), value
+                ):
+                    return obj
+                elif variable == "height_rectangle" and operator1(
+                    operator2(obj.height_rectangle), value
+                ):
+                    return obj
+                elif variable == "width_rectangle" and operator1(
+                    operator2(obj.width_rectangle), value
+                ):
+                    return obj
+                elif variable == "posx_rectangle" and operator1(
+                    operator2(obj.posx_rectangle), value
+                ):
+                    return obj
+                elif variable == "posy_rectangle" and operator1(
+                    operator2(obj.posy_rectangle), value
+                ):
+                    return obj
+                # Runner
+                elif variable == "fvc_runner" and operator1(
+                    operator2(obj.fvc_runner), value
+                ):
+                    return obj
+                elif variable == "height_runner" and operator1(
+                    operator2(obj.height_runner), value
+                ):
+                    return obj
+                elif variable == "width_runner" and operator1(
+                    operator2(obj.width_runner), value
+                ):
+                    return obj
+                elif variable == "posx_runner" and operator1(
+                    operator2(obj.posx_runner), value
+                ):
+                    return obj
+                elif variable == "posy_runner" and operator1(
+                    operator2(obj.posy_runner), value
+                ):
+                    return obj
+                elif variable == "pos_lower_leftx_runner" and operator1(
+                    operator2(obj.pos_lower_leftx_runner), value
+                ):
+                    return obj
+                elif variable == "pos_lower_lefty_runner" and operator1(
+                    operator2(obj.pos_lower_lefty_runner), value
+                ):
+                    return None
 
     def show_selection_options(self):
         self.options = PrettyTable()

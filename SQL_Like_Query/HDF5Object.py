@@ -32,12 +32,21 @@ class HDF5Object:
         self.radius_circle_path = "shapes/Circle/radius"
         self.posx_circle_path = "shapes/Circle/posX"
         self.posy_circle_path = "shapes/Circle/posY"
+        self.fvc_circle_pathS = "Shapes/Circle/fvc"
+        self.radius_circle_pathS = "Shapes/Circle/radius"
+        self.posx_circle_pathS = "Shapes/Circle/posX"
+        self.posy_circle_pathS = "Shapes/Circle/posY"
         # -Rectanglepaths
         self.fvc_rectangle_path = "shapes/Rectangle/fvc"
         self.height_rectangle_path = "shapes/Rectangle/height"
         self.width_rectangle_path = "shapes/Rectangle/width"
         self.posx_rectangle_path = "shapes/Rectangle/posX"
         self.posy_rectangle_path = "shapes/Rectangle/posY"
+        self.fvc_rectangle_pathS = "Shapes/Rectangle/fvc"
+        self.height_rectangle_pathS = "Shapes/Rectangle/height"
+        self.width_rectangle_pathS = "Shapes/Rectangle/width"
+        self.posx_rectangle_pathS = "Shapes/Rectangle/posX"
+        self.posy_rectangle_pathS = "Shapes/Rectangle/posY"
         # -Runnerspaths
         self.fvc_runner_path = "shapes/Runner/fvc"
         self.height_runner_path = "shapes/Runner/height"
@@ -46,6 +55,13 @@ class HDF5Object:
         self.posy_runner_path = "shapes/Runner/posY"
         self.pos_lower_leftx_runner_path = "shapes/Runner/posLowerLeftX"
         self.pos_lower_lefty_runner_path = "shapes/Runner/posLowerLeftY"
+        self.fvc_runner_pathS = "Shapes/Runner/fvc"
+        self.height_runner_pathS = "Shapes/Runner/height"
+        self.width_runner_pathS = "Shapes/Runner/width"
+        self.posx_runner_pathS = "Shapes/Runner/posX"
+        self.posy_runner_pathS = "Shapes/Runner/posY"
+        self.pos_lower_leftx_runner_pathS = "Shapes/Runner/posLowerLeftX"
+        self.pos_lower_lefty_runner_pathS = "Shapes/Runner/posLowerLeftY"
 
         self.single_state_path = "post/singlestate"
         self.number_of_sensors_path = "post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
@@ -82,45 +98,81 @@ class HDF5Object:
         if self.fibre_content_runners_path in m:
             self.fibre_content_runners = m[self.fibre_content_runners_path][()]
 
-        # Shapes
+        # Shapes / S for new version
         # -Circle
         if self.fvc_circle_path in m:
             self.fvc_circle = np.array(m[self.fvc_circle_path][()])
+        if self.fvc_circle_pathS in m:
+            self.fvc_circle = np.array(m[self.fvc_circle_pathS][()])
         if self.radius_circle_path in m:
             self.radius_circle = np.array(m[self.radius_circle_path][()])
+        if self.radius_circle_pathS in m:
+            self.radius_circle = np.array(m[self.radius_circle_pathS][()])
         if self.posx_circle_path in m:
             self.posx_circle = np.array(m[self.posx_circle_path][()])
+        if self.posx_circle_pathS in m:
+            self.posx_circle = np.array(m[self.posx_circle_pathS][()])
         if self.posy_circle_path in m:
             self.posy_circle = np.array(m[self.posy_circle_path][()])
+        if self.posy_circle_pathS in m:
+            self.posy_circle = np.array(m[self.posy_circle_pathS][()])
         # -Rectangle
         if self.fvc_rectangle_path in m:
             self.fvc_rectangle = np.array(m[self.fvc_rectangle_path][()])
+        if self.fvc_rectangle_pathS in m:
+            self.fvc_rectangle = np.array(m[self.fvc_rectangle_pathS][()])
         if self.height_rectangle_path in m:
             self.height_rectangle = np.array(m[self.height_rectangle_path][()])
+        if self.height_rectangle_pathS in m:
+            self.height_rectangle = np.array(m[self.height_rectangle_pathS][()])
         if self.width_rectangle_path in m:
             self.width_rectangle = np.array(m[self.width_rectangle_path][()])
+        if self.width_rectangle_pathS in m:
+            self.width_rectangle = np.array(m[self.width_rectangle_pathS][()])
         if self.posx_rectangle_path in m:
             self.posx_rectangle = np.array(m[self.posx_rectangle_path][()])
+        if self.posx_rectangle_pathS in m:
+            self.posx_rectangle = np.array(m[self.posx_rectangle_pathS][()])
         if self.posy_rectangle_path in m:
             self.posy_rectangle = np.array(m[self.posy_rectangle_path][()])
+        if self.posy_rectangle_pathS in m:
+            self.posy_rectangle = np.array(m[self.posy_rectangle_pathS][()])
         # -Runner
         if self.fvc_runner_path in m:
             self.fvc_runner = np.array(m[self.fvc_runner_path][()])
+        if self.fvc_runner_pathS in m:
+            self.fvc_runner = np.array(m[self.fvc_runner_pathS][()])
         if self.height_runner_path in m:
             self.height_runner = np.array(m[self.height_runner_path][()])
+        if self.height_runner_pathS in m:
+            self.height_runner = np.array(m[self.height_runner_pathS][()])
         if self.width_runner_path in m:
             self.width_runner = np.array(m[self.width_runner_path][()])
+        if self.width_runner_pathS in m:
+            self.width_runner = np.array(m[self.width_runner_pathS][()])
         if self.posx_runner_path in m:
             self.posx_runner = np.array(m[self.posx_runner_path][()])
+        if self.posx_runner_pathS in m:
+            self.posx_runner = np.array(m[self.posx_runner_pathS][()])
         if self.posy_runner_path in m:
             self.posy_runner = np.array(m[self.posy_runner_path][()])
+        if self.posy_runner_pathS in m:
+            self.posy_runner = np.array(m[self.posy_runner_pathS][()])
         if self.pos_lower_leftx_runner_path in m:
             self.pos_lower_leftx_runner = np.array(
                 m[self.pos_lower_leftx_runner_path][()]
             )
+        if self.pos_lower_leftx_runner_pathS in m:
+            self.pos_lower_leftx_runner = np.array(
+                m[self.pos_lower_leftx_runner_pathS][()]
+            )
         if self.pos_lower_lefty_runner_path in m:
             self.pos_lower_lefty_runner = np.array(
                 m[self.pos_lower_lefty_runner_path][()]
+            )
+        if self.pos_lower_lefty_runner_pathS in m:
+            self.pos_lower_lefty_runner = np.array(
+                m[self.pos_lower_lefty_runner_pathS][()]
             )
         m.close()
 
@@ -153,7 +205,7 @@ class HDF5Object:
                 "([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})",
                 path_result,
             )
-            != None
+            is not None
         ):
             self.age = datetime.strptime(
                 re.search(
