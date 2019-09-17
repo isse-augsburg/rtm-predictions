@@ -78,8 +78,8 @@ class SensorTrainer:
             exit()
         return generator
 
-    def inference_on_test_set(self, path):
-        save_path = path / "eval_on_test_set"
+    def inference_on_test_set(self, output_path, source_path):
+        save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
         logging.basicConfig(
             filename=save_path / Path("test_output.log"),
@@ -105,9 +105,9 @@ class SensorTrainer:
             classification_evaluator=SensorToFlowfrontEvaluator(
                 save_path=save_path),
         )
-        eval_wrapper.load_checkpoint(path / "checkpoint.pth")
+        eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
 
-        with open(path / "test_set.p", "rb") as f:
+        with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
 
         test_set = transform_list_of_linux_paths_to_windows(test_set)

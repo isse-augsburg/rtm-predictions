@@ -9,11 +9,8 @@ from model_trainer_sensor_to_flow import SensorTrainer
 
 class TestEval(unittest.TestCase):
     def setUp(self):
-        print('EVAL path')
         self.eval_path = resources.test_eval_dir
-        print(self.eval_path)
-        self.eval_path_to_delete = self.eval_path / 'eval_on_test_set'
-        print(self.eval_path_to_delete)
+        self.eval_output_path = resources.test_eval_output_path
 
         self.num_test_samples = 10
         if self.num_test_samples == 10:
@@ -29,17 +26,17 @@ class TestEval(unittest.TestCase):
     def test_eval(self):
         self.st = SensorTrainer(
             data_source_paths=[],
-            save_datasets_path=self.eval_path_to_delete,
-            load_datasets_path=self.eval_path_to_delete,
+            save_datasets_path=self.eval_output_path,
+            load_datasets_path=self.eval_output_path,
             num_test_samples=self.num_test_samples)
-        self.st.inference_on_test_set(self.eval_path)
-        with open(self.eval_path_to_delete / 'test_output.log') as f:
+        self.st.inference_on_test_set(source_path=self.eval_path, output_path=self.eval_output_path)
+        with open(self.eval_output_path / 'eval_on_test_set' / 'test_output.log') as f:
             content = f.read()
             loss = float(
                 re.findall(r'\d+.\d+',
                            re.findall(r'Eval:   \d+\.\d+', content)[0])[0])
             self.assertEqual(loss, self.expected_loss)
-        img_path = self.eval_path_to_delete / 'images'
+        img_path = self.eval_output_path / 'eval_on_test_set' / 'images'
         list_all_imgs = list(img_path.glob('**/*.jpg'))
         self.assertEqual(len(list_all_imgs), self.expected_num_frames)
 
@@ -48,7 +45,7 @@ class TestEval(unittest.TestCase):
         logging.shutdown()
         r = logging.getLogger("")
         [r.removeHandler(x) for x in r.handlers]
-        shutil.rmtree(self.eval_path_to_delete)
+        shutil.rmtree(self.eval_output_path)
 
 
 if __name__ == '__main__':

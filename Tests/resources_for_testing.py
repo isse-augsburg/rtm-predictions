@@ -32,7 +32,7 @@ test_pipeline_dir = test_src_dir
 test_eval_dir = test_src_dir / '2019-09-02_19-40-56'
 data_loader_img_file = test_src_dir / '2019-06-05_15-30-52_0_RESULT.erfh5'
 
-# test_eval_path_to_delete = test_out_dir / 'eval'
+test_eval_output_path = test_out_dir / 'eval'
 test_training_out_dir = test_out_dir / 'training'
 
 test_caching_dir = test_out_dir / 'erfh5_pipeline' / 'caching'
