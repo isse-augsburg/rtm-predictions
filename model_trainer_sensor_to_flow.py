@@ -115,6 +115,7 @@ class SensorTrainer:
         test_set = transform_list_of_linux_paths_to_windows(test_set)
         data_list = []
         full = False
+        sys.stderr.write(f"test_set: {test_set}")
         for p in test_set:
             sys.stderr.write(f"path: {p}")
             instance = self.test_data_generator.data_function(p)
