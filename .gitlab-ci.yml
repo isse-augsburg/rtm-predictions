@@ -1,20 +1,20 @@
 image: python:3.7
 
 stages:
-  #  - lint
+  - lint
   - test
 
-#linter:
-#  stage: lint
-#  script:
-#    - pip install flake8
-#    - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Debugging,Legacy .
+linter:
+  stage: lint
+  script:
+    - pip install flake8
+    - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Debugging,Legacy .
 
 test:
   stage: test
   script:
     - pip install numpy torch h5py pillow matplotlib
-    #    - python3 -m unittest discover -s Tests -t Tests
-    - python3 -m unittest Tests.test_eval.TestEval
+    - python3 -m unittest discover -s Tests -t Tests
+  #    - python3 -m unittest Tests.test_eval.TestEval
   only:
     - master
