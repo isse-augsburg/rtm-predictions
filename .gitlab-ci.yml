@@ -1,4 +1,4 @@
-image: python:3.7
+image: pytorch
 
 stages:
   #  - lint
@@ -13,7 +13,7 @@ stages:
 test:
   stage: test
   script:
-    - pip install numpy torch h5py pillow matplotlib
+    - pip install h5py pillow
     #    - python3 -m unittest discover -s Tests -t Tests
     - python3 -m unittest Tests.test_eval.TestEval
   only:

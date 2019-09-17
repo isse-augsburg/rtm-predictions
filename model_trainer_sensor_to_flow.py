@@ -80,7 +80,7 @@ class SensorTrainer:
         return generator
 
     def inference_on_test_set(self, output_path, source_path):
-        sys.stderr.write(f"out: {output_path}, source: {source_path}")
+        sys.stderr.write(f"out: {output_path}, source: {source_path}\n")
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
         logging.basicConfig(
@@ -108,16 +108,18 @@ class SensorTrainer:
                 save_path=save_path),
         )
         eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
-        sys.stderr.write(f"src path: {source_path / 'test_set.p'}")
+
+        sys.stderr.write(f"src path: {source_path / 'test_set.p'}\n")
+        sys.stderr.write(f"output of hostname: {socket.gethostname()}\n")
         with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
-        sys.stderr.write(f"test_set before: {test_set}")
+        sys.stderr.write(f"test_set before: {test_set}\n")
         test_set = transform_list_of_linux_paths_to_windows(test_set)
         data_list = []
         full = False
-        sys.stderr.write(f"test_set: {test_set}")
+        sys.stderr.write(f"test_set: {test_set}\n")
         for p in test_set:
-            sys.stderr.write(f"path: {p}")
+            sys.stderr.write(f"path: {p}\n")
             instance = self.test_data_generator.data_function(p)
             for num, i in enumerate(instance):
                 data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
