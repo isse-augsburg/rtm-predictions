@@ -142,12 +142,15 @@ def load_cached_data_and_label(instance_f, s_path):
 
 
 def transform_list_of_linux_paths_to_windows(input_list):
-    win_paths = []
     if socket.gethostname() == "swtse130":
+        win_paths = []
         for e in input_list:
             if e[:4] == "/cfs":
                 win_paths.append(Path(e.replace("/cfs/home", "X:")))
-    return win_paths
+        return win_paths
+    else:
+        return input_list
+
 
 
 class ERFH5DataGenerator:
