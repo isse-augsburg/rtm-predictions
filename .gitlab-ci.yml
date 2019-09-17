@@ -1,4 +1,4 @@
-image: pytorch
+image: pytorch/pytorch
 
 stages:
   #  - lint
