@@ -1,3 +1,4 @@
+import getpass
 import logging
 import math
 import pickle
@@ -17,7 +18,6 @@ from Pipeline import (
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
-import getpass
 
 
 def get_comment():
@@ -90,6 +90,7 @@ class SensorTrainer:
 
         model = DeconvModel()
         if socket.gethostname() == "swt-dgx1":
+            logger.info('Invoking data parallel model.')
             model = nn.DataParallel(model).to("cuda:0")
         else:
             model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -234,7 +235,7 @@ if __name__ == "__main__":
                        batch_size=_batch_size,
                        eval_freq=_eval_freq,
                        save_datasets_path=_save_path,
-                       load_datasets_path=None,
+                       load_datasets_path=_load_datasets_path,
                        epochs=_epochs,
                        num_workers=_num_workers,
                        num_validation_samples=_num_validation_samples,

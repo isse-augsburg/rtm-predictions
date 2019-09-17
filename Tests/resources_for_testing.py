@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 
-def is_docker():
+def running_in_docker():
     path = '/proc/self/cgroup'
     return (
         os.path.exists('/.dockerenv') or
@@ -20,7 +20,7 @@ elif getpass.getuser() == 'lodesluk':
                    "share=home/l/o/lodesluk/code/tests"
     test_src_dir = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,' \
                    'share=home/s/t/stiebesi/code/tests/test_data'
-elif is_docker():
+elif running_in_docker():
     test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
     test_out_dir = Path('/cache')
 else:
@@ -38,4 +38,4 @@ test_training_out_dir = test_out_dir / 'training'
 test_caching_dir = test_out_dir / 'erfh5_pipeline' / 'caching'
 
 if __name__ == "__main__":
-    print(is_docker())
+    print(running_in_docker())
