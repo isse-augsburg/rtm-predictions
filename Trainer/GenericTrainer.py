@@ -140,6 +140,7 @@ class MasterTrainer:
         with torch.no_grad():
             self.model.eval()
             loss = 0
+            c = 0
             for i, (data, label) in enumerate(self.__batched(data_set, self.generator.batch_size)):
                 data = data.to(self.device)
                 label = label.to(self.device)
@@ -148,16 +149,16 @@ class MasterTrainer:
                 output = self.model(data)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
+                c += 1
                 output = output.cpu()
                 label = label.cpu()
                 data = data.cpu()
                 if self.classification_evaluator is not None:
                     for c in range(output.size()[0]):
                         self.classification_evaluator.commit(
-                            output[c], label[c], data[c]
-                        )
+                            output[c], label[c], data[c])
 
-            loss = loss / len(data_set)
+            loss = loss / c
             self.logger.info(f"{eval_step} Mean Loss on Eval: {loss:8.8f}")
 
             if self.classification_evaluator is not None:
