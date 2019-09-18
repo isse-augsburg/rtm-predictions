@@ -4,14 +4,13 @@ import h5py
 import numpy as np
 
 
-# from PIL import Image
-
 # data_function must return [(data, label) ... (data, label)]
 
 def get_index_sequence(filename):  #
     """ 
     Returns: 
-        ([data, label)]: a sequence of simulation steps as data and the filling percentage of the last step as label
+        ([data, label)]: a sequence of simulation steps as data and the
+        filling percentage of the last step as label
     """
     indices = [10, 20, 30, 40, 50]
 
@@ -23,7 +22,8 @@ def get_index_sequence(filename):  #
     for state in all_states:
         try:
             filling_factor = \
-                f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
+                f['post']['singlestate'][state]['entityresults']['NODE'][
+                    'FILLING_FACTOR']['ZONE1_set1']['erfblock'][
                     'res'][
                     ()]
 
@@ -49,7 +49,8 @@ def get_index_sequence(filename):  #
 def get_all_sequences_for_file(filename):
     """
     Returns: 
-        [(data, label)]:	All Sequences of a specified length that can be extracted from a file,
+        [(data, label)]:	All Sequences of a specified length that can be
+        extracted from a file,
         filling percentage at that timestep.
     """
     all_sequences = list()
@@ -62,7 +63,8 @@ def get_all_sequences_for_file(filename):
 
     while t_end + t_target_offset < t_final:
         try:
-            instance = __get_fillings_at_times(filename, t_begin, t_end, t_delta, t_end + t_target_offset)
+            instance = __get_fillings_at_times(filename, t_begin, t_end,
+                                               t_delta, t_end + t_target_offset)
         except Exception:
             break
 
@@ -88,7 +90,8 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
     except OSError:
         logger = logging.getLogger(__name__)
         logger.addHandler(logging.StreamHandler())
-        logger.error(">>> ERROR: FILE", filename, "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
+        logger.error(">>> ERROR: FILE", filename,
+                     "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
         return None
 
     all_states = f['post']['singlestate']
@@ -100,19 +103,22 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
         final_state = s
 
     end_time = \
-        f['post']['singlestate'][final_state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
+        f['post']['singlestate'][final_state]['entityresults']['NODE'][
+            'FILLING_FACTOR']['ZONE1_set1']['erfblock'][
             'indexval'][()]
     if end_time < t_target:
         raise Exception
 
     for state in all_states:
         try:
-            time = f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
+            time = f['post']['singlestate'][state]['entityresults']['NODE'][
+                'FILLING_FACTOR']['ZONE1_set1']['erfblock'][
                 'indexval'][()]
 
             if time >= t_target:
                 target_fillingstate = filling_factor = \
-                    f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1'][
+                    f['post']['singlestate'][state]['entityresults']['NODE'][
+                        'FILLING_FACTOR']['ZONE1_set1'][
                         'erfblock'][
                         'res'][()]
                 non_zeros = np.count_nonzero(target_fillingstate)
@@ -124,7 +130,8 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
                 continue
             if time >= t_now:
                 filling_factor = \
-                    f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1'][
+                    f['post']['singlestate'][state]['entityresults']['NODE'][
+                        'FILLING_FACTOR']['ZONE1_set1'][
                         'erfblock'][
                         'res'][()]
                 filling_factors_at_certain_times.append(filling_factor)
@@ -133,7 +140,8 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
         except KeyError:
             continue
 
-    if t_target != 9999999 or filling_factors_at_certain_times.__len__() != (t_finish - t_start) / t_delta:
+    if t_target != 9999999 or filling_factors_at_certain_times.__len__() != (
+            t_finish - t_start) / t_delta:
         return None
 
     flat_fillings = [x.flatten() for x in filling_factors_at_certain_times]
@@ -144,10 +152,10 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
 def get_single_states_and_fillings(filename):
     """
     Returns: 
-        [(data, label)]: Returns single simulation states as data and label for an autoencoder.
+        [(data, label)]: Returns single simulation states as data and label
+        for an autoencoder.
     """
 
-    instances = []
     f = h5py.File(filename, 'r')
     all_states = f['post']['singlestate']
 
@@ -156,7 +164,8 @@ def get_single_states_and_fillings(filename):
     for state in all_states:
         try:
             filling_factor = \
-                f['post']['singlestate'][state]['entityresults']['NODE']['FILLING_FACTOR']['ZONE1_set1']['erfblock'][
+                f['post']['singlestate'][state]['entityresults']['NODE'][
+                    'FILLING_FACTOR']['ZONE1_set1']['erfblock'][
                     'res'][
                     ()]
 
@@ -173,17 +182,19 @@ def get_single_states_and_fillings(filename):
 
 if __name__ == "__main__":
     # files = get_filelist_within_folder([
-    #   '/run/user/1002/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Lautern/output/with_shapes/2019-04-23_13-00-58_200p/'])
+    #   '/run/user/1002/gvfs/smb-share:server=137.250.170.56,
+    #   share=share/data/RTM/Lautern/output/with_shapes/
+    #   2019-04-23_13-00-58_200p/'])
     # for f in files:
     #  r = get_sensordata_and_flowfront(f)
     #  if r is not None:
     #   print(len(r))
 
-    """ folders = get_folders_within_folder('/cfs/home/s/c/schroeni/Git/tu-kaiserslautern-data/Images/')
+    """ folders = get_folders_within_folder('/cfs/home/s/c/schroeni/Git/
+    tu-kaiserslautern-data/Images/')
     for folder in folders:
         instances = get_image_state_sequence(folder)
         if instances is None:
-            
             print("None")
         else:
             print(np.shape(instances[0][0]))

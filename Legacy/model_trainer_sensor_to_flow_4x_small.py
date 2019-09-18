@@ -1,9 +1,11 @@
+import getpass
 import logging
 import math
 import pickle
 import socket
 from datetime import datetime
 from pathlib import Path
+
 import torch
 from torch import nn
 
@@ -15,13 +17,13 @@ from Pipeline import (
 )
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
-import getpass
 
 num_data_points = 31376
 initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 if socket.gethostname() == "swt-dgx1":
-    data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+    data_root = Path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
     batch_size = 256
     eval_freq = math.ceil(num_data_points / batch_size)
     if getpass.getuser() == "stiebesi":
@@ -73,7 +75,8 @@ paths = [
 ]
 
 
-def create_dataGenerator_pressure_flowfront(paths, save_path=None, test_mode=False):
+def create_dataGenerator_pressure_flowfront(paths, save_path=None,
+                                            test_mode=False):
     try:
         generator = pipeline.ERFH5DataGenerator(
             data_paths=paths,
@@ -124,7 +127,8 @@ def inference_on_test_set(path):
     eval_wrapper = MasterTrainer(
         model,
         gen,
-        classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
+        classification_evaluator=SensorToFlowfrontEvaluator(
+            save_path=save_path),
     )
     eval_wrapper.load_checkpoint(path / "checkpoint.pth")
 
@@ -203,4 +207,5 @@ if __name__ == "__main__":
                 Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
             )
         else:
-            inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-05_18-38-33"))
+            inference_on_test_set(
+                Path(r"Y:\cache\output_simon\2019-09-05_18-38-33"))

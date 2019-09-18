@@ -1,3 +1,4 @@
+import getpass
 import logging
 import math
 import pickle
@@ -17,7 +18,6 @@ from Pipeline import (
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
-import getpass
 
 
 def get_comment():
@@ -36,7 +36,8 @@ class SensorTrainer:
                  num_workers=10,
                  num_validation_samples=10,
                  num_test_samples=10):
-        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.initial_timestamp = str(
+            datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
@@ -77,8 +78,8 @@ class SensorTrainer:
             exit()
         return generator
 
-    def inference_on_test_set(self, path):
-        save_path = path / "eval_on_test_set"
+    def inference_on_test_set(self, output_path, source_path):
+        save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
         logging.basicConfig(
             filename=save_path / Path("test_output.log"),
@@ -89,23 +90,25 @@ class SensorTrainer:
 
         model = DeconvModel()
         if socket.gethostname() == "swt-dgx1":
+            logger.info('Invoking data parallel model.')
             model = nn.DataParallel(model).to("cuda:0")
         else:
-            model = model.to("cuda:0")
+            model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         logger.info("Generating Test Generator")
-        self.test_data_generator = self.create_datagenerator(save_path, test_mode=True)
+        self.test_data_generator = self.create_datagenerator(save_path,
+                                                             test_mode=True)
 
         eval_wrapper = MasterTrainer(
             model,
             self.test_data_generator,
-            classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
+            classification_evaluator=SensorToFlowfrontEvaluator(
+                save_path=save_path),
         )
-        eval_wrapper.load_checkpoint(path / "checkpoint.pth")
+        eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
 
-        with open(path / "test_set.p", "rb") as f:
+        with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
-
         test_set = transform_list_of_linux_paths_to_windows(test_set)
         data_list = []
         full = False
@@ -134,12 +137,13 @@ class SensorTrainer:
         logger = logging.getLogger(__name__)
         print(__name__)
         logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
+        self.training_data_generator = self.create_datagenerator(save_path,
+                                                                 test_mode=False)
 
         logger.info("Generating Model")
         model = DeconvModel()
         logger.info("Model to GPU")
-        model = nn.DataParallel(model).to("cuda:0")
+        model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         train_wrapper = MasterTrainer(
             model,
@@ -151,7 +155,8 @@ class SensorTrainer:
             calc_metrics=False,
             train_print_frequency=2,
             eval_frequency=self.eval_freq,
-            classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path),
+            classification_evaluator=SensorToFlowfrontEvaluator(
+                save_path=save_path),
         )
         logger.info("The Training Will Start Shortly")
 
@@ -164,7 +169,8 @@ if __name__ == "__main__":
 
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
-        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+        _data_root = Path(
+            "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
         _batch_size = 320
         _eval_freq = math.ceil(num_data_points / _batch_size)
         if getpass.getuser() == "stiebesi":
@@ -190,7 +196,22 @@ if __name__ == "__main__":
         _num_validation_samples = 10
         _num_test_samples = 2000
 
-    train = False
+    elif socket.gethostname() == "swthiwi158":
+        _cache_path = \
+            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache")
+        _data_root = \
+            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
+                 r"share=share/data/RTM/Leoben/output/with_shapes")
+        _batch_size = 8
+        _eval_freq = 5
+        _save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
+                          r"share=share/cache/output_niklas")
+        _epochs = 5
+        _num_workers = 10
+        _num_validation_samples = 1000
+        _num_test_samples = 2000
+
+    train = True
     if train:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",
@@ -202,10 +223,11 @@ if __name__ == "__main__":
             _data_root / "2019-08-26_16-59-08_6000p",
         ]
     else:
-        _data_source_paths=[]
+        _data_source_paths = []
 
     # Running with the same dataset as with 63 Sensors, because that was the longest training
-    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
+    _load_datasets_path = Path(
+        '/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
 
     st = SensorTrainer(cache_path=_cache_path,
                        data_source_paths=_data_source_paths,
@@ -226,5 +248,6 @@ if __name__ == "__main__":
                 Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
             )
         else:
-            st.inference_on_test_set(Path(r"Y:\cache\output_simon\2019-09-02_19-40-56"))
+            st.inference_on_test_set(
+                Path(r"Y:\cache\output_simon\2019-09-02_19-40-56"))
     logging.shutdown()

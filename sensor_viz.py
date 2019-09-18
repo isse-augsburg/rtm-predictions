@@ -1,14 +1,14 @@
 import logging
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
     data_gather as dg,
 )
-from pathlib import Path
-import matplotlib.pyplot as plt
-import traceback
-import numpy as np
 
 data_root = Path(
     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes"

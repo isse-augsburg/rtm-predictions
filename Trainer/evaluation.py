@@ -1,12 +1,13 @@
 import logging
+import math
 import os
 from functools import partial
 from multiprocessing.pool import Pool
-import matplotlib.pyplot as plt
-from PIL import Image
-import math
 from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 
 """ 
 >>>> PLEASE NOTE: <<<<
@@ -80,7 +81,8 @@ def save_img(path, _str, x, index):
 
 
 class SensorToFlowfrontEvaluator(Evaluator):
-    def __init__(self, save_path=Path("/home/schroeter/Desktop/output"), halfed=False):
+    def __init__(self, save_path=Path("/home/schroeter/Desktop/output"),
+                 halfed=False):
         self.num = 0
         self.save_path = save_path
         self.im_save_path = save_path / "images"
@@ -130,20 +132,21 @@ class BinaryClassificationEvaluator(Evaluator):
             label: single label for the prediction.
         """
 
-        if math.isnan(net_output[0][0]):
+        if math.isnan(net_output[0]):
             return
 
         prediction = np.around(net_output)
 
-        self.confusion_matrix[int(label[0][0].cpu())][int(prediction[0][0].cpu())] += 1
+        self.confusion_matrix[int(label[0].cpu())][
+            int(prediction[0].cpu())] += 1
 
         if np.array_equal(prediction, label):
-            if prediction[0][0] == 1:
+            if prediction[0] == 1:
                 self.tp += 1
             else:
                 self.tn += 1
         else:
-            if prediction[0][0] == 1:
+            if prediction[0] == 1:
                 self.fp += 1
             else:
                 self.fn += 1
@@ -165,16 +168,20 @@ class BinaryClassificationEvaluator(Evaluator):
         logger.info(
             "Accuracy: %s, Precision: %s, Recall: %s, Specificity: %s",
             "{:7.4f}".format(
-                self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+                self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn,
+                                     fn=self.fn)
             ),
             "{:7.4f}".format(
-                self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+                self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn,
+                                      fn=self.fn)
             ),
             "{:7.4f}".format(
-                self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+                self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn,
+                                   fn=self.fn)
             ),
             "{:7.4f}".format(
-                self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+                self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn,
+                                        fn=self.fn)
             ),
         )
 
@@ -224,4 +231,3 @@ class FlowFrontPredictionEvaluator(Evaluator):
 
     def reset(self):
         pass
-

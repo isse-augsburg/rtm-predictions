@@ -1,3 +1,4 @@
+import getpass
 import logging
 import math
 import pickle
@@ -8,7 +9,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel, DeconvModel4x
+from Models.erfh5_DeconvModel import DeconvModel4x
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
@@ -16,7 +17,6 @@ from Pipeline import (
 )
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
-import getpass
 
 
 def get_comment():
@@ -44,7 +44,8 @@ class SensorTrainer:
                  num_workers=10,
                  num_validation_samples=10,
                  num_test_samples=10):
-        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.initial_timestamp = str(
+            datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
@@ -98,13 +99,15 @@ class SensorTrainer:
         else:
             model = model.to("cuda:0")
 
-        self.test_data_generator = self.create_datagenerator(save_path, test_mode=True)
+        self.test_data_generator = self.create_datagenerator(save_path,
+                                                             test_mode=True)
 
         eval_wrapper = MasterTrainer(
             model,
             self.test_data_generator,
-            classification_evaluator=SensorToFlowfrontEvaluator(save_path=save_path,
-                                                                halfed=True),
+            classification_evaluator=SensorToFlowfrontEvaluator(
+                save_path=save_path,
+                halfed=True),
         )
         eval_wrapper.load_checkpoint(path / "checkpoint.pth")
 
@@ -140,7 +143,8 @@ class SensorTrainer:
         logger = logging.getLogger(__name__)
 
         logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
+        self.training_data_generator = self.create_datagenerator(save_path,
+                                                                 test_mode=False)
 
         logger.info("Generating Model")
         model = DeconvModel4x()
@@ -171,7 +175,8 @@ if __name__ == "__main__":
 
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
-        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+        _data_root = Path(
+            "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
         _batch_size = 256
         _eval_freq = math.ceil(num_data_points / _batch_size)
         if getpass.getuser() == "stiebesi":
@@ -209,17 +214,17 @@ if __name__ == "__main__":
             _data_root / "2019-08-26_16-59-08_6000p",
         ]
     else:
-        _data_source_paths=[]
+        _data_source_paths = []
 
     st = SensorTrainer(cache_path=_cache_path,
-                     data_source_paths=_data_source_paths,
-                     batch_size=_batch_size,
-                     eval_freq=_eval_freq,
-                     save_path=_save_path,
-                     epochs=_epochs,
-                     num_workers=_num_workers,
-                     num_validation_samples=_num_validation_samples,
-                     num_test_samples=_num_test_samples)
+                       data_source_paths=_data_source_paths,
+                       batch_size=_batch_size,
+                       eval_freq=_eval_freq,
+                       save_path=_save_path,
+                       epochs=_epochs,
+                       num_workers=_num_workers,
+                       num_validation_samples=_num_validation_samples,
+                       num_test_samples=_num_test_samples)
 
     if train:
         st.run_training()
@@ -229,4 +234,5 @@ if __name__ == "__main__":
                 Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
             )
         else:
-            st.inference_on_test_set(Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\2019-09-06_15-44-58_63_sensors"))
+            st.inference_on_test_set(Path(
+                r"X:\s\t\stiebesi\data\RTM\Leoben\Results\2019-09-06_15-44-58_63_sensors"))

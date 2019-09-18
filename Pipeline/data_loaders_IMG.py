@@ -1,19 +1,12 @@
-import colorsys
 import logging
-import time
+# import random
 from functools import partial
-from multiprocessing.pool import Pool
 from pathlib import Path
 
-import numpy as np
 import h5py
-import random
+import numpy as np
 
-# from PIL import Image
-from PIL import Image, ImageDraw
-
-from Pipeline.data_gather import get_filelist_within_folder
-
+# from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
 from Pipeline.plots_and_images import (
     draw_polygon_map,
@@ -22,47 +15,50 @@ from Pipeline.plots_and_images import (
 )
 
 
-def get_image_state_sequence(
-    folder, start_state=0, end_state=100, step=5, label_offset=3
-):
-    filelist = get_filelist_within_folder(folder)
-    if len(filelist) == 0:
-        return None
-    filelist.sort()
-    state_list = list()
+# from PIL import Image
 
-    f = 0
-
-    c_state = start_state
-
-    label = None
-
-    while f < len(filelist):
-        f_meta = filelist[f]
-        f_split = f_meta.split("/")[-1].split("_")
-        state_index = int(f_split[0])
-
-        if state_index <= c_state:
-            state_list.append(load_image(f_meta))
-        f += 1
-        c_state += step
-
-        if c_state > end_state:
-            f += label_offset - 1
-            if f < len(filelist):
-                f_meta = filelist[f]
-                label = load_image(f_meta)
-
-            break
-
-    if label is None:
-        return None
-
-    data = np.stack(state_list)
-    if np.shape(data)[0] != int((end_state - start_state) / step) + 1:
-        return None
-
-    return [(data, label)]
+# FIXME: Lukas or Niklas, where is the load_image() function?
+# def get_image_state_sequence(
+#         folder, start_state=0, end_state=100, step=5, label_offset=3
+# ):
+#     filelist = get_filelist_within_folder(folder)
+#     if len(filelist) == 0:
+#         return None
+#     filelist.sort()
+#     state_list = list()
+#
+#     f = 0
+#
+#     c_state = start_state
+#
+#     label = None
+#
+#     while f < len(filelist):
+#         f_meta = filelist[f]
+#         f_split = f_meta.split("/")[-1].split("_")
+#         state_index = int(f_split[0])
+#
+#         if state_index <= c_state:
+#             state_list.append(load_image(f_meta))
+#         f += 1
+#         c_state += step
+#
+#         if c_state > end_state:
+#             f += label_offset - 1
+#             if f < len(filelist):
+#                 f_meta = filelist[f]
+#                 label = load_image(f_meta)
+#
+#             break
+#
+#     if label is None:
+#         return None
+#
+#     data = np.stack(state_list)
+#     if np.shape(data)[0] != int((end_state - start_state) / step) + 1:
+#         return None
+#
+#     return [(data, label)]
 
 
 def normalize_coords(coords):
@@ -105,22 +101,23 @@ def create_np_image(target_shape=(143, 111), norm_coords=None, data=None):
 
 
 def get_images_of_flow_front_and_permeability_map(
-    filename, wanted_num=10, imsize=(155, 155)
+        filename, wanted_num=10, imsize=(155, 155)
 ):
     f = h5py.File(filename, "r")
     im, scaled_coords, triangle_coords = get_local_properties_map(f, imsize)
 
     all_states = list(f["post"]["singlestate"].keys())
-    selected_states = get_fixed_number_of_elements_and_their_indices_from_various_sized_list(
+    selected_states = get_fixed_number_of_elements_and_indices(
         all_states, wanted_num=wanted_num
     )
 
     fillings = []
     for i, state in enumerate(all_states):
         try:
-            filling_factor = f["post"]["singlestate"][state]["entityresults"]["NODE"][
-                "FILLING_FACTOR"
-            ]["ZONE1_set1"]["erfblock"]["res"][()]
+            filling_factor = \
+                f["post"]["singlestate"][state]["entityresults"]["NODE"][
+                    "FILLING_FACTOR"
+                ]["ZONE1_set1"]["erfblock"]["res"][()]
         except KeyError:
             return None
         fillings.append(filling_factor)
@@ -128,7 +125,8 @@ def get_images_of_flow_front_and_permeability_map(
     # indices = [int(x.split('state')[1]) for x in selected_states]
     indices = selected_states
     label = np.asarray(im)
-    wrapper = partial(plot_wrapper, triangle_coords, scaled_coords, fillings, imsize)
+    wrapper = partial(plot_wrapper, triangle_coords, scaled_coords, fillings,
+                      imsize)
     res = []
     for i in indices:
         try:
@@ -151,8 +149,8 @@ def get_images_of_flow_front_and_permeability_map(
     return [(img_stack[0:wanted_num], label)]
 
 
-def get_fixed_number_of_elements_and_their_indices_from_various_sized_list(
-    input_list, wanted_num
+def get_fixed_number_of_elements_and_indices(
+        input_list, wanted_num
 ):
     if wanted_num > len(input_list):
         return
@@ -198,7 +196,7 @@ def get_local_properties_map(f, imsize):
 
 
 def create_local_properties_map(
-    data, scaled_coords, triangle_coords, _type="FIBER_FRACTION"
+        data, scaled_coords, triangle_coords, _type="FIBER_FRACTION"
 ):
     values_for_triangles = data[_type]["ZONE1_set1"]["erfblock"]["res"][()]
     im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords)
@@ -222,23 +220,26 @@ def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
     instances = []
     try:
         coord_as_np_array = f[
-            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"
+            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/" 
+            "erfblock/res"
         ][()]
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
 
         _coords = normalize_coords(_coords)
 
-        pressure_array = f["post"]["multistate"]["TIMESERIES1"]["multientityresults"][
-            "SENSOR"
-        ]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
+        pressure_array = \
+            f["post"]["multistate"]["TIMESERIES1"]["multientityresults"][
+                "SENSOR"]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
+        # convert barye to bar ( smaller values are more stable while training)
         pressure_array = (
             pressure_array / 100000
-        )  # convert barye to bar ( smaller values are more stable while training)
+        )
         all_states = f["post"]["singlestate"]
 
         filling_factors_at_certain_times = [
-            f["post"]["singlestate"][state]["entityresults"]["NODE"]["FILLING_FACTOR"][
+            f["post"]["singlestate"][state]["entityresults"]["NODE"][
+                "FILLING_FACTOR"][
                 "ZONE1_set1"
             ]["erfblock"]["res"][()]
             for state in all_states
@@ -262,25 +263,24 @@ def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
         return None
     return instances
 
-
-def get_image_percentage(folder):
-    filelist = get_filelist_within_folder(folder)
-    if len(filelist) == 0:
-        return None
-    random.shuffle(filelist)
-
-    ret_list = []
-    for el in filelist:
-        f_split = el.split("/")[-1].split("_")
-        percentage = float(f_split[1])
-        dat = load_image(el)
-        ret_list.append((dat, np.array(percentage)))
-
-    return ret_list
+# FIXME also here, load image is used. where is it?
+# def get_image_percentage(folder):
+#     filelist = get_filelist_within_folder(folder)
+#     if len(filelist) == 0:
+#         return None
+#     random.shuffle(filelist)
+#
+#     ret_list = []
+#     for el in filelist:
+#         f_split = el.split("/")[-1].split("_")
+#         percentage = float(f_split[1])
+#         dat = load_image(el)
+#         ret_list.append((dat, np.array(percentage)))
+#
+#     return ret_list
 
 
 if __name__ == "__main__":
     get_sensordata_and_flowfront(
         Path(r"/home/schroeter/Desktop/2019-08-24_11-51-48_3_RESULT.erfh5")
     )
-

@@ -1,14 +1,13 @@
-import torch
-import torch.nn as nn
-
-import torch.nn.functional as F
-
 from collections import OrderedDict
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-class stacked_FullyConnected(nn.Module):
+
+class StackedFullyConnected(nn.Module):
     def __init__(self, FC_List=[500, 200, 100]):
-        super(stacked_FullyConnected, self).__init__()
+        super(StackedFullyConnected, self).__init__()
         self.FC_List = FC_List
         self.FCs = nn.ModuleList()
         self.__get_fc()
@@ -34,8 +33,8 @@ class erfh5_Distributed_Autoencoder(nn.Module):
     def __init__(self, dgx_mode=True, layers_size_list=[69366, 15000]):
         super(erfh5_Distributed_Autoencoder, self).__init__()
 
-        self.encoder = stacked_FullyConnected(layers_size_list)
-        self.decoder = stacked_FullyConnected(list(reversed(layers_size_list)))
+        self.encoder = StackedFullyConnected(layers_size_list)
+        self.decoder = StackedFullyConnected(list(reversed(layers_size_list)))
         print(self.encoder)
         print(self.decoder)
 
@@ -63,8 +62,10 @@ class erfh5_Autoencoder(nn.Module):
 
         self.__get_fc()
 
-        # self.weightList = nn.ParameterList([nn.Parameter(f.weight) for f in self.FCs])
-        # self.biasList = nn.ParameterList([nn.Parameter(f.bias) for f in self.FCs])
+        # self.weightList =
+        # nn.ParameterList([nn.Parameter(f.weight) for f in self.FCs])
+        # self.biasList =
+        # nn.ParameterList([nn.Parameter(f.bias) for f in self.FCs])
         [print(f) for f in self.FCs]
 
     def __get_fc(self):
@@ -96,7 +97,7 @@ class erfh5_Autoencoder(nn.Module):
 def load_stacked_fc(path, list=[69366, 15000, 8192]):
     state_dict = torch.load(path)
     new_state_dict = OrderedDict()
-    model = stacked_FullyConnected(list)
+    model = StackedFullyConnected(list)
 
     for k, v in state_dict.items():
         name = k[7:]  # remove `module.`
@@ -125,19 +126,16 @@ if __name__ == "__main__":
             #output = output.to(device) 
             #loss = loss + loss_criterion(output, i).item()
             output = output.cpu().numpy()
-            i = i.cpu().numpy()
-            
+            i = i.cpu().numpy()  
             plt.figure()
             plt.subplot(211)
             plt.plot(i, 'bo')
-            
             plt.subplot(212)
             plt.plot(output, 'ro')
-            plt.savefig('/cfs/home/l/o/lodesluk/models/' + str(counter) + '.png')
+            plt.savefig('/cfs/home/l/o/lodesluk/models/' + 
+            str(counter) + '.png')
             print("plot saved")
             counter = counter + 1
-            
-
         #loss = loss / len(validation_samples)
         #print(">>>Loss on loaded model:", "{:8.4f}".format(loss))
         half_encoder.train()
