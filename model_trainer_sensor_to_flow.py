@@ -1,3 +1,4 @@
+import argparse
 import getpass
 import logging
 import math
@@ -53,7 +54,7 @@ class SensorTrainer:
         self.training_data_generator = None
         self.test_data_generator = None
 
-    def create_datagenerator(self, save_path, test_mode=True):
+    def create_datagenerator(self, save_path, test_mode=False):
         try:
             generator = pipeline.ERFH5DataGenerator(
                 data_paths=self.data_source_paths,
@@ -75,7 +76,7 @@ class SensorTrainer:
             h = logging.StreamHandler()
             h.setLevel(logging.ERROR)
             logger.addHandler(h)
-            logger.error("Fatal Error:", e)
+            logger.error(f"Fatal Error: {e}")
             logging.error("exception ", exc_info=1)
             exit()
         return generator
@@ -98,8 +99,7 @@ class SensorTrainer:
             model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         logger.info("Generating Test Generator")
-        self.test_data_generator = self.create_datagenerator(save_path,
-                                                             test_mode=True)
+        self.test_data_generator = self.create_datagenerator(save_path, test_mode=True)
 
         eval_wrapper = MasterTrainer(
             model,
@@ -138,8 +138,7 @@ class SensorTrainer:
         )
         logger = logging.getLogger(__name__)
         logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(save_path,
-                                                                 test_mode=False)
+        self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
         logger.info("Generating Model")
         model = DeconvModel()
@@ -169,6 +168,11 @@ class SensorTrainer:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run training or test.')
+    parser.add_argument('--eval', action='store_true', help='Run a test.')
+    args = parser.parse_args()
+    run_eval = args.eval
+
     num_data_points = 31376
     _train_print_freq = 10
     if socket.gethostname() == "swt-dgx1":
@@ -215,8 +219,7 @@ if __name__ == "__main__":
         _num_validation_samples = 1000
         _num_test_samples = 2000
 
-    train = True
-    if train:
+    if not run_eval:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",
             _data_root / "2019-07-24_16-32-40_5000p",
@@ -245,14 +248,15 @@ if __name__ == "__main__":
                        num_validation_samples=_num_validation_samples,
                        num_test_samples=_num_test_samples)
 
-    if train:
+    if not run_eval:
         st.run_training()
     else:
         if socket.gethostname() != "swtse130":
-            st.inference_on_test_set(
-                Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
-            )
+            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-17_15-26-14")
+            st.inference_on_test_set(source_path=path,
+                                     output_path=path)
         else:
-            st.inference_on_test_set(
-                Path(r"Y:\cache\output_simon\2019-09-02_19-40-56"))
+            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\2019-09-17_15-26-14")
+            st.inference_on_test_set(source_path=path,
+                                     output_path=path)
     logging.shutdown()
