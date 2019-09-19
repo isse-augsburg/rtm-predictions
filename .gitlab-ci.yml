@@ -12,10 +12,7 @@ linter:
 test:
   stage: test
   script:
-    - ls /cfs
-    - ls /cfs/home
-    - ls /cfs/share
-    - ls /cfs/share/data/RTM
+    - mount
     - python3 -m unittest discover -s Tests -t Tests
   # - python3 -m unittest Tests.test_eval.TestEval
 
