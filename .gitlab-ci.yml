@@ -12,7 +12,6 @@ linter:
 test:
   stage: test
   script:
-    - mount
     - python3 -m unittest discover -s Tests -t Tests
   # - python3 -m unittest Tests.test_eval.TestEval
 
