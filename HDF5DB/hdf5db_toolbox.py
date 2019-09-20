@@ -43,20 +43,20 @@ class HDF5DBToolbox:
                     if erfh5File.exists():
                         self.hdf5_path.append(i.as_posix())
                         self.erfh5_path.append(erfh5File.as_posix())
-                        self.newObject = HDF5Object(i.as_posix(), erfh5File.as_posix())
-                        if self.newObject.path_meta not in self.meta:
-                            self.hdf5_object_list.append(self.newObject)
+                        # self.newObject = HDF5Object(i.as_posix(), erfh5File.as_posix())
+                        # if self.newObject.path_meta not in self.meta:
+                        #     self.hdf5_object_list.append(self.newObject)
                 else:
                     print(i.as_posix() + " does not exist. The folder was skipped.")
-            # print("H5-files are currently being scanned...")
-            # with Pool(20) as p:
-            #    self.newObjects = p.starmap(
-            #        HDF5Object, zip(self.hdf5_path, self.erfh5_path)
-            #    )
-            # print("Objects are currently being added...")
-            # for i in self.newObjects:
-            #     if i.path_meta not in self.meta:
-            #         self.hdf5_object_list.append(i)
+            print("H5-files are currently being scanned...")
+            with Pool(20) as p:
+                self.newObjects = p.starmap(
+                    HDF5Object, zip(self.hdf5_path, self.erfh5_path)
+                )
+            print("Objects are currently being added...")
+            for i in self.newObjects:
+                if i.path_meta not in self.meta:
+                    self.hdf5_object_list.append(i)
             print(
                 str(abs(self.temp - len(self.hdf5_object_list)))
                 + " Objects have been added."
@@ -87,7 +87,7 @@ class HDF5DBToolbox:
         #     )
         selected = [a for a in selected if a is not None]
 
-        if len(selected) is 0:
+        if len(selected) == 0:
             print(
                 "No matches were found for "
                 + str(variable)

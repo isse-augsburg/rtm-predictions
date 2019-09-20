@@ -50,8 +50,8 @@ def test():
     # test.select("avg_level", "<", 0.9)
     test.select("posy_circle", "=", 18.375)
     # test.show_objects()
-#
-#
+
+
 # def main():
 t = timeit.Timer("test()", "from __main__ import test")
 print(str(t.timeit(1)) + "s")
@@ -60,6 +60,6 @@ print(str(t.timeit(1)) + "s")
 # if __name__ == "__main__":
 #     test()
 # TODO
-    # Min/Max width/heigth of rectangles
-    # Same for circle: radius
-    # Total number of frames
+# Min/Max width/heigth of rectangles
+# Same for circle: radius
+# Total number of frames
