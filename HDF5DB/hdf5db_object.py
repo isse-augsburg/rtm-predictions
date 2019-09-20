@@ -1,5 +1,4 @@
 from datetime import datetime
-from pathlib import Path
 
 import h5py
 import numpy as np
@@ -7,9 +6,8 @@ import regex as re
 
 
 class HDF5Object:
-    def __init__(self):
-        pass
-
+    # def __init__(self):
+    #     pass
     def __init__(self, path_meta, path_result):
         self.output_frequency_type_path = "output_frequency_type"
         self.output_frequency_path = "output_frequency"
@@ -67,7 +65,8 @@ class HDF5Object:
         self.pos_lower_lefty_runner_pathS = "Shapes/Runner/posLowerLeftY"
 
         self.single_state_path = "post/singlestate"
-        self.number_of_sensors_path = "post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
+        self.number_of_sensors_path = "post/multistate/TIMESERIES1/multientityresults/" \
+                                      "SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
 
         self.number_of_circles = 0
         self.number_of_rectangles = 0
@@ -78,18 +77,18 @@ class HDF5Object:
         m = h5py.File(path_meta, "r")
         self.path_meta = path_meta
         if self.output_frequency_type_path in m:
-            self.output_frequency_type = m[self.output_frequency_type_path][()][0]
+            self.output_frequency_type = m[self.output_frequency_type_path][()]
         if self.output_frequency_path in m:
-            self.output_frequency = m[self.output_frequency_path][()][0]
+            self.output_frequency = m[self.output_frequency_path][()]
 
         if self.general_sigma_path in m:
-            self.general_sigma = m[self.general_sigma_path][()][0]
+            self.general_sigma = m[self.general_sigma_path][()]
         if self.number_of_circles_path in m:
-            self.number_of_circles = m[self.number_of_circles_path][()][0]
+            self.number_of_circles = m[self.number_of_circles_path][()]
         if self.number_of_rectangles_path in m:
-            self.number_of_rectangles = m[self.number_of_rectangles_path][()][0]
+            self.number_of_rectangles = m[self.number_of_rectangles_path][()]
         if self.number_of_runners_path in m:
-            self.number_of_runners = m[self.number_of_runners_path][()][0]
+            self.number_of_runners = m[self.number_of_runners_path][()]
         self.number_of_shapes = (
             self.number_of_circles + self.number_of_rectangles + self.number_of_runners
         )
@@ -205,14 +204,14 @@ class HDF5Object:
 
         if (
             re.search(
-                "([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})",
+                r"([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2})",
                 path_result,
             )
             is not None
         ):
             self.age = datetime.strptime(
                 re.search(
-                    "([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})",
+                    r"([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2})",
                     path_result,
                 ).group(1),
                 "%Y-%m-%d_%H-%M-%S",

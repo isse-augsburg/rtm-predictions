@@ -6,14 +6,13 @@ from datetime import datetime
 from pathlib import Path
 
 import deepdish as dd
-import h5py
 import numpy as np
 
-from HDF5DB import HDF5DB
-from HDF5Object import HDF5Object
+from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
+from HDF5DB.hdf5db_object import HDF5Object
 
 
-class HDF5DBTest(unittest.TestCase):
+class TestHDF5DB(unittest.TestCase):
     def setUp(self):
         self.age = "2019-08-30_12-23-59"
         self.testfolder = Path("Tests")
@@ -212,7 +211,7 @@ class HDF5DBTest(unittest.TestCase):
 
     def setup_test_data(self):
         self.test_meta["perturbation_factors"] = self.test_meta_perturbation
-        temp = self.test_meta["shapes"] = self.test_meta_shapes
+        self.test_meta["shapes"] = self.test_meta_shapes
         dd.io.save(
             str(self.testfolder / self.path_meta), self.test_meta, compression=None
         )
@@ -221,8 +220,8 @@ class HDF5DBTest(unittest.TestCase):
         )
 
     def test_load_save(self):
-        self.test_db = HDF5DB()
-        self.test_db2 = HDF5DB()
+        self.test_db = HDF5DBToolbox()
+        self.test_db2 = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(self.testfolder))
         self.test_db.save(str(self.testfolder), "HDF5TESTDB")
         self.test_db2.load(str(self.testfolder), "HDF5TESTDB")
@@ -230,15 +229,15 @@ class HDF5DBTest(unittest.TestCase):
         os.remove(self.testfolder / Path("HDF5TESTDB.h5db"))
 
     def test_add_objects_from_path(self):
-        self.test_result_db = HDF5DB()
-        self.test_db = HDF5DB()
+        self.test_result_db = HDF5DBToolbox()
+        self.test_db = HDF5DBToolbox()
         self.test_result_db.add_object(self.test_object)
         self.test_db.add_objects_from_path(str(self.testfolder))
         self.assertTrue(self.test_db.__eq__(self.test_result_db))
 
     # Select-tests
     def test_select_incorrect_entry(self):
-        test_db = HDF5DB()
+        test_db = HDF5DBToolbox()
         test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         applied = test_db.select("path_meta", "!", "bla")
         self.assertEqual(len(test_db.hdf5_object_list), 1)
@@ -255,7 +254,7 @@ class HDF5DBTest(unittest.TestCase):
 
     # Metapath and resultpath
     def test_select_paths(self):
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         # Illegal operator > and <
         path = self.path_meta
@@ -282,7 +281,7 @@ class HDF5DBTest(unittest.TestCase):
 
     def test_select_output_frequency(self):
         # Output_frequency
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(self.testfolder))
         applied = self.test_db.select("output_frequency", ">", 1)
         self.assertGreater(self.test_db.hdf5_object_list[0].output_frequency, 1)
@@ -305,7 +304,7 @@ class HDF5DBTest(unittest.TestCase):
         self.assertEqual(applied, 1)
 
     def test_select_general_sigma(self):
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(self.testfolder))
         applied = self.test_db.select("general_sigma", ">", 99)
         # self.test_db.show_objects()
@@ -320,7 +319,7 @@ class HDF5DBTest(unittest.TestCase):
 
     # Number of circles, rectangles, runners, shapes
     def test_select_num_shapes(self):
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(self.testfolder))
         str_shape = ["number_of_circles", "number_of_rectangles", "number_of_runners"]
         shape = [
@@ -351,7 +350,7 @@ class HDF5DBTest(unittest.TestCase):
         self.assertEqual(applied, 1)
 
     def test_select_fibre_content(self):
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(self.testfolder))
         str_shape = [
             "fibre_content_circles",
@@ -376,7 +375,7 @@ class HDF5DBTest(unittest.TestCase):
             self.assertEqual(applied, 1)
 
     def test_select_shape(self):
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(self.testfolder))
         str_shape = ["circle", "rectangle", "runner"]
         fvc_shapes = [
@@ -524,7 +523,7 @@ class HDF5DBTest(unittest.TestCase):
         self.assertEqual(applied, 1)
 
     def test_select_fillinglevel(self):
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path("Tests")
         applied = self.test_db.select("avg_level", ">", 0)
         self.assertGreater(self.test_db.hdf5_object_list[0].avg_level, 0)
@@ -539,7 +538,7 @@ class HDF5DBTest(unittest.TestCase):
         self.assertEqual(applied, 1)
 
     def test_select_age(self):
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(self.testfolder))
         applied = self.test_db.select("age", ">", "2019-08-30_12-23-58")
         self.assertGreater(
@@ -562,7 +561,7 @@ class HDF5DBTest(unittest.TestCase):
         self.assertEqual(applied, 1)
 
     def test_select_num_sensors(self):
-        self.test_db = HDF5DB()
+        self.test_db = HDF5DBToolbox()
         self.test_db.add_objects_from_path(str(self.testfolder))
         applied = self.test_db.select("number_of_sensors", ">", 3)
         self.assertGreater(self.test_db.hdf5_object_list[0].number_of_sensors, 3)

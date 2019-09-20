@@ -11,10 +11,10 @@ import regex as re
 from prettytable import PrettyTable
 from tqdm import tqdm
 
-from HDF5Object import HDF5Object
+from hdf5db_object import HDF5Object
 
 
-class HDF5DB:
+class HDF5DBToolbox:
     def __init__(self):
         self.hdf5_object_list = []
         self.meta = []
@@ -78,7 +78,7 @@ class HDF5DB:
             my_comparison_operator.append(comparisonOperator)
 
         for (a, b, c, d) in zip(
-            self.hdf5_object_list, my_variable, my_comparison_operator, my_value
+                self.hdf5_object_list, my_variable, my_comparison_operator, my_value
         ):
             selected.append(self.select_per_object(a, b, c, d))
         # with Pool(6) as p:
@@ -112,8 +112,6 @@ class HDF5DB:
                     + str(len(selected))
                     + " objects were found."
                 )
-                meta = [obj.path_meta for obj in self.hdf5_object_list]
-                result = [obj.path_result for obj in self.hdf5_object_list]
             else:
                 print(
                     "The filter "
@@ -126,6 +124,8 @@ class HDF5DB:
                     + str(len(selected))
                     + " object was found."
                 )
+            self.meta = [obj.path_meta for obj in self.hdf5_object_list]
+            self.result = [obj.path_result for obj in self.hdf5_object_list]
             return 1
 
     def select_per_object(self, obj, variable, comparisonOperator, value):
@@ -147,29 +147,29 @@ class HDF5DB:
             if variable == "path_meta" and operator1(obj.path_meta, value):
                 return obj
             elif variable == "output_frequency_type" and operator1(
-                obj.output_frequency_type, value
+                    obj.output_frequency_type, value
             ):
                 return obj
             elif variable == "output_frequency" and operator1(
-                obj.output_frequency, value
+                    obj.output_frequency, value
             ):
                 return obj
             elif variable == "general_sigma" and operator1(obj.general_sigma, value):
                 return obj
             elif variable == "number_of_circles" and operator1(
-                obj.number_of_circles, value
+                    obj.number_of_circles, value
             ):
                 return obj
             elif variable == "number_of_rectangles" and operator1(
-                obj.number_of_rectangles, value
+                    obj.number_of_rectangles, value
             ):
                 return obj
             elif variable == "number_of_runners" and operator1(
-                obj.number_of_runners, value
+                    obj.number_of_runners, value
             ):
                 return obj
             elif variable == "number_of_shapes" and operator1(
-                obj.number_of_shapes, value
+                    obj.number_of_shapes, value
             ):
                 return obj
             # Result-queries
@@ -179,14 +179,14 @@ class HDF5DB:
                 return obj
             elif variable == "age":
                 temp = re.search(
-                    "([0-9]{4}\-[0-9]{2}\-[0-9]{2}_[0-9]{2}\-[0-9]{2}\-[0-9]{2})", value
+                    r"([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2})", value
                 )
                 if temp is not None and operator1(
-                    obj.age, datetime.strptime(temp.group(1), "%Y-%m-%d_%H-%M-%S")
+                        obj.age, datetime.strptime(temp.group(1), "%Y-%m-%d_%H-%M-%S")
                 ):
                     return obj
             elif variable == "number_of_sensors" and operator1(
-                obj.number_of_sensors, value
+                    obj.number_of_sensors, value
             ):
                 return obj
 
@@ -195,64 +195,64 @@ class HDF5DB:
             print(obj.posx_circle)
             if comparisonOperator == "=":
                 if (
-                    variable == "fibre_content_circles"
-                    and np.amin(obj.fibre_content_circles) <= value
-                    and np.amax(obj.fibre_content_circles) >= value
+                        variable == "fibre_content_circles"
+                        and np.amin(obj.fibre_content_circles) <= value
+                        and np.amax(obj.fibre_content_circles) >= value
                 ):
                     return obj
                 elif (
-                    variable == "fibre_content_rectangles"
-                    and np.amin(obj.fibre_content_rectangles) <= value
-                    and np.amax(obj.fibre_content_rectangles) >= value
+                        variable == "fibre_content_rectangles"
+                        and np.amin(obj.fibre_content_rectangles) <= value
+                        and np.amax(obj.fibre_content_rectangles) >= value
                 ):
                     return obj
                 elif (
-                    variable == "fibre_content_runners"
-                    and np.amin(obj.fibre_content_runners) <= value
-                    and np.amax(obj.fibre_content_runners) >= value
+                        variable == "fibre_content_runners"
+                        and np.amin(obj.fibre_content_runners) <= value
+                        and np.amax(obj.fibre_content_runners) >= value
                 ):
                     return obj
                 # Circle
                 elif variable == "fvc_circle" and operator2(obj.fvc_circle[:], value):
                     return obj
                 elif variable == "radius_circle" and operator2(
-                    obj.radius_circle, value
+                        obj.radius_circle, value
                 ):
                     return obj
                 elif variable == "posx_circle" and operator2(obj.posx_circle[:], value):
-                        return obj
+                    return obj
                 elif variable == "posy_circle" and operator2(obj.posy_circle[:], value):
                     return obj
                 # Rectangle
                 elif variable == "fvc_rectangle" and operator2(
-                    obj.fvc_rectangle[:], value
+                        obj.fvc_rectangle[:], value
                 ):
                     return obj
                 elif variable == "height_rectangle" and operator2(
-                    obj.height_rectangle[:], value
+                        obj.height_rectangle[:], value
                 ):
                     return obj
                 elif variable == "width_rectangle" and operator2(
-                    obj.width_rectangle[:], value
+                        obj.width_rectangle[:], value
                 ):
                     return obj
                 elif variable == "posx_rectangle" and operator2(
-                    obj.posx_rectangle[:], value
+                        obj.posx_rectangle[:], value
                 ):
                     return obj
                 elif variable == "posy_rectangle" and operator2(
-                    obj.posy_rectangle[:], value
+                        obj.posy_rectangle[:], value
                 ):
                     return obj
                 # Runner
                 elif variable == "fvc_runner" and operator2(obj.fvc_runner[:], value):
                     return obj
                 elif variable == "height_runner" and operator2(
-                    obj.height_runner[:], value
+                        obj.height_runner[:], value
                 ):
                     return obj
                 elif variable == "width_runner" and operator2(
-                    obj.width_runner[:], value
+                        obj.width_runner[:], value
                 ):
                     return obj
                 elif variable == "posx_runner" and operator2(obj.posx_runner[:], value):
@@ -260,93 +260,93 @@ class HDF5DB:
                 elif variable == "posy_runner" and operator2(obj.posy_runner[:], value):
                     return obj
                 elif variable == "pos_lower_leftx_runner" and operator2(
-                    obj.pos_lower_leftx_runner[:], value
+                        obj.pos_lower_leftx_runner[:], value
                 ):
                     return obj
                 elif variable == "pos_lower_lefty_runner" and operator2(
-                    obj.pos_lower_lefty_runner[:], value
+                        obj.pos_lower_lefty_runner[:], value
                 ):
                     return obj
 
             # Standardized queries for > and <
             elif comparisonOperator == ">" or comparisonOperator == "<":
                 if variable == "fibre_content_circles" and operator1(
-                    operator2(obj.fibre_content_circles), value
+                        operator2(obj.fibre_content_circles), value
                 ):
                     return obj
                 elif variable == "fibre_content_rectangles" and operator1(
-                    operator2(obj.fibre_content_rectangles), value
+                        operator2(obj.fibre_content_rectangles), value
                 ):
                     return obj
                 elif variable == "fibre_content_runners" and operator1(
-                    operator2(obj.fibre_content_runners), value
+                        operator2(obj.fibre_content_runners), value
                 ):
                     return obj
                 # Circle
                 elif variable == "fvc_circle" and operator1(
-                    operator2(obj.fvc_circle), value
+                        operator2(obj.fvc_circle), value
                 ):
                     return obj
                 elif variable == "radius_circle" and operator1(
-                    operator2(obj.radius_circle), value
+                        operator2(obj.radius_circle), value
                 ):
                     return obj
                 elif variable == "posx_circle" and operator1(
-                    operator2(obj.posx_circle), value
+                        operator2(obj.posx_circle), value
                 ):
                     return obj
                 elif variable == "posy_circle" and operator1(
-                    operator2(obj.posy_circle), value
+                        operator2(obj.posy_circle), value
                 ):
                     return obj
                 # Rectangle
                 elif variable == "fvc_rectangle" and operator1(
-                    operator2(obj.fvc_rectangle), value
+                        operator2(obj.fvc_rectangle), value
                 ):
                     return obj
                 elif variable == "height_rectangle" and operator1(
-                    operator2(obj.height_rectangle), value
+                        operator2(obj.height_rectangle), value
                 ):
                     return obj
                 elif variable == "width_rectangle" and operator1(
-                    operator2(obj.width_rectangle), value
+                        operator2(obj.width_rectangle), value
                 ):
                     return obj
                 elif variable == "posx_rectangle" and operator1(
-                    operator2(obj.posx_rectangle), value
+                        operator2(obj.posx_rectangle), value
                 ):
                     return obj
                 elif variable == "posy_rectangle" and operator1(
-                    operator2(obj.posy_rectangle), value
+                        operator2(obj.posy_rectangle), value
                 ):
                     return obj
                 # Runner
                 elif variable == "fvc_runner" and operator1(
-                    operator2(obj.fvc_runner), value
+                        operator2(obj.fvc_runner), value
                 ):
                     return obj
                 elif variable == "height_runner" and operator1(
-                    operator2(obj.height_runner), value
+                        operator2(obj.height_runner), value
                 ):
                     return obj
                 elif variable == "width_runner" and operator1(
-                    operator2(obj.width_runner), value
+                        operator2(obj.width_runner), value
                 ):
                     return obj
                 elif variable == "posx_runner" and operator1(
-                    operator2(obj.posx_runner), value
+                        operator2(obj.posx_runner), value
                 ):
                     return obj
                 elif variable == "posy_runner" and operator1(
-                    operator2(obj.posy_runner), value
+                        operator2(obj.posy_runner), value
                 ):
                     return obj
                 elif variable == "pos_lower_leftx_runner" and operator1(
-                    operator2(obj.pos_lower_leftx_runner), value
+                        operator2(obj.pos_lower_leftx_runner), value
                 ):
                     return obj
                 elif variable == "pos_lower_lefty_runner" and operator1(
-                    operator2(obj.pos_lower_lefty_runner), value
+                        operator2(obj.pos_lower_lefty_runner), value
                 ):
                     return obj
 
