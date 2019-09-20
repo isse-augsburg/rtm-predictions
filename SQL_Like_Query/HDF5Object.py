@@ -7,6 +7,9 @@ import regex as re
 
 
 class HDF5Object:
+    def __init__(self):
+        pass
+
     def __init__(self, path_meta, path_result):
         self.output_frequency_type_path = "output_frequency_type"
         self.output_frequency_path = "output_frequency"
@@ -75,18 +78,18 @@ class HDF5Object:
         m = h5py.File(path_meta, "r")
         self.path_meta = path_meta
         if self.output_frequency_type_path in m:
-            self.output_frequency_type = m[self.output_frequency_type_path][()]
+            self.output_frequency_type = m[self.output_frequency_type_path][()][0]
         if self.output_frequency_path in m:
-            self.output_frequency = m[self.output_frequency_path][()]
+            self.output_frequency = m[self.output_frequency_path][()][0]
 
         if self.general_sigma_path in m:
-            self.general_sigma = m[self.general_sigma_path][()]
+            self.general_sigma = m[self.general_sigma_path][()][0]
         if self.number_of_circles_path in m:
-            self.number_of_circles = m[self.number_of_circles_path][()]
+            self.number_of_circles = m[self.number_of_circles_path][()][0]
         if self.number_of_rectangles_path in m:
-            self.number_of_rectangles = m[self.number_of_rectangles_path][()]
+            self.number_of_rectangles = m[self.number_of_rectangles_path][()][0]
         if self.number_of_runners_path in m:
-            self.number_of_runners = m[self.number_of_runners_path][()]
+            self.number_of_runners = m[self.number_of_runners_path][()][0]
         self.number_of_shapes = (
             self.number_of_circles + self.number_of_rectangles + self.number_of_runners
         )
@@ -101,77 +104,77 @@ class HDF5Object:
         # Shapes / S for new version
         # -Circle
         if self.fvc_circle_path in m:
-            self.fvc_circle = np.array(m[self.fvc_circle_path][()])
+            self.fvc_circle = np.asarray(m[self.fvc_circle_path][()])
         if self.fvc_circle_pathS in m:
-            self.fvc_circle = np.array(m[self.fvc_circle_pathS][()])
+            self.fvc_circle = np.asarray(m[self.fvc_circle_pathS][()])
         if self.radius_circle_path in m:
-            self.radius_circle = np.array(m[self.radius_circle_path][()])
+            self.radius_circle = np.asarray(m[self.radius_circle_path][()])
         if self.radius_circle_pathS in m:
-            self.radius_circle = np.array(m[self.radius_circle_pathS][()])
+            self.radius_circle = np.asarray(m[self.radius_circle_pathS][()])
         if self.posx_circle_path in m:
-            self.posx_circle = np.array(m[self.posx_circle_path][()])
+            self.posx_circle = np.asarray(m[self.posx_circle_path][()])
         if self.posx_circle_pathS in m:
-            self.posx_circle = np.array(m[self.posx_circle_pathS][()])
+            self.posx_circle = np.asarray(m[self.posx_circle_pathS][()])
         if self.posy_circle_path in m:
-            self.posy_circle = np.array(m[self.posy_circle_path][()])
+            self.posy_circle = np.asarray(m[self.posy_circle_path][()])
         if self.posy_circle_pathS in m:
-            self.posy_circle = np.array(m[self.posy_circle_pathS][()])
+            self.posy_circle = np.asarray(m[self.posy_circle_pathS][()])
         # -Rectangle
         if self.fvc_rectangle_path in m:
-            self.fvc_rectangle = np.array(m[self.fvc_rectangle_path][()])
+            self.fvc_rectangle = np.asarray(m[self.fvc_rectangle_path][()])
         if self.fvc_rectangle_pathS in m:
-            self.fvc_rectangle = np.array(m[self.fvc_rectangle_pathS][()])
+            self.fvc_rectangle = np.asarray(m[self.fvc_rectangle_pathS][()])
         if self.height_rectangle_path in m:
-            self.height_rectangle = np.array(m[self.height_rectangle_path][()])
+            self.height_rectangle = np.asarray(m[self.height_rectangle_path][()])
         if self.height_rectangle_pathS in m:
-            self.height_rectangle = np.array(m[self.height_rectangle_pathS][()])
+            self.height_rectangle = np.asarray(m[self.height_rectangle_pathS][()])
         if self.width_rectangle_path in m:
-            self.width_rectangle = np.array(m[self.width_rectangle_path][()])
+            self.width_rectangle = np.asarray(m[self.width_rectangle_path][()])
         if self.width_rectangle_pathS in m:
-            self.width_rectangle = np.array(m[self.width_rectangle_pathS][()])
+            self.width_rectangle = np.asarray(m[self.width_rectangle_pathS][()])
         if self.posx_rectangle_path in m:
-            self.posx_rectangle = np.array(m[self.posx_rectangle_path][()])
+            self.posx_rectangle = np.asarray(m[self.posx_rectangle_path][()])
         if self.posx_rectangle_pathS in m:
-            self.posx_rectangle = np.array(m[self.posx_rectangle_pathS][()])
+            self.posx_rectangle = np.asarray(m[self.posx_rectangle_pathS][()])
         if self.posy_rectangle_path in m:
-            self.posy_rectangle = np.array(m[self.posy_rectangle_path][()])
+            self.posy_rectangle = np.asarray(m[self.posy_rectangle_path][()])
         if self.posy_rectangle_pathS in m:
-            self.posy_rectangle = np.array(m[self.posy_rectangle_pathS][()])
+            self.posy_rectangle = np.asarray(m[self.posy_rectangle_pathS][()])
         # -Runner
         if self.fvc_runner_path in m:
-            self.fvc_runner = np.array(m[self.fvc_runner_path][()])
+            self.fvc_runner = np.asarray(m[self.fvc_runner_path][()])
         if self.fvc_runner_pathS in m:
-            self.fvc_runner = np.array(m[self.fvc_runner_pathS][()])
+            self.fvc_runner = np.asarray(m[self.fvc_runner_pathS][()])
         if self.height_runner_path in m:
-            self.height_runner = np.array(m[self.height_runner_path][()])
+            self.height_runner = np.asarray(m[self.height_runner_path][()])
         if self.height_runner_pathS in m:
-            self.height_runner = np.array(m[self.height_runner_pathS][()])
+            self.height_runner = np.asarray(m[self.height_runner_pathS][()])
         if self.width_runner_path in m:
-            self.width_runner = np.array(m[self.width_runner_path][()])
+            self.width_runner = np.asarray(m[self.width_runner_path][()])
         if self.width_runner_pathS in m:
-            self.width_runner = np.array(m[self.width_runner_pathS][()])
+            self.width_runner = np.asarray(m[self.width_runner_pathS][()])
         if self.posx_runner_path in m:
-            self.posx_runner = np.array(m[self.posx_runner_path][()])
+            self.posx_runner = np.asarray(m[self.posx_runner_path][()])
         if self.posx_runner_pathS in m:
-            self.posx_runner = np.array(m[self.posx_runner_pathS][()])
+            self.posx_runner = np.asarray(m[self.posx_runner_pathS][()])
         if self.posy_runner_path in m:
-            self.posy_runner = np.array(m[self.posy_runner_path][()])
+            self.posy_runner = np.asarray(m[self.posy_runner_path][()])
         if self.posy_runner_pathS in m:
-            self.posy_runner = np.array(m[self.posy_runner_pathS][()])
+            self.posy_runner = np.asarray(m[self.posy_runner_pathS][()])
         if self.pos_lower_leftx_runner_path in m:
-            self.pos_lower_leftx_runner = np.array(
+            self.pos_lower_leftx_runner = np.asarray(
                 m[self.pos_lower_leftx_runner_path][()]
             )
         if self.pos_lower_leftx_runner_pathS in m:
-            self.pos_lower_leftx_runner = np.array(
+            self.pos_lower_leftx_runner = np.asarray(
                 m[self.pos_lower_leftx_runner_pathS][()]
             )
         if self.pos_lower_lefty_runner_path in m:
-            self.pos_lower_lefty_runner = np.array(
+            self.pos_lower_lefty_runner = np.asarray(
                 m[self.pos_lower_lefty_runner_path][()]
             )
         if self.pos_lower_lefty_runner_pathS in m:
-            self.pos_lower_lefty_runner = np.array(
+            self.pos_lower_lefty_runner = np.asarray(
                 m[self.pos_lower_lefty_runner_pathS][()]
             )
         m.close()
