@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import Pipeline.resampling as rs
 
 
 def get_all_sensor_sequences(file, spacing=25, length=150):
@@ -28,7 +29,7 @@ def get_all_sensor_sequences(file, spacing=25, length=150):
     return sequences
 
 
-def get_sensordata_and_filling_percentage(file, until=-1, frm=-10):
+def get_sensordata_and_filling_percentage(file, until=-1, frm=0):
     """
      Args: 
         file (string): File from which the data should be extracted.
@@ -74,14 +75,16 @@ def get_sensordata_and_filling_percentage(file, until=-1, frm=-10):
     return [(pressure_array, filling)]
 
 
-def sensorgrid_simulationsuccess(file, last_n=50):
-    data = get_sensordata_and_filling_percentage(file, frm=-last_n)
+def sensorgrid_simulationsuccess(file, num_samples=50):
+    data = get_sensordata_and_filling_percentage(file)
 
     if data is None:
         return None
 
     try:
         pressure_array, label = data[0]
+        indices = rs.get_fixed_number_of_indices(len(pressure_array), num_samples)
+        pressure_array = pressure_array[indices]
         pressure_array = np.where(pressure_array > 0, 1.0, 0.0)
         pressure_array = np.reshape(pressure_array, (38, 30, -1))
     except ValueError:
@@ -89,11 +92,6 @@ def sensorgrid_simulationsuccess(file, last_n=50):
         return None
 
     return [(pressure_array, label)]
-
-
-# def sensorgrind_simulationsuccess_sampled(file, num_samples=50):
-#     data = get_sensordata_and_filling_percentage(file, until=-1, frm=0)
-    # FIXME data never used?
 
 
 def get_sensordata_and_filling_percentage_v2(file, until=400, frm=0):

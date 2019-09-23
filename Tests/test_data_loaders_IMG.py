@@ -45,7 +45,6 @@ class TestDataLoaderIMG(unittest.TestCase):
             self.tearDown()
 
     def tearDown(self):
-
         shutil.rmtree(self.img_cache_dirname)
 
 
