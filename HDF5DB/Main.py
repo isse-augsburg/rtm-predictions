@@ -53,8 +53,6 @@ def test():
 
 
 # def main():
-t = timeit.Timer("test()", "from __main__ import test")
-print(str(t.timeit(1)) + "s")
 # cProfile.run('test()')
 #
 # if __name__ == "__main__":
@@ -63,3 +61,5 @@ print(str(t.timeit(1)) + "s")
 # Min/Max width/heigth of rectangles
 # Same for circle: radius
 # Total number of frames
+t = timeit.Timer("test()", "from __main__ import test")
+print(str(t.timeit(1)) + "s")

@@ -14,7 +14,7 @@ from hdf5db_object import HDF5Object
 class TestHDF5DB(unittest.TestCase):
     def setUp(self):
         self.age = "2019-08-30_12-23-59"
-        self.testfolder = Path("Tests")
+        self.testfolder = Path("H5_Testfolder")
         # Metadata
         self.path_meta = Path("2019-08-30_12-23-59_test_meta_data.hdf5")
         self.output_frequency_type = 99
@@ -164,12 +164,12 @@ class TestHDF5DB(unittest.TestCase):
         }
 
         os.mkdir(os.getcwd() / self.testfolder)
-        dd.io.save(str(self.testfolder / self.path_meta), None, compression=None)
-        dd.io.save(str(self.testfolder / self.path_result), None, compression=None)
+        dd.io.save(str(os.getcwd() / self.testfolder / self.path_meta), None, compression=None)
+        dd.io.save(str(os.getcwd() / self.testfolder / self.path_result), None, compression=None)
         # TODO mit leerer init
         self.test_object = HDF5Object(
-            str(self.testfolder / self.path_meta),
-            str(self.testfolder / self.path_result),
+            str(os.getcwd() / self.testfolder / self.path_meta),
+            str(os.getcwd() / self.testfolder / self.path_result),
         )
         self.test_object.meta_path = os.getcwd() / self.testfolder / self.path_meta
         self.test_object.output_frequency_type = self.output_frequency_type
@@ -204,24 +204,24 @@ class TestHDF5DB(unittest.TestCase):
         self.test_object.result_path = os.getcwd() / self.testfolder / self.path_meta
         self.test_object.avg_level = np.sum(self.state999) / len(self.state999)
         self.test_object.age = datetime.strptime(self.age, "%Y-%m-%d_%H-%M-%S")
-        os.remove(str(self.testfolder / self.path_meta))
-        os.remove(str(self.testfolder / self.path_result))
+        os.remove(str(os.getcwd() / self.testfolder / self.path_meta))
+        os.remove(str(os.getcwd() / self.testfolder / self.path_result))
         self.setup_test_data()
 
     def setup_test_data(self):
         self.test_meta["perturbation_factors"] = self.test_meta_perturbation
         self.test_meta["shapes"] = self.test_meta_shapes
         dd.io.save(
-            str(self.testfolder / self.path_meta), self.test_meta, compression=None
+            str(os.getcwd() / self.testfolder / self.path_meta), self.test_meta, compression=None
         )
         dd.io.save(
-            str(self.testfolder / self.path_result), self.test_result, compression=None
+            str(os.getcwd() / self.testfolder / self.path_result), self.test_result, compression=None
         )
 
     def test_load_save(self):
         self.test_db = HDF5DBToolbox()
         self.test_db2 = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         self.test_db.save(str(self.testfolder), "HDF5TESTDB")
         self.test_db2.load(str(self.testfolder), "HDF5TESTDB")
         self.assertTrue(self.test_db.__eq__(self.test_db2))
@@ -231,7 +231,7 @@ class TestHDF5DB(unittest.TestCase):
         self.test_result_db = HDF5DBToolbox()
         self.test_db = HDF5DBToolbox()
         self.test_result_db.add_object(self.test_object)
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         self.assertTrue(self.test_db.__eq__(self.test_result_db))
 
     # Select-tests
@@ -281,7 +281,7 @@ class TestHDF5DB(unittest.TestCase):
     def test_select_output_frequency(self):
         # Output_frequency
         self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         applied = self.test_db.select("output_frequency", ">", 1)
         self.assertGreater(self.test_db.hdf5_object_list[0].output_frequency, 1)
         self.assertEqual(applied, 1)
@@ -304,7 +304,7 @@ class TestHDF5DB(unittest.TestCase):
 
     def test_select_general_sigma(self):
         self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         applied = self.test_db.select("general_sigma", ">", 99)
         # self.test_db.show_objects()
         self.assertGreater(self.test_db.hdf5_object_list[0].general_sigma, 99)
@@ -319,7 +319,7 @@ class TestHDF5DB(unittest.TestCase):
     # Number of circles, rectangles, runners, shapes
     def test_select_num_shapes(self):
         self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         str_shape = ["number_of_circles", "number_of_rectangles", "number_of_runners"]
         shape = [
             self.test_db.hdf5_object_list[0].number_of_circles,
@@ -350,7 +350,7 @@ class TestHDF5DB(unittest.TestCase):
 
     def test_select_fibre_content(self):
         self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         str_shape = [
             "fibre_content_circles",
             "fibre_content_rectangles",
@@ -375,7 +375,7 @@ class TestHDF5DB(unittest.TestCase):
 
     def test_select_shape(self):
         self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         str_shape = ["circle", "rectangle", "runner"]
         fvc_shapes = [
             self.test_db.hdf5_object_list[0].fvc_circle,
@@ -523,7 +523,7 @@ class TestHDF5DB(unittest.TestCase):
 
     def test_select_fillinglevel(self):
         self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path("Tests")
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         applied = self.test_db.select("avg_level", ">", 0)
         self.assertGreater(self.test_db.hdf5_object_list[0].avg_level, 0)
         self.assertEqual(applied, 1)
@@ -538,7 +538,7 @@ class TestHDF5DB(unittest.TestCase):
 
     def test_select_age(self):
         self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         applied = self.test_db.select("age", ">", "2019-08-30_12-23-58")
         self.assertGreater(
             self.test_db.hdf5_object_list[0].age,
@@ -561,7 +561,7 @@ class TestHDF5DB(unittest.TestCase):
 
     def test_select_num_sensors(self):
         self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(self.testfolder))
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         applied = self.test_db.select("number_of_sensors", ">", 3)
         self.assertGreater(self.test_db.hdf5_object_list[0].number_of_sensors, 3)
         self.assertEqual(applied, 1)
