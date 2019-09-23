@@ -116,8 +116,8 @@ class MasterTrainer:
                 time_delta = time.time() - start_time
                 time_sum += time_delta
                 self.logger.info(
-                    f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s;"
-                    f"avg: {time_sum / i_of_epoch:10.2f} s || Q: {self.generator.get_current_queue_length()}"
+                    f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s; "
+                    f"|| Q: {self.generator.get_current_queue_length()}"
                 )
                 start_time = time.time()
 
@@ -140,6 +140,7 @@ class MasterTrainer:
         with torch.no_grad():
             self.model.eval()
             loss = 0
+            count = 0
             for i, (data, label) in enumerate(self.__batched(data_set, self.generator.batch_size)):
                 data = data.to(self.device)
                 label = label.to(self.device)
@@ -148,17 +149,17 @@ class MasterTrainer:
                 output = self.model(data)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
+                count += 1
                 output = output.cpu()
                 label = label.cpu()
                 data = data.cpu()
                 if self.classification_evaluator is not None:
                     for c in range(output.size()[0]):
                         self.classification_evaluator.commit(
-                            output[c], label[c], data[c]
-                        )
+                            output[c], label[c], data[c])
 
-            loss = loss / len(data_set)
-            self.logger.info(f">>> {eval_step} Mean Loss on Eval: {loss:8.4f}")
+            loss = loss / count
+            self.logger.info(f"{eval_step} Mean Loss on Eval: {loss:8.8f}")
 
             if self.classification_evaluator is not None:
                 self.classification_evaluator.print_metrics()

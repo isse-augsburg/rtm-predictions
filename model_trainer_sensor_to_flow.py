@@ -1,3 +1,4 @@
+import argparse
 import getpass
 import logging
 import math
@@ -32,10 +33,12 @@ class SensorTrainer:
                  cache_path=None,
                  batch_size=1,
                  eval_freq=2,
+                 train_print_freq=2,
                  epochs=10,
                  num_workers=10,
                  num_validation_samples=10,
                  num_test_samples=10):
+        self.train_print_frequency = train_print_freq
         self.initial_timestamp = str(
             datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
@@ -51,7 +54,7 @@ class SensorTrainer:
         self.training_data_generator = None
         self.test_data_generator = None
 
-    def create_datagenerator(self, save_path, test_mode=True):
+    def create_datagenerator(self, save_path, test_mode=False):
         try:
             generator = pipeline.ERFH5DataGenerator(
                 data_paths=self.data_source_paths,
@@ -73,7 +76,7 @@ class SensorTrainer:
             h = logging.StreamHandler()
             h.setLevel(logging.ERROR)
             logger.addHandler(h)
-            logger.error("Fatal Error:", e)
+            logger.error(f"Fatal Error: {e}")
             logging.error("exception ", exc_info=1)
             exit()
         return generator
@@ -96,8 +99,7 @@ class SensorTrainer:
             model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         logger.info("Generating Test Generator")
-        self.test_data_generator = self.create_datagenerator(save_path,
-                                                             test_mode=True)
+        self.test_data_generator = self.create_datagenerator(save_path, test_mode=True)
 
         eval_wrapper = MasterTrainer(
             model,
@@ -135,15 +137,16 @@ class SensorTrainer:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         logger = logging.getLogger(__name__)
-        print(__name__)
         logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(save_path,
-                                                                 test_mode=False)
+        self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
         logger.info("Generating Model")
         model = DeconvModel()
         logger.info("Model to GPU")
-        model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+        if socket.gethostname() == "swt-dgx1":
+            model = nn.DataParallel(model).to("cuda:0")
+        else:
+            model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         train_wrapper = MasterTrainer(
             model,
@@ -153,7 +156,7 @@ class SensorTrainer:
             savepath=save_path,
             learning_rate=0.0001,
             calc_metrics=False,
-            train_print_frequency=2,
+            train_print_frequency=self.train_print_frequency,
             eval_frequency=self.eval_freq,
             classification_evaluator=SensorToFlowfrontEvaluator(
                 save_path=save_path),
@@ -165,8 +168,13 @@ class SensorTrainer:
 
 
 if __name__ == "__main__":
-    num_data_points = 31376
+    parser = argparse.ArgumentParser(description='Run training or test.')
+    parser.add_argument('--eval', action='store_true', help='Run a test.')
+    args = parser.parse_args()
+    run_eval = args.eval
 
+    num_data_points = 31376
+    _train_print_freq = 10
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path(
@@ -180,7 +188,7 @@ if __name__ == "__main__":
             # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
         else:
             _save_path = Path("/cfs/share/cache/output")
-        _epochs = 10
+        _epochs = 1000
         _num_workers = 18
         _num_validation_samples = 2000
         _num_test_samples = 2000
@@ -211,8 +219,7 @@ if __name__ == "__main__":
         _num_validation_samples = 1000
         _num_test_samples = 2000
 
-    train = True
-    if train:
+    if not run_eval:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",
             _data_root / "2019-07-24_16-32-40_5000p",
@@ -233,6 +240,7 @@ if __name__ == "__main__":
                        data_source_paths=_data_source_paths,
                        batch_size=_batch_size,
                        eval_freq=_eval_freq,
+                       train_print_freq=_train_print_freq,
                        save_datasets_path=_save_path,
                        load_datasets_path=_load_datasets_path,
                        epochs=_epochs,
@@ -240,14 +248,15 @@ if __name__ == "__main__":
                        num_validation_samples=_num_validation_samples,
                        num_test_samples=_num_test_samples)
 
-    if train:
+    if not run_eval:
         st.run_training()
     else:
         if socket.gethostname() != "swtse130":
-            st.inference_on_test_set(
-                Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
-            )
+            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-17_15-26-14")
+            st.inference_on_test_set(source_path=path,
+                                     output_path=path)
         else:
-            st.inference_on_test_set(
-                Path(r"Y:\cache\output_simon\2019-09-02_19-40-56"))
+            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\2019-09-17_15-26-14")
+            st.inference_on_test_set(source_path=path,
+                                     output_path=path)
     logging.shutdown()

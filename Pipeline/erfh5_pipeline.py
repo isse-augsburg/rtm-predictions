@@ -273,6 +273,7 @@ class ERFH5DataGenerator:
                     self.num_test_samples
                 )
         else:
+            self.logger.info(f'Loading existing datasets from: {load_path}')
             self.load_data_sets(load_path)
             self.validation_list = self.__get_data_samples_from_list(
                 self.validation_fnames,
