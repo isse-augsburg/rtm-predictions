@@ -8,7 +8,7 @@ def get_fixed_number_of_indices(list_length, num_samples):
     step_size = list_length / num_samples
 
     # Starting np.arange in reversed order to include last step
-    indices = np.array(np.arange(start=list_length-1, stop=0.0, step=-step_size))
+    indices = np.array(np.arange(start=list_length - 1, stop=0.0, step=-step_size))
     indices = np.around(indices)
     indices = np.flip(indices.astype(int))
 
