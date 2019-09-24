@@ -7,8 +7,8 @@ from pathlib import Path
 import deepdish as dd
 import numpy as np
 
-from hdf5db_toolbox import HDF5DBToolbox
-from hdf5db_object import HDF5Object
+from HDF5DB.hdf5db_object import HDF5Object
+from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
 
 class TestHDF5DB(unittest.TestCase):
@@ -166,11 +166,7 @@ class TestHDF5DB(unittest.TestCase):
         os.mkdir(os.getcwd() / self.testfolder)
         dd.io.save(str(os.getcwd() / self.testfolder / self.path_meta), None, compression=None)
         dd.io.save(str(os.getcwd() / self.testfolder / self.path_result), None, compression=None)
-        # TODO mit leerer init
-        self.test_object = HDF5Object(
-            str(os.getcwd() / self.testfolder / self.path_meta),
-            str(os.getcwd() / self.testfolder / self.path_result),
-        )
+        self.test_object = HDF5DBToolbox.__init__
         self.test_object.meta_path = os.getcwd() / self.testfolder / self.path_meta
         self.test_object.output_frequency_type = self.output_frequency_type
         self.test_object.output_frequency = self.output_frequency

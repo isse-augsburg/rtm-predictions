@@ -1,7 +1,7 @@
 # import cProfile
 import timeit
 
-from hdf5db_toolbox import HDF5DBToolbox
+from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
 
 def test():

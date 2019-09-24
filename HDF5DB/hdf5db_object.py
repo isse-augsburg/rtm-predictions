@@ -6,8 +6,114 @@ import regex as re
 
 
 class HDF5Object:
-    # def __init__(self):
-    #     pass
+    def __init__(self):
+        self.output_frequency_type_path = "output_frequency_type"
+        self.output_frequency_path = "output_frequency"
+        # Pertubations_Factors
+        self.general_sigma_path = "perturbation_factors/General_Sigma"
+        # -Shapes
+        self.number_of_circles_path = "perturbation_factors/Shapes/Circles/Num"
+        self.number_of_rectangles_path = "perturbation_factors/Shapes/Rectangles/Num"
+        self.number_of_runners_path = "perturbation_factors/Shapes/Runners/Num"
+        self.fibre_content_circles_path = (
+            "perturbation_factors/Shapes/Circles/Fiber_Content"
+        )
+        self.fibre_content_rectangles_path = (
+            "perturbation_factors/Shapes/Rectangles/Fiber_Content"
+        )
+        self.fibre_content_runners_path = (
+            "perturbation_factors/Shapes/Runners/Fiber_Content"
+        )
+
+        # Shapes
+        # -Circlepaths
+        self.fvc_circle_path = "shapes/Circle/fvc"
+        self.radius_circle_path = "shapes/Circle/radius"
+        self.posx_circle_path = "shapes/Circle/posX"
+        self.posy_circle_path = "shapes/Circle/posY"
+        self.fvc_circle_pathS = "Shapes/Circle/fvc"
+        self.radius_circle_pathS = "Shapes/Circle/radius"
+        self.posx_circle_pathS = "Shapes/Circle/posX"
+        self.posy_circle_pathS = "Shapes/Circle/posY"
+        # -Rectanglepaths
+        self.fvc_rectangle_path = "shapes/Rectangle/fvc"
+        self.height_rectangle_path = "shapes/Rectangle/height"
+        self.width_rectangle_path = "shapes/Rectangle/width"
+        self.posx_rectangle_path = "shapes/Rectangle/posX"
+        self.posy_rectangle_path = "shapes/Rectangle/posY"
+        self.fvc_rectangle_pathS = "Shapes/Rectangle/fvc"
+        self.height_rectangle_pathS = "Shapes/Rectangle/height"
+        self.width_rectangle_pathS = "Shapes/Rectangle/width"
+        self.posx_rectangle_pathS = "Shapes/Rectangle/posX"
+        self.posy_rectangle_pathS = "Shapes/Rectangle/posY"
+        # -Runnerspaths
+        self.fvc_runner_path = "shapes/Runner/fvc"
+        self.height_runner_path = "shapes/Runner/height"
+        self.width_runner_path = "shapes/Runner/width"
+        self.posx_runner_path = "shapes/Runner/posX"
+        self.posy_runner_path = "shapes/Runner/posY"
+        self.pos_lower_leftx_runner_path = "shapes/Runner/posLowerLeftX"
+        self.pos_lower_lefty_runner_path = "shapes/Runner/posLowerLeftY"
+        self.fvc_runner_pathS = "Shapes/Runner/fvc"
+        self.height_runner_pathS = "Shapes/Runner/height"
+        self.width_runner_pathS = "Shapes/Runner/width"
+        self.posx_runner_pathS = "Shapes/Runner/posX"
+        self.posy_runner_pathS = "Shapes/Runner/posY"
+        self.pos_lower_leftx_runner_pathS = "Shapes/Runner/posLowerLeftX"
+        self.pos_lower_lefty_runner_pathS = "Shapes/Runner/posLowerLeftY"
+
+        self.single_state_path = "post/singlestate"
+        self.number_of_sensors_path = "post/multistate/TIMESERIES1/multientityresults/" \
+                                      "SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
+
+        self.number_of_circles = 0
+        self.number_of_rectangles = 0
+        self.number_of_runners = 0
+        self.number_of_sensors = 0
+        self.path_meta = ""
+        self.output_frequency_type = 0
+        self.output_frequency = 0
+        self.general_sigma = 0
+        self.number_of_circles = 0
+        self.number_of_rectangles = 0
+        self.number_of_runners = 0
+        self.number_of_shapes = 0
+        self.fibre_content_circles = [0]
+        self.fibre_content_rectangles = [0]
+        self.fibre_content_runners = [0]
+
+        # Shapes
+        # -Circle
+        self.fvc_circle = 0
+        self.radius_circle = 0
+        self.posx_circle = 0
+        self.posy_circle = 0
+        # -Rectangle
+        self.fvc_rectangle = 0
+        self.height_rectangle = 0
+        self.width_rectangle = 0
+        self.posx_rectangle = 0
+        self.posy_rectangle = 0
+        # -Runner
+        self.fvc_runner = 0
+        self.height_runner = 0
+        self.width_runner = 0
+        self.posx_runner = 0
+        self.posy_runner = 0
+        self.pos_lower_leftx_runner = 0
+        self.pos_lower_lefty_runner = 0
+        
+        # Results
+        self.path_result = ""
+
+        self.avg_level = 0
+
+        self.age = datetime.strptime(
+                "2019-09-24_9-00-00",
+                "%Y-%m-%d_%H-%M-%S",
+            )
+        self.number_of_sensors = 0
+        
     def __init__(self, path_meta, path_result):
         self.output_frequency_type_path = "output_frequency_type"
         self.output_frequency_path = "output_frequency"
