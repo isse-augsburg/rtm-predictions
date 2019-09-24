@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import overload
 
 import h5py
 import numpy as np
@@ -6,6 +7,7 @@ import regex as re
 
 
 class HDF5Object:
+    @overload
     def __init__(self):
         self.output_frequency_type_path = "output_frequency_type"
         self.output_frequency_path = "output_frequency"
@@ -102,18 +104,17 @@ class HDF5Object:
         self.posy_runner = 0
         self.pos_lower_leftx_runner = 0
         self.pos_lower_lefty_runner = 0
-        
+
         # Results
         self.path_result = ""
 
         self.avg_level = 0
 
-        self.age = datetime.strptime(
-                "2019-09-24_9-00-00",
-                "%Y-%m-%d_%H-%M-%S",
-            )
+        self.age = datetime.strptime("2019-09-24_9-00-00",
+                                     "%Y-%m-%d_%H-%M-%S",
+                                     )
         self.number_of_sensors = 0
-        
+
     def __init__(self, path_meta, path_result):
         self.output_frequency_type_path = "output_frequency_type"
         self.output_frequency_path = "output_frequency"
@@ -196,7 +197,7 @@ class HDF5Object:
         if self.number_of_runners_path in m:
             self.number_of_runners = m[self.number_of_runners_path][()]
         self.number_of_shapes = (
-            self.number_of_circles + self.number_of_rectangles + self.number_of_runners
+                self.number_of_circles + self.number_of_rectangles + self.number_of_runners
         )
         if self.fibre_content_circles_path in m:
             self.fibre_content_circles = m[self.fibre_content_circles_path][()]
@@ -293,27 +294,27 @@ class HDF5Object:
             for key in r[self.single_state_path].keys():
                 temp = key
                 while not (
-                    self.single_state_path
-                    + "/"
-                    + temp
-                    + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"
-                    in r
+                        self.single_state_path
+                        + "/"
+                        + temp
+                        + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"
+                        in r
                 ):
                     temp = self.decrement(temp)
             temp = r[
                 "post/singlestate/"
                 + temp
                 + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"
-            ][()]
+                ][()]
         if len(temp) > 0:
             self.avg_level = np.sum(temp) / len(temp)
 
         if (
-            re.search(
-                r"([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2})",
-                path_result,
-            )
-            is not None
+                re.search(
+                    r"([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2})",
+                    path_result,
+                )
+                is not None
         ):
             self.age = datetime.strptime(
                 re.search(

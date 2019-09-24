@@ -166,7 +166,7 @@ class TestHDF5DB(unittest.TestCase):
         os.mkdir(os.getcwd() / self.testfolder)
         dd.io.save(str(os.getcwd() / self.testfolder / self.path_meta), None, compression=None)
         dd.io.save(str(os.getcwd() / self.testfolder / self.path_result), None, compression=None)
-        self.test_object = HDF5DBToolbox.__init__
+        self.test_object = HDF5Object.__init__
         self.test_object.meta_path = os.getcwd() / self.testfolder / self.path_meta
         self.test_object.output_frequency_type = self.output_frequency_type
         self.test_object.output_frequency = self.output_frequency
