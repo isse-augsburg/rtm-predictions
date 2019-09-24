@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import overload
 
 import h5py
 import numpy as np
