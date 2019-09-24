@@ -11,7 +11,7 @@ import regex as re
 from prettytable import PrettyTable
 from tqdm import tqdm
 
-from hdf5db_object import HDF5Object
+from HDF5DB.hdf5db_object import HDF5Object
 
 
 class HDF5DBToolbox:

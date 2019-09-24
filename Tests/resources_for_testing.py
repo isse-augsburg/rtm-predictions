@@ -20,6 +20,9 @@ elif getpass.getuser() == 'lodesluk':
                    "share=home/l/o/lodesluk/code/tests"
     test_src_dir = '/run/user/1001/gvfs/smb-share:server=137.250.170.56,' \
                    'share=home/s/t/stiebesi/code/tests/test_data'
+elif getpass.getuser() == 'hartmade':
+    test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
+    test_out_dir = Path('/cfs/home/h/a/hartmade/test_output')
 elif running_in_docker():
     test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
     test_out_dir = Path('/cache')
