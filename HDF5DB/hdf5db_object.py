@@ -301,11 +301,10 @@ class HDF5Object:
                         in r
                 ):
                     temp = self.decrement(temp)
-            temp = r[
-                "post/singlestate/"
-                + temp
-                + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"
-                ][()]
+            temp = r["post/singlestate/"
+                     + temp
+                     + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"
+                     ][()]
         if len(temp) > 0:
             self.avg_level = np.sum(temp) / len(temp)
 
