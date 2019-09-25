@@ -10,7 +10,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel4x
+from Models.erfh5_DeconvModel import DeconvModel8x
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
@@ -63,7 +63,7 @@ class SensorTrainer:
                 batch_size=self.batch_size,
                 epochs=self.epochs,
                 max_queue_length=8096,
-                data_processing_function=dli.get_sensordata_and_flowfront_135x103,
+                data_processing_function=dli.get_sensordata_and_flowfront_154x122,
                 data_gather_function=dg.get_filelist_within_folder,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
@@ -91,7 +91,7 @@ class SensorTrainer:
         )
         logger = logging.getLogger(__name__)
 
-        model = DeconvModel4x()
+        model = DeconvModel8x()
         if socket.gethostname() == "swt-dgx1":
             logger.info('Invoking data parallel model.')
             model = nn.DataParallel(model).to("cuda:0")
@@ -105,15 +105,12 @@ class SensorTrainer:
             model,
             self.test_data_generator,
             classification_evaluator=SensorToFlowfrontEvaluator(
-                save_path=save_path,
-                # TODO
-                halving_factor=True),
+                save_path=save_path),
         )
         eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
 
         with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
-
         test_set = transform_list_of_linux_paths_to_windows(test_set)
         data_list = []
         full = False
@@ -129,7 +126,6 @@ class SensorTrainer:
                 break
 
         eval_wrapper.eval(data_list, test_mode=True)
-        logging.shutdown()
 
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
@@ -141,12 +137,11 @@ class SensorTrainer:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         logger = logging.getLogger(__name__)
-
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
         logger.info("Generating Model")
-        model = DeconvModel4x()
+        model = DeconvModel8x()
         logger.info("Model to GPU")
         if socket.gethostname() == "swt-dgx1":
             model = nn.DataParallel(model).to("cuda:0")
@@ -164,7 +159,7 @@ class SensorTrainer:
             train_print_frequency=self.train_print_frequency,
             eval_frequency=self.eval_freq,
             classification_evaluator=SensorToFlowfrontEvaluator(
-                save_path=save_path, skip_images=True)
+                save_path=save_path),
         )
         logger.info("The Training Will Start Shortly")
 
@@ -178,14 +173,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     run_eval = args.eval
 
-    num_samples_runs = 40827  # or 7.713.044 frames ~ 188 p. Sim.
-    _train_print_freq = 20
+    num_data_points = 31376
+    _train_print_freq = 10
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path(
             "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
         _batch_size = 320
-        _eval_freq = math.ceil(num_samples_runs / _batch_size)
+        _eval_freq = math.ceil(num_data_points / _batch_size)
         if getpass.getuser() == "stiebesi":
             _save_path = Path("/cfs/share/cache/output_simon")
         elif getpass.getuser() == "schroeni":
@@ -193,10 +188,10 @@ if __name__ == "__main__":
             # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
         else:
             _save_path = Path("/cfs/share/cache/output")
-        _epochs = 100
+        _epochs = 1000
         _num_workers = 18
-        _num_validation_samples_frames = 350000  # 5 %
-        _num_test_samples_frames = 400000  # 5 %
+        _num_validation_samples = 2000
+        _num_test_samples = 2000
 
     elif socket.gethostname() == "swtse130":
         _cache_path = Path(r"C:\Users\stiebesi\CACHE")
@@ -206,8 +201,8 @@ if __name__ == "__main__":
         _save_path = Path(r"Y:\cache\output_simon")
         _epochs = 5
         _num_workers = 10
-        _num_validation_samples_frames = 10
-        _num_test_samples_frames = 2000
+        _num_validation_samples = 10
+        _num_test_samples = 2000
 
     elif socket.gethostname() == "swthiwi158":
         _cache_path = \
@@ -221,8 +216,8 @@ if __name__ == "__main__":
                           r"share=share/cache/output_niklas")
         _epochs = 5
         _num_workers = 10
-        _num_validation_samples_frames = 1000
-        _num_test_samples_frames = 2000
+        _num_validation_samples = 1000
+        _num_test_samples = 2000
 
     if not run_eval:
         _data_source_paths = [
@@ -233,15 +228,13 @@ if __name__ == "__main__":
             _data_root / "2019-08-24_11-51-48_5000p",
             _data_root / "2019-08-25_09-16-40_5000p",
             _data_root / "2019-08-26_16-59-08_6000p",
-            _data_root / '2019-09-06_17-03-51_10000p'
         ]
     else:
         _data_source_paths = []
 
     # Running with the same dataset as with 63 Sensors, because that was the longest training
-    # _load_datasets_path = Path(
-    #     '/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
-    _load_datasets_path = None
+    _load_datasets_path = Path(
+        '/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/sharing_datasets/2019-09-06_15-44-58_63_sensors')
 
     st = SensorTrainer(cache_path=_cache_path,
                        data_source_paths=_data_source_paths,
@@ -252,13 +245,12 @@ if __name__ == "__main__":
                        load_datasets_path=_load_datasets_path,
                        epochs=_epochs,
                        num_workers=_num_workers,
-                       num_validation_samples=_num_validation_samples_frames,
-                       num_test_samples=_num_test_samples_frames)
+                       num_validation_samples=_num_validation_samples,
+                       num_test_samples=_num_test_samples)
 
     if not run_eval:
         st.run_training()
     else:
-        # TODo adapt
         if socket.gethostname() != "swtse130":
             path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-17_15-26-14")
             st.inference_on_test_set(source_path=path,

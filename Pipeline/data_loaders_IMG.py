@@ -206,6 +206,10 @@ def get_sensordata_and_flowfront_135x103(file, target_shape=(135, 103)):
     return get_sensordata_and_flowfront(file, target_shape)
 
 
+def get_sensordata_and_flowfront_154x122(file, target_shape=(154, 122)):
+    return get_sensordata_and_flowfront(file, target_shape)
+
+
 def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
     f = h5py.File(file, "r")
     instances = []
