@@ -64,7 +64,7 @@ class HDF5Object:
 
         self.single_state_path = "post/singlestate"
         self.number_of_sensors_path = "post/multistate/TIMESERIES1/multientityresults/" \
-                                        "SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
+                                      "SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
         self.number_of_circles = 0
         self.number_of_rectangles = 0
         self.number_of_runners = 0
