@@ -239,9 +239,8 @@ if __name__ == "__main__":
         _data_source_paths = []
 
     # Running with the same dataset as with 63 Sensors, because that was the longest training
-    # _load_datasets_path = Path(
-    #     '/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
-    _load_datasets_path = None
+    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets')
+    # _load_datasets_path = None
 
     st = SensorTrainer(cache_path=_cache_path,
                        data_source_paths=_data_source_paths,

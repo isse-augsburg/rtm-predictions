@@ -74,7 +74,6 @@ class MasterTrainer:
         self.logger.info("TRAINING COMPLETE.")
         logging.shutdown()
         self.generator.end_threads()
-        exit(0)
 
     def test(self, path):
         self.generator.load_test_set(path)
