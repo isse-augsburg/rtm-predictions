@@ -177,6 +177,8 @@ class HDF5DBToolbox:
                 return obj
             elif variable == "avg_level" and operator1(obj.avg_level, value):
                 return obj
+            elif variable == "single_states" and operator1(obj.single_states, value):
+                return obj
             elif variable == "age":
                 temp = re.search(
                     r"([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2})", value
@@ -192,7 +194,6 @@ class HDF5DBToolbox:
 
             # Non-standardizable queries (=)
             # Meta-queries
-            print(obj.posx_circle)
             if comparisonOperator == "=":
                 if (
                         variable == "fibre_content_circles"
@@ -386,6 +387,7 @@ class HDF5DBToolbox:
         # Result
         self.options.add_row(["path_result"])
         self.options.add_row(["avg_level"])
+        self.options.add_row(["single_states"])
         self.options.add_row(["age"])
         self.options.add_row(["number_of_sensors"])
         print(self.options)

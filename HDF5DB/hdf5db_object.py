@@ -7,70 +7,70 @@ import regex as re
 
 class HDF5Object:
     def __init__(self, path_meta="", path_result=""):
+        self.output_frequency_type_path = "output_frequency_type"
+        self.output_frequency_path = "output_frequency"
+        # Pertubations_Factors
+        self.general_sigma_path = "perturbation_factors/General_Sigma"
+        # -Shapes
+        self.number_of_circles_path = "perturbation_factors/Shapes/Circles/Num"
+        self.number_of_rectangles_path = "perturbation_factors/Shapes/Rectangles/Num"
+        self.number_of_runners_path = "perturbation_factors/Shapes/Runners/Num"
+        self.fibre_content_circles_path = (
+            "perturbation_factors/Shapes/Circles/Fiber_Content"
+        )
+        self.fibre_content_rectangles_path = (
+            "perturbation_factors/Shapes/Rectangles/Fiber_Content"
+        )
+        self.fibre_content_runners_path = (
+            "perturbation_factors/Shapes/Runners/Fiber_Content"
+        )
+
+        # Shapes
+        # -Circlepaths
+        self.fvc_circle_path = "shapes/Circle/fvc"
+        self.radius_circle_path = "shapes/Circle/radius"
+        self.posx_circle_path = "shapes/Circle/posX"
+        self.posy_circle_path = "shapes/Circle/posY"
+        self.fvc_circle_pathS = "Shapes/Circle/fvc"
+        self.radius_circle_pathS = "Shapes/Circle/radius"
+        self.posx_circle_pathS = "Shapes/Circle/posX"
+        self.posy_circle_pathS = "Shapes/Circle/posY"
+        # -Rectanglepaths
+        self.fvc_rectangle_path = "shapes/Rectangle/fvc"
+        self.height_rectangle_path = "shapes/Rectangle/height"
+        self.width_rectangle_path = "shapes/Rectangle/width"
+        self.posx_rectangle_path = "shapes/Rectangle/posX"
+        self.posy_rectangle_path = "shapes/Rectangle/posY"
+        self.fvc_rectangle_pathS = "Shapes/Rectangle/fvc"
+        self.height_rectangle_pathS = "Shapes/Rectangle/height"
+        self.width_rectangle_pathS = "Shapes/Rectangle/width"
+        self.posx_rectangle_pathS = "Shapes/Rectangle/posX"
+        self.posy_rectangle_pathS = "Shapes/Rectangle/posY"
+        # -Runnerspaths
+        self.fvc_runner_path = "shapes/Runner/fvc"
+        self.height_runner_path = "shapes/Runner/height"
+        self.width_runner_path = "shapes/Runner/width"
+        self.posx_runner_path = "shapes/Runner/posX"
+        self.posy_runner_path = "shapes/Runner/posY"
+        self.pos_lower_leftx_runner_path = "shapes/Runner/posLowerLeftX"
+        self.pos_lower_lefty_runner_path = "shapes/Runner/posLowerLeftY"
+        self.fvc_runner_pathS = "Shapes/Runner/fvc"
+        self.height_runner_pathS = "Shapes/Runner/height"
+        self.width_runner_pathS = "Shapes/Runner/width"
+        self.posx_runner_pathS = "Shapes/Runner/posX"
+        self.posy_runner_pathS = "Shapes/Runner/posY"
+        self.pos_lower_leftx_runner_pathS = "Shapes/Runner/posLowerLeftX"
+        self.pos_lower_lefty_runner_pathS = "Shapes/Runner/posLowerLeftY"
+
+        self.single_state_path = "post/singlestate"
+        self.number_of_sensors_path = "post/multistate/TIMESERIES1/multientityresults/" \
+                                        "SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
+        self.number_of_circles = 0
+        self.number_of_rectangles = 0
+        self.number_of_runners = 0
+        self.number_of_sensors = 0
+
         if path_meta == "" or path_result == "":
-            self.output_frequency_type_path = "output_frequency_type"
-            self.output_frequency_path = "output_frequency"
-            # Pertubations_Factors
-            self.general_sigma_path = "perturbation_factors/General_Sigma"
-            # -Shapes
-            self.number_of_circles_path = "perturbation_factors/Shapes/Circles/Num"
-            self.number_of_rectangles_path = "perturbation_factors/Shapes/Rectangles/Num"
-            self.number_of_runners_path = "perturbation_factors/Shapes/Runners/Num"
-            self.fibre_content_circles_path = (
-                "perturbation_factors/Shapes/Circles/Fiber_Content"
-            )
-            self.fibre_content_rectangles_path = (
-                "perturbation_factors/Shapes/Rectangles/Fiber_Content"
-            )
-            self.fibre_content_runners_path = (
-                "perturbation_factors/Shapes/Runners/Fiber_Content"
-            )
-
-            # Shapes
-            # -Circlepaths
-            self.fvc_circle_path = "shapes/Circle/fvc"
-            self.radius_circle_path = "shapes/Circle/radius"
-            self.posx_circle_path = "shapes/Circle/posX"
-            self.posy_circle_path = "shapes/Circle/posY"
-            self.fvc_circle_pathS = "Shapes/Circle/fvc"
-            self.radius_circle_pathS = "Shapes/Circle/radius"
-            self.posx_circle_pathS = "Shapes/Circle/posX"
-            self.posy_circle_pathS = "Shapes/Circle/posY"
-            # -Rectanglepaths
-            self.fvc_rectangle_path = "shapes/Rectangle/fvc"
-            self.height_rectangle_path = "shapes/Rectangle/height"
-            self.width_rectangle_path = "shapes/Rectangle/width"
-            self.posx_rectangle_path = "shapes/Rectangle/posX"
-            self.posy_rectangle_path = "shapes/Rectangle/posY"
-            self.fvc_rectangle_pathS = "Shapes/Rectangle/fvc"
-            self.height_rectangle_pathS = "Shapes/Rectangle/height"
-            self.width_rectangle_pathS = "Shapes/Rectangle/width"
-            self.posx_rectangle_pathS = "Shapes/Rectangle/posX"
-            self.posy_rectangle_pathS = "Shapes/Rectangle/posY"
-            # -Runnerspaths
-            self.fvc_runner_path = "shapes/Runner/fvc"
-            self.height_runner_path = "shapes/Runner/height"
-            self.width_runner_path = "shapes/Runner/width"
-            self.posx_runner_path = "shapes/Runner/posX"
-            self.posy_runner_path = "shapes/Runner/posY"
-            self.pos_lower_leftx_runner_path = "shapes/Runner/posLowerLeftX"
-            self.pos_lower_lefty_runner_path = "shapes/Runner/posLowerLeftY"
-            self.fvc_runner_pathS = "Shapes/Runner/fvc"
-            self.height_runner_pathS = "Shapes/Runner/height"
-            self.width_runner_pathS = "Shapes/Runner/width"
-            self.posx_runner_pathS = "Shapes/Runner/posX"
-            self.posy_runner_pathS = "Shapes/Runner/posY"
-            self.pos_lower_leftx_runner_pathS = "Shapes/Runner/posLowerLeftX"
-            self.pos_lower_lefty_runner_pathS = "Shapes/Runner/posLowerLeftY"
-
-            self.single_state_path = "post/singlestate"
-            self.number_of_sensors_path = "post/multistate/TIMESERIES1/multientityresults/" \
-                                          "SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
-
-            self.number_of_circles = 0
-            self.number_of_rectangles = 0
-            self.number_of_runners = 0
-            self.number_of_sensors = 0
             self.path_meta = ""
             self.output_frequency_type = 0
             self.output_frequency = 0
@@ -106,7 +106,7 @@ class HDF5Object:
 
             # Results
             self.path_result = ""
-
+            self.single_states = 0
             self.avg_level = 0
 
             self.age = datetime.strptime("2019-09-24_9-00-00",
@@ -114,70 +114,6 @@ class HDF5Object:
                                          )
             self.number_of_sensors = 0
         else:
-            self.output_frequency_type_path = "output_frequency_type"
-            self.output_frequency_path = "output_frequency"
-            # Pertubations_Factors
-            self.general_sigma_path = "perturbation_factors/General_Sigma"
-            # -Shapes
-            self.number_of_circles_path = "perturbation_factors/Shapes/Circles/Num"
-            self.number_of_rectangles_path = "perturbation_factors/Shapes/Rectangles/Num"
-            self.number_of_runners_path = "perturbation_factors/Shapes/Runners/Num"
-            self.fibre_content_circles_path = (
-                "perturbation_factors/Shapes/Circles/Fiber_Content"
-            )
-            self.fibre_content_rectangles_path = (
-                "perturbation_factors/Shapes/Rectangles/Fiber_Content"
-            )
-            self.fibre_content_runners_path = (
-                "perturbation_factors/Shapes/Runners/Fiber_Content"
-            )
-
-            # Shapes
-            # -Circlepaths
-            self.fvc_circle_path = "shapes/Circle/fvc"
-            self.radius_circle_path = "shapes/Circle/radius"
-            self.posx_circle_path = "shapes/Circle/posX"
-            self.posy_circle_path = "shapes/Circle/posY"
-            self.fvc_circle_pathS = "Shapes/Circle/fvc"
-            self.radius_circle_pathS = "Shapes/Circle/radius"
-            self.posx_circle_pathS = "Shapes/Circle/posX"
-            self.posy_circle_pathS = "Shapes/Circle/posY"
-            # -Rectanglepaths
-            self.fvc_rectangle_path = "shapes/Rectangle/fvc"
-            self.height_rectangle_path = "shapes/Rectangle/height"
-            self.width_rectangle_path = "shapes/Rectangle/width"
-            self.posx_rectangle_path = "shapes/Rectangle/posX"
-            self.posy_rectangle_path = "shapes/Rectangle/posY"
-            self.fvc_rectangle_pathS = "Shapes/Rectangle/fvc"
-            self.height_rectangle_pathS = "Shapes/Rectangle/height"
-            self.width_rectangle_pathS = "Shapes/Rectangle/width"
-            self.posx_rectangle_pathS = "Shapes/Rectangle/posX"
-            self.posy_rectangle_pathS = "Shapes/Rectangle/posY"
-            # -Runnerspaths
-            self.fvc_runner_path = "shapes/Runner/fvc"
-            self.height_runner_path = "shapes/Runner/height"
-            self.width_runner_path = "shapes/Runner/width"
-            self.posx_runner_path = "shapes/Runner/posX"
-            self.posy_runner_path = "shapes/Runner/posY"
-            self.pos_lower_leftx_runner_path = "shapes/Runner/posLowerLeftX"
-            self.pos_lower_lefty_runner_path = "shapes/Runner/posLowerLeftY"
-            self.fvc_runner_pathS = "Shapes/Runner/fvc"
-            self.height_runner_pathS = "Shapes/Runner/height"
-            self.width_runner_pathS = "Shapes/Runner/width"
-            self.posx_runner_pathS = "Shapes/Runner/posX"
-            self.posy_runner_pathS = "Shapes/Runner/posY"
-            self.pos_lower_leftx_runner_pathS = "Shapes/Runner/posLowerLeftX"
-            self.pos_lower_lefty_runner_pathS = "Shapes/Runner/posLowerLeftY"
-
-            self.single_state_path = "post/singlestate"
-            self.number_of_sensors_path = "post/multistate/TIMESERIES1/multientityresults/" \
-                                          "SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
-
-            self.number_of_circles = 0
-            self.number_of_rectangles = 0
-            self.number_of_runners = 0
-            self.number_of_sensors = 0
-
             # Metadata
             m = h5py.File(path_meta, "r")
             self.path_meta = path_meta
@@ -290,6 +226,7 @@ class HDF5Object:
 
             temp = ""
             if self.single_state_path in r:
+                self.single_states = len(r[self.single_state_path].keys())
                 for key in r[self.single_state_path].keys():
                     temp = key
                     while not (
@@ -402,6 +339,8 @@ class HDF5Object:
             y.add_row(["     Path_resultdata    ", str(self.path_result) + "  "])
         if hasattr(self, "avg_level"):
             y.add_row(["Average_level", str(self.avg_level)])
+        if hasattr(self, "single_states"):
+            y.add_row(["Single_states", str(self.single_states)])
         if hasattr(self, "age"):
             y.add_row(["Age of file", str(self.age)])
         if hasattr(self, "number_of_sensors"):

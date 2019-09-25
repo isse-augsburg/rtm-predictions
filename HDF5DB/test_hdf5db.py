@@ -199,6 +199,7 @@ class TestHDF5DB(unittest.TestCase):
 
         self.test_object.result_path = os.getcwd() / self.testfolder / self.path_meta
         self.test_object.avg_level = np.sum(self.state999) / len(self.state999)
+        self.test_object.single_states = 3
         self.test_object.age = datetime.strptime(self.age, "%Y-%m-%d_%H-%M-%S")
         os.remove(str(os.getcwd() / self.testfolder / self.path_meta))
         os.remove(str(os.getcwd() / self.testfolder / self.path_result))
@@ -530,6 +531,21 @@ class TestHDF5DB(unittest.TestCase):
         self.assertEqual(
             self.test_db.hdf5_object_list[0].avg_level, self.test_object.avg_level
         )
+        self.assertEqual(applied, 1)
+
+    def test_select_single_states(self):
+        self.test_db = HDF5DBToolbox()
+        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        applied = self.test_db.select("single_states", "=", 3)
+        self.assertEqual(
+            self.test_db.hdf5_object_list[0].single_states, self.test_object.single_states
+        )
+        self.assertEqual(applied, 1)
+        applied = self.test_db.select("single_states", ">", 2)
+        self.assertGreater(self.test_db.hdf5_object_list[0].single_states, 2)
+        self.assertEqual(applied, 1)
+        applied = self.test_db.select("single_states", "<", 4)
+        self.assertLess(self.test_db.hdf5_object_list[0].single_states, 4)
         self.assertEqual(applied, 1)
 
     def test_select_age(self):
