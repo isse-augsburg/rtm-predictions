@@ -6,17 +6,17 @@ from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
 def test():
     test = HDF5DBToolbox()
-    test.add_objects_from_path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-09-19_14-07-05_20p")
+    # test.add_objects_from_path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-09-19_14-07-05_20p")
     # test.add_objects_from_path(
     #     "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
     # )
     # test.add_objects_from_path(
     #      "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-24_16-32-40_5000p"
     # )
-    # test.load(
-    #     "/cfs/share/cache/HDF5DB_Cache",
-    #     "Unrestricted"
-    # )
+    test.load(
+        "/cfs/share/cache/HDF5DB_Cache",
+        "Unrestricted"
+    )
     # test.add_objects_from_path(
     #     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p"
     # )
@@ -50,7 +50,9 @@ def test():
     # test.select("avg_level", "<", 0.9)
     # test.select("posy_circle", "=", 18.375)
     # test.select
-    test.show_objects()
+    print(test.get_sum_single_states())
+    test.plot_single_states_distribution()
+    # test.show_objects()
 
 
 # def main():

@@ -69,6 +69,7 @@ class HDF5Object:
         self.number_of_rectangles = 0
         self.number_of_runners = 0
         self.number_of_sensors = 0
+        self.avg_level = 0
 
         if path_meta == "" or path_result == "":
             self.path_meta = ""
