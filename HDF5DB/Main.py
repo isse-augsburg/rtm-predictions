@@ -15,8 +15,11 @@ def test():
     # )
     test.load(
         "/cfs/share/cache/HDF5DB_Cache",
-        "Unrestricted"
+        "Unrestricted404"
     )
+    # analyzer = H5DBAnalyzer(test)
+    # print(analyzer.get_sum_single_states())
+    # analyzer.plot_single_states_distribution()
     # test.add_objects_from_path(
     #     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p"
     # )
@@ -35,7 +38,7 @@ def test():
     # test.add_objects_from_path("Data")
     # test.showObjects()
     # test.save(
-    #     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache/HDF5DB_Cache",
+    #     "/cfs/share/cache/HDF5DB_Cache",
     #     "Unrestricted"
     # )
     # test.load("Data", "HDF5DB")
@@ -50,8 +53,8 @@ def test():
     # test.select("avg_level", "<", 0.9)
     # test.select("posy_circle", "=", 18.375)
     # test.select
-    print(test.get_sum_single_states())
-    test.plot_single_states_distribution()
+    # print(test.get_sum_single_states())
+    # test.plot_single_states_distribution()
     # test.show_objects()
 
 

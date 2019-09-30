@@ -6,7 +6,6 @@ from multiprocessing import Pool
 from pathlib import Path
 
 import h5py
-import matplotlib.pyplot as plt
 import numpy as np
 import regex as re
 from prettytable import PrettyTable
@@ -64,26 +63,6 @@ class HDF5DBToolbox:
             )
         else:
             print("The path " + path + " does not exist! No objects were added!")
-
-    def get_sum_single_states(self):
-        state_sum = 0
-        single_state_set = []
-        for i in self.hdf5_object_list:
-            if hasattr(i, "single_states"):
-                state_sum += i.single_states
-                single_state_set.append(i.single_states)
-        return state_sum
-
-    def plot_single_states_distribution(self):
-        single_state_set = []
-        for i in self.hdf5_object_list:
-            if hasattr(i, "single_states"):
-                single_state_set.append(i.single_states)
-                # filling_factor_set.append(i.avg_level)
-        plt.hist(single_state_set,
-                 [50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525, 550,
-                  575, 600, 625, 650, 675, 700, 725, 750, 775, 800, 825, 850, 875, 900, 925, 950])
-        plt.show()
 
     def select(self, variable, comparisonOperator, value):
         my_variable = []
