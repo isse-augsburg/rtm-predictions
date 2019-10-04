@@ -5,7 +5,7 @@ from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
 
 def test():
-    test = HDF5DBToolbox()
+    h5db = HDF5DBToolbox()
     # test.add_objects_from_path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-09-19_14-07-05_20p")
     # test.add_objects_from_path(
     #     "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
@@ -13,34 +13,41 @@ def test():
     # test.add_objects_from_path(
     #      "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-24_16-32-40_5000p"
     # )
-    test.load(
-        "/cfs/share/cache/HDF5DB_Cache",
-        "Unrestricted404"
-    )
+    # h5db.load(
+    #     "/cfs/share/cache/HDF5DB_Cache",
+    #     "Unrestricted404"
+    # )
     # analyzer = H5DBAnalyzer(test)
     # print(analyzer.get_sum_single_states())
     # analyzer.plot_single_states_distribution()
-    # test.add_objects_from_path(
-    #     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p"
-    # )
-    # test.add_objects_from_path(
-    #     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-08-23_15-10-02_5000p"
-    # )
-    # test.add_objects_from_path(
-    #     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-08-24_11-51-48_5000p"
-    # )
-    # test.add_objects_from_path(
-    #     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-08-25_09-16-40_5000p"
-    # )
-    # test.add_objects_from_path(
-    #     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-08-26_16-59-08_6000p"
-    # )
-    # test.add_objects_from_path("Data")
-    # test.showObjects()
-    # test.save(
-    #     "/cfs/share/cache/HDF5DB_Cache",
-    #     "Unrestricted"
-    # )
+    h5db.add_objects_from_path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
+    )
+    h5db.add_objects_from_path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-24_16-32-40_5000p"
+    )
+    h5db.add_objects_from_path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p"
+    )
+    h5db.add_objects_from_path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-08-23_15-10-02_5000p"
+    )
+    h5db.add_objects_from_path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-08-24_11-51-48_5000p"
+    )
+    h5db.add_objects_from_path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-08-25_09-16-40_5000p"
+    )
+    h5db.add_objects_from_path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-08-26_16-59-08_6000p"
+    )
+    h5db.add_objects_from_path(
+        "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-09-06_17-03-51_10000p"
+    )
+    h5db.force_save(
+        "/cfs/share/cache/HDF5DB_Cache",
+        "Unrestricted"
+    )
     # test.load("Data", "HDF5DB")
     # test.show_selection_options()
     # test.showObjects()

@@ -435,6 +435,21 @@ class HDF5DBToolbox:
         else:
             print(path + " does not exist! Nothing was saved!")
 
+    def force_save(self, path, filename="HDF5DB"):
+        dirpath = Path(path)
+        if dirpath.is_dir():
+            if not (len(self.hdf5_object_list) == 0):
+                file = Path(filename + r".h5db")
+                h5db_path = dirpath / file
+                outfile = open(h5db_path, "wb")
+                pickle.dump(self.hdf5_object_list, outfile)
+                outfile.close()
+                print("HDF5DB saved")
+            else:
+                print("No objects were found. Nothing was saved!")
+        else:
+            print(path + " does not exist! Nothing was saved!")
+
     def load(self, path, filename="HDF5DB"):
         dir_path = Path(path)
         h5db_path = dir_path / Path(filename + str(".h5db"))
