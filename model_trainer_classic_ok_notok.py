@@ -26,7 +26,7 @@ class DataLoader:
         self.hdf5db = HDF5DBToolbox()
         self.hdf5db.load(
             "/cfs/share/cache/HDF5DB_Cache",
-            "Unrestricted"
+            "Unrestricted404"
         )
 
         self.pressure_path = "post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
@@ -54,7 +54,6 @@ class DataLoader:
             if self.pressure_path in r:
                 pressure = np.asarray(r[self.pressure_path][()][:, :, 0], object)
                 pressure_shape = pressure.shape
-                # print("Pfad: " + path + " X: " + str(pressure_shape[0]) + " Y: " + str(pressure_shape[1]))
                 if pressure_shape[0] > max_shape[0]:
                     max_shape[0] = pressure_shape[0]
                 if pressure_shape[1] > max_shape[1]:
@@ -71,24 +70,29 @@ class DataLoader:
                 pressure[temp.shape[0]:, :] = temp[-1, :]
                 pressure = pressure.reshape(max_shape[0] * max_shape[1])
                 dataset.append(pressure)
-
         return np.asarray(dataset)
 
-    def get_dataset_subsampled(self):
+    def get_dataset_subsampled(self, sensorgrid_size, time_steps):
         dataset = []
-        to_be = 21000
 
-        # Fill dataset with pressuredata from RESULT.erfh5
-        # Reshape to max-shape, fill remaining with 0
+        # Fill dataset with pressure-data from RESULT.erfh5
+        # Reshape to given sensorgrid-size and time-steps
+        # Fill the remaining part created by splitting with the last n values of the original data set
         for path in self.result_path:
             r = h5py.File(path, "r")
             if self.pressure_path in r:
-                temp = r[self.pressure_path][()][:, :, 0]
-                temp = temp.reshape(temp.shape[0] * temp.shape[1])
-                sampler = math.ceil(temp.shape[0] / to_be)
+                # Column shaping
+                data = r[self.pressure_path][()][:, :, 0]
+                sampler = math.ceil(data.shape[1] / (sensorgrid_size - 1))
+                temp = data[:, data.shape[1] - sensorgrid_size:]
+                temp2 = data[:, 0::sampler]
+                temp[:, :np.asarray(temp2).shape[1]] = temp2
+                # Line shaping
+                sampler = math.ceil(temp.shape[0] / (time_steps - 1))
+                pressure = temp[temp.shape[0] - time_steps:, :]  # np.full((time_steps, sensorgrid_size), temp[-1, -1])
                 temp = temp[0::sampler]
-                pressure = np.full(to_be + 1, temp[-1])
-                pressure[:temp.shape[0]] = temp
+                pressure[:temp.shape[0], :] = temp
+                pressure = pressure.reshape(pressure.shape[0] * pressure.shape[1])
                 dataset.append(pressure)
         return np.asarray(dataset)
 
@@ -100,30 +104,28 @@ class Classic:
     def __init__(self, save_path):
         self.initial_timestamp = str(
             datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        self.save_path = save_path
+        self.save_path = save_path / self.initial_timestamp
+        self.save_path.mkdir(parents=True, exist_ok=True)
+        logging.basicConfig(
+            filename=self.save_path / Path("output.log"),
+            level=logging.DEBUG,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
         dataloader = DataLoader()
         self.resultset = dataloader.get_resultset()
-        # self.dataset = dataloader.get_dataset_subsampled()
-        self.dataset = dataloader.get_dataset()
+        self.dataset = dataloader.get_dataset_subsampled(40, 400)
+        # self.dataset = dataloader.get_dataset()
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(self.dataset, self.resultset,
                                                                                 test_size=0.3,
                                                                                 random_state=100)
 
     def run_xgboost_training(self):
-        print("Running XGBoost")
-        save_path = self.save_path / self.initial_timestamp
-        save_path.mkdir(parents=True, exist_ok=True)
-
-        logging.basicConfig(
-            filename=save_path / Path("output.log"),
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
         logger = logging.getLogger(__name__)
+        print("Running XGBoost")
+        logger.info("Running XGBoost")
         self.x_train, x_val, self.y_train, y_val = train_test_split(self.x_train, self.y_train,
                                                                     test_size=0.2,
                                                                     random_state=100)
-        logger.info("The Training Will Start Shortly")
         # clf_gini = DecisionTreeClassifier(criterion="gini", random_state=100,
         #                                   max_depth=3, min_samples_leaf=5)
         tree = xgb.XGBRegressor(silent=False, objective='reg:logistic', colsample_bytree=0.3, learning_rate=0.06,
@@ -143,14 +145,14 @@ class Classic:
         # plt.show()
 
         accuracy = accuracy_score(self.y_test, y_pred.round())
-        pickle.dump(tree, open("xgb_model.dat", "wb"))
         print(confusion_matrix(self.y_test, y_pred.round()))
         logger.info(confusion_matrix(self.y_test, y_pred.round()))
         print(classification_report(self.y_test, y_pred.round()))
         logger.info(classification_report(self.y_test, y_pred.round()))
         print("Accuracy is " + str(accuracy * 100))
         logger.info("Accuracy is " + str(accuracy * 100))
-        logging.shutdown()
+        pickle.dump(tree, open(self.save_path / "xgb_model.dat", "wb"))
+        logger.info("XGB-Model saved")
 
     def svc_param_selection(self, x, y, nfolds):
         cs = [0.001, 0.01, 0.1, 1, 10]
@@ -164,16 +166,9 @@ class Classic:
 
     def run_svm_training(self):
         n_estimators = 10
-        print("Running sklearn.svm")
-        save_path = self.save_path / self.initial_timestamp
-        save_path.mkdir(parents=True, exist_ok=True)
-
-        logging.basicConfig(
-            filename=save_path / Path("output.log"),
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
         logger = logging.getLogger(__name__)
+        print("Running sklearn.svm")
+        logger.info("Running sklearn.svm")
 
         # svclassifier = SVC(self.svc_param_selection(self.dataset, self.resultset, 10))
         # svclassifier = SVC(kernel='linear')
@@ -192,21 +187,14 @@ class Classic:
         print(classification_report(self.y_test, y_pred.round()))
         logger.info(classification_report(self.y_test, y_pred.round()))
         print("Accuracy is " + str(accuracy * 100))
-        pickle.dump(svclassifier, open("svm_model.dat", "wb"))
         logger.info("Accuracy is " + str(accuracy * 100))
-        logging.shutdown()
+        pickle.dump(svclassifier, open(self.save_path / "svm_model.dat", "wb"))
+        logger.info("SVC-Model saved")
 
     def run_kmeans_training(self):
-        print("Running sklearn.kmeans")
-        save_path = self.save_path / self.initial_timestamp
-        save_path.mkdir(parents=True, exist_ok=True)
-
-        logging.basicConfig(
-            filename=save_path / Path("output.log"),
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
         logger = logging.getLogger(__name__)
+        print("Running sklearn.kmeans")
+        logger.info("Running sklearn.kmeans")
 
         # svclassifier = SVC(self.svc_param_selection(dataset, resultset, 10))
         kmeans = KMeans(algorithm='auto', copy_x=True, init='k-means++', max_iter=300,
@@ -223,9 +211,9 @@ class Classic:
         print(classification_report(self.y_test, y_pred.round()))
         logger.info(classification_report(self.y_test, y_pred.round()))
         print("Accuracy is " + str(accuracy * 100))
-        pickle.dump(kmeans, open("svm_model.dat", "wb"))
         logger.info("Accuracy is " + str(accuracy * 100))
-        logging.shutdown()
+        pickle.dump(kmeans, open(self.save_path / "kmeans_model.dat", "wb"))
+        logger.info("KMeans-Model saved")
 
 
 if __name__ == "__main__":
@@ -269,3 +257,4 @@ if __name__ == "__main__":
     st.run_kmeans_training()
     st.run_svm_training()
     st.run_xgboost_training()
+    logging.shutdown()
