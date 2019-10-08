@@ -1,7 +1,6 @@
 import logging
 import math
 import pickle
-import socket
 from datetime import datetime
 from pathlib import Path
 
@@ -26,7 +25,7 @@ class DataLoader:
         self.hdf5db = HDF5DBToolbox()
         self.hdf5db.load(
             "/cfs/share/cache/HDF5DB_Cache",
-            "Unrestricted404"
+            "Unrestricted"
         )
 
         self.pressure_path = "post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
@@ -64,15 +63,25 @@ class DataLoader:
         for path in self.result_path:
             r = h5py.File(path, "r")
             if self.pressure_path in r:
+                data = r[self.pressure_path][()][:, :, 0]
+                temp = np.zeros((data.shape[0], max_shape[1]))
+                for i in range(max_shape[1]):
+                    temp[:, i] = data[:, -1]
+                temp[:data.shape[0], :data.shape[1]] = data
+                # Line shaping
                 pressure = np.zeros(max_shape)
-                temp = r[self.pressure_path][()][:, :, 0]
+                for i in range(max_shape[0]):
+                    pressure[i, :] = temp[-1, :]
                 pressure[:temp.shape[0], :temp.shape[1]] = temp
-                pressure[temp.shape[0]:, :] = temp[-1, :]
-                pressure = pressure.reshape(max_shape[0] * max_shape[1])
+                pressure = pressure.reshape(pressure.shape[0] * pressure.shape[1])
                 dataset.append(pressure)
+                # pressure[:temp.shape[0], :temp.shape[1]] = temp
+                # pressure[temp.shape[0]:, :] = temp[-1, :]
+                # pressure = pressure.reshape(max_shape[0] * max_shape[1])
+                # dataset.append(pressure)
         return np.asarray(dataset)
 
-    def get_dataset_subsampled(self, sensorgrid_size, time_steps):
+    def get_dataset_subsampled(self, sensorgrid_size=1140, time_steps=400):
         dataset = []
 
         # Fill dataset with pressure-data from RESULT.erfh5
@@ -89,9 +98,37 @@ class DataLoader:
                 temp[:, :np.asarray(temp2).shape[1]] = temp2
                 # Line shaping
                 sampler = math.ceil(temp.shape[0] / (time_steps - 1))
-                pressure = temp[temp.shape[0] - time_steps:, :]  # np.full((time_steps, sensorgrid_size), temp[-1, -1])
+                pressure = temp[temp.shape[0] - time_steps:, :]
                 temp = temp[0::sampler]
                 pressure[:temp.shape[0], :] = temp
+                pressure = pressure.reshape(pressure.shape[0] * pressure.shape[1])
+                dataset.append(pressure)
+        return np.asarray(dataset)
+
+    def get_dataset_subsampled_v2(self, sensorgrid_size=1140, time_steps=400):
+        dataset = []
+
+        # Fill dataset with pressure-data from RESULT.erfh5
+        # Reshape to given sensorgrid-size and time-steps
+        # Fill the remaining part with last elements of dimension
+        for path in self.result_path:
+            r = h5py.File(path, "r")
+            if self.pressure_path in r:
+                # Column shaping
+                data = r[self.pressure_path][()][:, :, 0]
+                sampler = math.ceil(data.shape[1] / (sensorgrid_size - 1))
+                temp = np.zeros((data.shape[0], sensorgrid_size))
+                for i in range(sensorgrid_size):
+                    temp[:, i] = data[:, -1]
+                temp2 = data[:, 0::sampler]
+                temp[:, :np.asarray(temp2).shape[1]] = temp2
+                # Line shaping
+                sampler = math.ceil(temp.shape[0] / (time_steps - 1))
+                pressure = np.zeros((time_steps, sensorgrid_size))
+                for i in range(time_steps):
+                    pressure[i, :] = temp[-1, :]
+                temp = temp[0::sampler, :]
+                pressure[:temp.shape[0], :temp.shape[1]] = temp
                 pressure = pressure.reshape(pressure.shape[0] * pressure.shape[1])
                 dataset.append(pressure)
         return np.asarray(dataset)
@@ -113,7 +150,7 @@ class Classic:
         )
         dataloader = DataLoader()
         self.resultset = dataloader.get_resultset()
-        self.dataset = dataloader.get_dataset_subsampled(40, 400)
+        self.dataset = dataloader.get_dataset_subsampled_v2(400, 400)
         # self.dataset = dataloader.get_dataset()
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(self.dataset, self.resultset,
                                                                                 test_size=0.3,
@@ -217,41 +254,7 @@ class Classic:
 
 
 if __name__ == "__main__":
-
-    if socket.gethostname() == "swt-dgx1":
-        """ _cache_path = None
-        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/
-        output/with_shapes")
-        _batch_size = 320
-        _eval_freq = 50
-
-        if getpass.getuser() == "stiebesi":
-            _save_path = Path("/cfs/share/cache/output_simon")
-        elif getpass.getuser() == "schroeni":
-            _save_path = Path("/cfs/share/cache/output_niklas")
-            # cache_path = "/run/user/1001/gvfs/smb-share:
-            server=137.250.170.56,share=share/cache"
-        else:
-            _save_path = Path("/cfs/share/cache/output")
-        _epochs = 10
-        _num_workers = 18
-        _num_validation_samples = 2000
-        _num_test_samples = 2000 """
-
-        print("TODO Fix paths for DGX")
-
-    else:
-        _cache_path = Path(
-            '/cfs/share/cache')
-
-        _data_root = Path(
-            '/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
-        _batch_size = 4
-        _eval_freq = 50
-        _save_path = Path('/home/hartmade/Train_Out')
-        _num_workers = 4
-        _num_validation_samples = 50
-        _num_test_samples = 50
+    _save_path = Path('/home/hartmade/Train_Out')
 
     st = Classic(save_path=_save_path)
     st.run_kmeans_training()
