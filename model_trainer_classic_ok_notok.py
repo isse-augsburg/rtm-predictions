@@ -1,6 +1,7 @@
 import logging
 import math
 import pickle
+import socket
 from datetime import datetime
 from pathlib import Path
 
@@ -40,10 +41,13 @@ class DataLoader:
 
     def select(self, variable, comparisonoperator, value):
         self.hdf5db.select(variable, comparisonoperator, value)
+        self.result_path = []
+        self.avg_lvl = []
         for obj in self.hdf5db.hdf5_object_list:
             self.avg_lvl.append(obj.avg_level)
             self.result_path.append(obj.path_result)
 
+    # 1. version of get_dataset, map to max-shape
     def get_dataset(self):
         dataset = []
         max_shape = [0, 0]
@@ -63,24 +67,20 @@ class DataLoader:
         for path in self.result_path:
             r = h5py.File(path, "r")
             if self.pressure_path in r:
+                # Column shaping
                 data = r[self.pressure_path][()][:, :, 0]
                 temp = np.zeros((data.shape[0], max_shape[1]))
-                for i in range(max_shape[1]):
-                    temp[:, i] = data[:, -1]
+                temp[:, data.shape[0]:] = data[:, -1]
                 temp[:data.shape[0], :data.shape[1]] = data
                 # Line shaping
                 pressure = np.zeros(max_shape)
-                for i in range(max_shape[0]):
-                    pressure[i, :] = temp[-1, :]
+                pressure[temp.shape[0]:, :] = temp[-1, :]
                 pressure[:temp.shape[0], :temp.shape[1]] = temp
                 pressure = pressure.reshape(pressure.shape[0] * pressure.shape[1])
                 dataset.append(pressure)
-                # pressure[:temp.shape[0], :temp.shape[1]] = temp
-                # pressure[temp.shape[0]:, :] = temp[-1, :]
-                # pressure = pressure.reshape(max_shape[0] * max_shape[1])
-                # dataset.append(pressure)
         return np.asarray(dataset)
 
+    # 2. version of get_dataset, map to given shape, begin filling from right lower edge of original data
     def get_dataset_subsampled(self, sensorgrid_size=1140, time_steps=400):
         dataset = []
 
@@ -105,29 +105,29 @@ class DataLoader:
                 dataset.append(pressure)
         return np.asarray(dataset)
 
+    # 3. version of get_dataset, map to given shape, fill remaining columns with last column and
+    # remaining rows with last row
     def get_dataset_subsampled_v2(self, sensorgrid_size=1140, time_steps=400):
         dataset = []
 
         # Fill dataset with pressure-data from RESULT.erfh5
         # Reshape to given sensorgrid-size and time-steps
-        # Fill the remaining part with last elements of dimension
+        # Fill the remaining with the last elements of the dimension
         for path in self.result_path:
             r = h5py.File(path, "r")
             if self.pressure_path in r:
                 # Column shaping
                 data = r[self.pressure_path][()][:, :, 0]
-                sampler = math.ceil(data.shape[1] / (sensorgrid_size - 1))
+                indices = np.round(np.arange(0, data.shape[1] - 1, data.shape[1] / sensorgrid_size))
                 temp = np.zeros((data.shape[0], sensorgrid_size))
-                for i in range(sensorgrid_size):
-                    temp[:, i] = data[:, -1]
-                temp2 = data[:, 0::sampler]
+                temp[:, data.shape[0]:] = data[:, -1]
+                temp2 = data[:, indices.astype(int)]
                 temp[:, :np.asarray(temp2).shape[1]] = temp2
                 # Line shaping
-                sampler = math.ceil(temp.shape[0] / (time_steps - 1))
+                indices = np.flip(np.round(np.arange(data.shape[0] - 1, 0, -temp.shape[0] / time_steps)))
                 pressure = np.zeros((time_steps, sensorgrid_size))
-                for i in range(time_steps):
-                    pressure[i, :] = temp[-1, :]
-                temp = temp[0::sampler, :]
+                pressure[temp.shape[0]:, :] = temp[-1, :]
+                temp = temp[indices.astype(int), :]
                 pressure[:temp.shape[0], :temp.shape[1]] = temp
                 pressure = pressure.reshape(pressure.shape[0] * pressure.shape[1])
                 dataset.append(pressure)
@@ -138,7 +138,7 @@ class DataLoader:
 
 
 class Classic:
-    def __init__(self, save_path):
+    def __init__(self, save_path, sensorgrid_size=0, time_steps=0):
         self.initial_timestamp = str(
             datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / self.initial_timestamp
@@ -150,8 +150,10 @@ class Classic:
         )
         dataloader = DataLoader()
         self.resultset = dataloader.get_resultset()
-        self.dataset = dataloader.get_dataset_subsampled_v2(400, 400)
-        # self.dataset = dataloader.get_dataset()
+        if sensorgrid_size > 0 and time_steps > 0:
+            self.dataset = dataloader.get_dataset_subsampled_v2(sensorgrid_size, time_steps)
+        else:
+            self.dataset = dataloader.get_dataset()
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(self.dataset, self.resultset,
                                                                                 test_size=0.3,
                                                                                 random_state=100)
@@ -254,9 +256,12 @@ class Classic:
 
 
 if __name__ == "__main__":
-    _save_path = Path('/home/hartmade/Train_Out')
+    if socket.gethostname() == "swt-dgx1":
+        save_path = Path('/cfs') / Path('share') / Path('cache') / Path('HDF5DB_Cache') / Path('Train_Out')
+    else:
+        _save_path = Path('/home/hartmade/Train_Out')
 
-    st = Classic(save_path=_save_path)
+    st = Classic(_save_path, 1140, 400)
     st.run_kmeans_training()
     st.run_svm_training()
     st.run_xgboost_training()
