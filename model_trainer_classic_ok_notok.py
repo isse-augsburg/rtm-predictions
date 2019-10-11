@@ -9,7 +9,6 @@ import h5py
 # import matplotlib.pyplot as plt
 import numpy as np
 import xgboost as xgb
-from matplotlib import rcParams
 # from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.cluster import KMeans
 from sklearn.ensemble import BaggingClassifier
@@ -70,7 +69,8 @@ class DataLoader:
                 # Column shaping
                 data = r[self.pressure_path][()][:, :, 0]
                 temp = np.zeros((data.shape[0], max_shape[1]))
-                temp[:, data.shape[0]:] = data[:, -1]
+                if data.shape[1] < max_shape[1]:
+                    temp[:, data.shape[1] - 1:] = np.asarray(data[:, -1]).reshape((data.shape[0], 1))
                 temp[:data.shape[0], :data.shape[1]] = data
                 # Line shaping
                 pressure = np.zeros(max_shape)
@@ -93,7 +93,7 @@ class DataLoader:
                 # Column shaping
                 data = r[self.pressure_path][()][:, :, 0]
                 sampler = math.ceil(data.shape[1] / (sensorgrid_size - 1))
-                temp = data[:, data.shape[1] - sensorgrid_size:]
+                temp = data[:, data.shape[1] - sensorgrid_size - 1:]
                 temp2 = data[:, 0::sampler]
                 temp[:, :np.asarray(temp2).shape[1]] = temp2
                 # Line shaping
@@ -118,15 +118,17 @@ class DataLoader:
             if self.pressure_path in r:
                 # Column shaping
                 data = r[self.pressure_path][()][:, :, 0]
-                indices = np.round(np.arange(0, data.shape[1] - 1, data.shape[1] / sensorgrid_size))
+                indices = np.unique(np.round(np.arange(0, data.shape[1] - 1, data.shape[1] / sensorgrid_size)))
                 temp = np.zeros((data.shape[0], sensorgrid_size))
-                temp[:, data.shape[0]:] = data[:, -1]
+                if data.shape[1] < sensorgrid_size:
+                    temp[:, data.shape[1] - 1:] = np.asarray(data[:, -1]).reshape((data.shape[0], 1))
                 temp2 = data[:, indices.astype(int)]
                 temp[:, :np.asarray(temp2).shape[1]] = temp2
                 # Line shaping
                 indices = np.flip(np.round(np.arange(data.shape[0] - 1, 0, -temp.shape[0] / time_steps)))
                 pressure = np.zeros((time_steps, sensorgrid_size))
-                pressure[temp.shape[0]:, :] = temp[-1, :]
+                if data.shape[0] < time_steps:
+                    pressure[temp.shape[0] - 1:, :] = temp[-1, :]
                 temp = temp[indices.astype(int), :]
                 pressure[:temp.shape[0], :temp.shape[1]] = temp
                 pressure = pressure.reshape(pressure.shape[0] * pressure.shape[1])
@@ -173,8 +175,8 @@ class Classic:
 
         # Predict
         y_pred = tree.predict(self.x_test)
-        rcParams['figure.figsize'] = 900, 600
-        xgb.plot_tree(tree, num_trees=0)
+        # rcParams['figure.figsize'] = 900, 600
+        # xgb.plot_tree(tree, num_trees=0)
         # plt.show()
 
         # For sklearn decisiontree
@@ -256,8 +258,8 @@ class Classic:
 
 
 if __name__ == "__main__":
-    if socket.gethostname() == "swt-dgx1":
-        save_path = Path('/cfs') / Path('share') / Path('cache') / Path('HDF5DB_Cache') / Path('Train_Out')
+    if "swt" in socket.gethostname():
+        _save_path = Path('/cfs') / Path('share') / Path('cache') / Path('HDF5DB_Cache') / Path('Train_Out')
     else:
         _save_path = Path('/home/hartmade/Train_Out')
 
