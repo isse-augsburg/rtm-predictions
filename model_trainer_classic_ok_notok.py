@@ -25,7 +25,7 @@ class DataLoader:
         self.hdf5db = HDF5DBToolbox()
         self.hdf5db.load(
             "/cfs/share/cache/HDF5DB_Cache",
-            "Unrestricted"
+            "Unrestricted404"
         )
 
         self.pressure_path = "post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
@@ -45,6 +45,20 @@ class DataLoader:
         for obj in self.hdf5db.hdf5_object_list:
             self.avg_lvl.append(obj.avg_level)
             self.result_path.append(obj.path_result)
+
+    def balance_dataset(self):
+        mini = 0
+        nok = self.avg_lvl.count(0)
+        ok = self.avg_lvl.count(1)
+        print("Nok: " + str(nok))
+        print("Ok: " + str(ok))
+        if ok > nok:
+            mini = nok
+        else:
+            mini = ok
+        self.avg_lvl = self.avg_lvl[:mini]
+        self.result_path = self.result_path[:mini]
+        print(len(self.result_path))
 
     # 1. version of get_dataset, map to max-shape
     def get_dataset(self):
@@ -107,7 +121,7 @@ class DataLoader:
 
     # 3. version of get_dataset, map to given shape, fill remaining columns with last column and
     # remaining rows with last row
-    def get_dataset_subsampled_v2(self, sensorgrid_size=1140, time_steps=400):
+    def get_dataset_subsampled_v2(self, start=0, sensorgrid_size=1140, time_steps=400):
         dataset = []
 
         # Fill dataset with pressure-data from RESULT.erfh5
@@ -118,18 +132,22 @@ class DataLoader:
             if self.pressure_path in r:
                 # Column shaping
                 data = r[self.pressure_path][()][:, :, 0]
-                indices = np.unique(np.round(np.arange(0, data.shape[1] - 1, data.shape[1] / sensorgrid_size)))
+                # indices = np.round(np.arange(0, data.shape[1] - 1, data.shape[1] / sensorgrid_size))
+                sampler = math.ceil(data.shape[1] / (sensorgrid_size - 1))
                 temp = np.zeros((data.shape[0], sensorgrid_size))
                 if data.shape[1] < sensorgrid_size:
                     temp[:, data.shape[1] - 1:] = np.asarray(data[:, -1]).reshape((data.shape[0], 1))
-                temp2 = data[:, indices.astype(int)]
+                # temp2 = data[:, indices.astype(int)]
+                temp2 = data[:, start::sampler]
                 temp[:, :np.asarray(temp2).shape[1]] = temp2
                 # Line shaping
-                indices = np.flip(np.round(np.arange(data.shape[0] - 1, 0, -temp.shape[0] / time_steps)))
+                # indices = np.flip(np.round(np.arange(data.shape[0] - 1, 0, -temp.shape[0] / time_steps)))
+                sampler = math.ceil(temp.shape[0] / (time_steps - 1))
                 pressure = np.zeros((time_steps, sensorgrid_size))
                 if data.shape[0] < time_steps:
                     pressure[temp.shape[0] - 1:, :] = temp[-1, :]
-                temp = temp[indices.astype(int), :]
+                # temp = temp[indices.astype(int), :]
+                temp = temp[start::sampler]
                 pressure[:temp.shape[0], :temp.shape[1]] = temp
                 pressure = pressure.reshape(pressure.shape[0] * pressure.shape[1])
                 dataset.append(pressure)
@@ -151,6 +169,7 @@ class Classic:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         dataloader = DataLoader()
+        dataloader.balance_dataset()
         self.resultset = dataloader.get_resultset()
         if sensorgrid_size > 0 and time_steps > 0:
             self.dataset = dataloader.get_dataset_subsampled_v2(sensorgrid_size, time_steps)
@@ -160,7 +179,8 @@ class Classic:
                                                                                 test_size=0.3,
                                                                                 random_state=100)
 
-    def run_xgboost_training(self):
+    def run_xgboost_training(self, colsample_bytree=1, learning_rate=0.06, max_depth=3, n_estimators=1000,
+                             subsample=0.8, gamma=1):
         logger = logging.getLogger(__name__)
         print("Running XGBoost")
         logger.info("Running XGBoost")
@@ -169,8 +189,11 @@ class Classic:
                                                                     random_state=100)
         # clf_gini = DecisionTreeClassifier(criterion="gini", random_state=100,
         #                                   max_depth=3, min_samples_leaf=5)
-        tree = xgb.XGBRegressor(silent=False, objective='reg:logistic', colsample_bytree=0.3, learning_rate=0.06,
-                                max_depth=3, n_estimators=10000, subsample=0.8, gamma=1)
+        # tree = xgb.XGBRegressor(silent=False, objective='reg:logistic', colsample_bytree=0.3, learning_rate=0.06,
+        #                         max_depth=3, n_estimators=10000, subsample=0.8, gamma=1)
+        tree = xgb.XGBRegressor(silent=False, objective='reg:logistic', colsample_bytree=colsample_bytree,
+                                learning_rate=learning_rate, max_depth=max_depth, n_estimators=n_estimators,
+                                subsample=subsample, gamma=gamma)
         tree.fit(self.x_train, self.y_train, eval_set=[(x_val, y_val)], early_stopping_rounds=30)
 
         # Predict
@@ -194,6 +217,7 @@ class Classic:
         logger.info("Accuracy is " + str(accuracy * 100))
         pickle.dump(tree, open(self.save_path / "xgb_model.dat", "wb"))
         logger.info("XGB-Model saved")
+        return y_pred
 
     def svc_param_selection(self, x, y, nfolds):
         cs = [0.001, 0.01, 0.1, 1, 10]
@@ -231,6 +255,7 @@ class Classic:
         logger.info("Accuracy is " + str(accuracy * 100))
         pickle.dump(svclassifier, open(self.save_path / "svm_model.dat", "wb"))
         logger.info("SVC-Model saved")
+        return y_pred
 
     def run_kmeans_training(self):
         logger = logging.getLogger(__name__)
@@ -255,6 +280,7 @@ class Classic:
         logger.info("Accuracy is " + str(accuracy * 100))
         pickle.dump(kmeans, open(self.save_path / "kmeans_model.dat", "wb"))
         logger.info("KMeans-Model saved")
+        return y_pred
 
 
 if __name__ == "__main__":
@@ -264,7 +290,20 @@ if __name__ == "__main__":
         _save_path = Path('/home/hartmade/Train_Out')
 
     st = Classic(_save_path, 1140, 400)
-    st.run_kmeans_training()
-    st.run_svm_training()
-    st.run_xgboost_training()
+    # kmeans_y_pred = st.run_kmeans_training()
+    # svm_y_pred = st.run_svm_training()
+    # y_pred1 = st.run_xgboost_training(1, 0.06, 2, 500, 0.4, 1)
+    # xg_y_pred = st.run_xgboost_training(1, 0.06, 4, 1000, 0.8, 1)
+    # print(mannwhitneyu(y_pred1, y_pred2))
+    # print(ttest_ind(y_pred1, y_pred2))
+    # print("Comparison KMeans, XGBoost:")
+    # print(ttest_ind(kmeans_y_pred, xg_y_pred))
+    # print("Comparison SVM, XGBoost:")
+    # print(ttest_ind(svm_y_pred, xg_y_pred))
     logging.shutdown()
+
+# colsample_bytree=1, learning_rate=0.06, max_depth=3, n_estimators=1000,
+#                              subsample=0.8, gamma=1)
+
+
+# Generator
