@@ -71,7 +71,9 @@ class MasterTrainer:
         self.__train()
         self.logger.info("Test set missing. So no testing.")
         # self.__eval()
-        self.logger.info(">>> INFO: TRAINING COMPLETE.")
+        self.logger.info("TRAINING COMPLETE.")
+        logging.shutdown()
+        self.generator.end_threads()
 
     def test(self, path):
         self.generator.load_test_set(path)
