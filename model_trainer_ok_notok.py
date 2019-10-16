@@ -13,7 +13,7 @@ from Trainer.evaluation import BinaryClassificationEvaluator
 
 
 def get_comment():
-    return "Trying 38x30 sensor grid as input for a conventional CNN"
+    return "Trying 38x30 sensor grid as input for a conventional CNN. Using subsampled version of sequence."
 
 
 class SuccessTrainer:
