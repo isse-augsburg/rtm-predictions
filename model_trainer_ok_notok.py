@@ -132,7 +132,7 @@ if __name__ == "__main__":
         _batch_size = 8
         _eval_freq = 50
         _save_path = Path('/home/lodes/Train_Out')
-        _epochs = 80
+        _epochs = 10
         _num_workers = 4
         _num_validation_samples = 50
         _num_test_samples = 50
