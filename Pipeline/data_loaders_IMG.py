@@ -149,6 +149,8 @@ def get_images_of_flow_front_and_permeability_map(
     return [(img_stack[0:wanted_num], label)]
 
 
+# Deprecated! Use resampling.get_fixed_number_of_indices
+
 def get_fixed_number_of_elements_and_indices(
         input_list, wanted_num
 ):
