@@ -11,7 +11,6 @@ from Pipeline.data_loaders_IMG import \
 class TestDataLoaderIMG(unittest.TestCase):
     def setUp(self):
         self.img_cache_dirname = Resources.data_loader_img_file
-        pass
 
     @unittest.skip("Currently not working")
     def test_get_fixed_number_of_elements_and_their_indices_from_various_sized_list(
