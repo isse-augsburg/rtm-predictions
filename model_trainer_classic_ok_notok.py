@@ -25,7 +25,7 @@ class DataLoader:
         self.hdf5db = HDF5DBToolbox()
         self.hdf5db.load(
             "/cfs/share/cache/HDF5DB_Cache",
-            "Unrestricted404"
+            "Unrestricted"
         )
 
         self.pressure_path = "post/multistate/TIMESERIES1/multientityresults/SENSOR/PRESSURE/ZONE1_set1/erfblock/res"
@@ -58,7 +58,7 @@ class DataLoader:
             mini = ok
         self.avg_lvl = self.avg_lvl[:mini]
         self.result_path = self.result_path[:mini]
-        print(len(self.result_path))
+        print("Dataset balanced to " + str(len(self.result_path)) + " samples")
 
     # 1. version of get_dataset, map to max-shape
     def get_dataset(self):
@@ -292,7 +292,7 @@ if __name__ == "__main__":
     st = Classic(_save_path, 1140, 400)
     # kmeans_y_pred = st.run_kmeans_training()
     # svm_y_pred = st.run_svm_training()
-    # y_pred1 = st.run_xgboost_training(1, 0.06, 2, 500, 0.4, 1)
+    y_pred1 = st.run_xgboost_training(1, 0.06, 2, 500, 0.4, 1)
     # xg_y_pred = st.run_xgboost_training(1, 0.06, 4, 1000, 0.8, 1)
     # print(mannwhitneyu(y_pred1, y_pred2))
     # print(ttest_ind(y_pred1, y_pred2))
