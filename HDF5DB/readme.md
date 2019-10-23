@@ -5,13 +5,13 @@ First of all you have to import the HDF5DB-Toolbox via:
 Afterwords create a HDF5Toolbox-instance to address the different functions.  
 	e. g. hdf5db = HDF5Toolbox()  
 After these steps, you can execute the following commands:  
-        1. Add:  
+    1. Add:  
     To add data from a Simulation, please use the add_objects_from_path(self, path)-method.  
-   	e. g. hdf5db.add_objects_from_path(/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/  
-	2019-07-23_15-38-08_5000p"  
+    e. g. hdf5db.add_objects_from_path(/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/  
+    2019-07-23_15-38-08_5000p"  
     2. Select:  
-   To select a part of the simulation data, please use the select(self, variable,  
-   comparisonOperator="=", value)-method.  
+    To select a part of the simulation data, please use the select(self, variable,  
+    comparisonOperator="=", value)-method.  
 	e. g. hdf5db.select("fvc_circle", ">", 0.2)  
     3. Show selection options:  
     To get the different possible selection options for the selectable variables displayed,  
