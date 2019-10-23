@@ -10,7 +10,7 @@ from model_trainer_ok_notok import SuccessTrainer
 class TestOkNotOkTraining(unittest.TestCase):
     def setUp(self):
         self.training_save_path = resources.test_training_out_dir
-        self.training_data_paths = [resources.test_training_src_dir]
+        self.training_data_paths = [resources.test_training_src_dir / '2019-07-11_15-14-48_100p']
         self.expected_num_epochs_during_training = 1
 
     # @unittest.skip('Needs to be fixed: Lukas.')

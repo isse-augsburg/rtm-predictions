@@ -2,8 +2,10 @@ import numpy as np
 
 
 def get_fixed_number_of_indices(list_length, num_samples):
-    if num_samples >= list_length:
+    if num_samples > list_length:
         return None
+    if list_length == num_samples:
+        return list(range(num_samples))
 
     step_size = list_length / num_samples
 
