@@ -81,15 +81,20 @@ def save_img(path, _str, x, index):
 
 
 class SensorToFlowfrontEvaluator(Evaluator):
-    def __init__(self, save_path=Path("/home/schroeter/Desktop/output"),
-                 halfed=False):
+    def __init__(self,
+                 save_path=Path("/home/schroeter/Desktop/output"),
+                 halving_factor=0,
+                 skip_images=False):
         self.num = 0
         self.save_path = save_path
         self.im_save_path = save_path / "images"
         self.im_save_path.mkdir(parents=True, exist_ok=True)
-        self.halfed = halfed
+        self.halving_factor = halving_factor
+        self.skip_images = skip_images
 
     def commit(self, net_output, label, inputs, *args):
+        if self.skip_images:
+            return
         a = net_output.numpy()
         a = np.squeeze(a)
         b = label.numpy()
@@ -97,8 +102,8 @@ class SensorToFlowfrontEvaluator(Evaluator):
         c = inputs.numpy()
         c = np.squeeze(c)
         c = c.reshape(38, 30)
-        if self.halfed:
-            c = c[::2, ::2]
+        if self.halving_factor != 0:
+            c = c[::self.halving_factor, ::self.halving_factor]
 
         plt.imsave(self.im_save_path / Path(str(self.num) + "out.jpg"), a)
         plt.imsave(self.im_save_path / Path(str(self.num) + "lab.jpg"), b)
@@ -132,21 +137,21 @@ class BinaryClassificationEvaluator(Evaluator):
             label: single label for the prediction.
         """
 
-        if math.isnan(net_output[0][0]):
+        if math.isnan(net_output[0]):
             return
 
         prediction = np.around(net_output)
 
-        self.confusion_matrix[int(label[0][0].cpu())][
-            int(prediction[0][0].cpu())] += 1
+        self.confusion_matrix[int(label[0].cpu())][
+            int(prediction[0].cpu())] += 1
 
         if np.array_equal(prediction, label):
-            if prediction[0][0] == 1:
+            if prediction[0] == 1:
                 self.tp += 1
             else:
                 self.tn += 1
         else:
-            if prediction[0][0] == 1:
+            if prediction[0] == 1:
                 self.fp += 1
             else:
                 self.fn += 1

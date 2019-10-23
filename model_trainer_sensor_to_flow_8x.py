@@ -10,7 +10,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel4x
+from Models.erfh5_DeconvModel import DeconvModel8x
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
@@ -63,7 +63,7 @@ class SensorTrainer:
                 batch_size=self.batch_size,
                 epochs=self.epochs,
                 max_queue_length=8096,
-                data_processing_function=dli.get_sensordata_and_flowfront_135x103,
+                data_processing_function=dli.get_sensordata_and_flowfront_154x122,
                 data_gather_function=dg.get_filelist_within_folder,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
@@ -91,7 +91,7 @@ class SensorTrainer:
         )
         logger = logging.getLogger(__name__)
 
-        model = DeconvModel4x()
+        model = DeconvModel8x()
         if socket.gethostname() == "swt-dgx1":
             logger.info('Invoking data parallel model.')
             model = nn.DataParallel(model).to("cuda:0")
@@ -105,9 +105,7 @@ class SensorTrainer:
             model,
             self.test_data_generator,
             classification_evaluator=SensorToFlowfrontEvaluator(
-                save_path=save_path,
-                # TODO
-                halving_factor=True),
+                save_path=save_path),
         )
         eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
 
@@ -146,7 +144,7 @@ class SensorTrainer:
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
         logger.info("Generating Model")
-        model = DeconvModel4x()
+        model = DeconvModel8x()
         logger.info("Model to GPU")
         if socket.gethostname() == "swt-dgx1":
             model = nn.DataParallel(model).to("cuda:0")

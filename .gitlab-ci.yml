@@ -7,13 +7,12 @@ stages:
 linter:
   stage: lint
   script:
-    - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Debugging,Legacy .
+    - flake8 --max-line-length=120 --ignore=W291,W503,W504,E221 --exclude=Debugging,Legacy .
 
 test:
   stage: test
   script:
     - python3 -m unittest discover -s Tests -t Tests
-  # - python3 -m unittest Tests.test_eval.TestEval
 
   only:
     - master

@@ -111,6 +111,7 @@ class SensorTrainer:
 
         with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
+
         test_set = transform_list_of_linux_paths_to_windows(test_set)
         data_list = []
         full = False
@@ -126,6 +127,7 @@ class SensorTrainer:
                 break
 
         eval_wrapper.eval(data_list, test_mode=True)
+        logging.shutdown()
 
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
@@ -137,6 +139,7 @@ class SensorTrainer:
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         logger = logging.getLogger(__name__)
+
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
@@ -159,7 +162,7 @@ class SensorTrainer:
             train_print_frequency=self.train_print_frequency,
             eval_frequency=self.eval_freq,
             classification_evaluator=SensorToFlowfrontEvaluator(
-                save_path=save_path),
+                save_path=save_path, skip_images=True)
         )
         logger.info("The Training Will Start Shortly")
 
@@ -173,14 +176,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     run_eval = args.eval
 
-    num_data_points = 31376
-    _train_print_freq = 10
+    num_samples_runs = 40827  # or 7.713.044 frames ~ 188 p. Sim.
+    _train_print_freq = 20
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path(
             "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
         _batch_size = 320
-        _eval_freq = math.ceil(num_data_points / _batch_size)
+        _eval_freq = math.ceil(num_samples_runs / _batch_size)
         if getpass.getuser() == "stiebesi":
             _save_path = Path("/cfs/share/cache/output_simon")
         elif getpass.getuser() == "schroeni":
@@ -188,10 +191,10 @@ if __name__ == "__main__":
             # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
         else:
             _save_path = Path("/cfs/share/cache/output")
-        _epochs = 1000
+        _epochs = 100
         _num_workers = 18
-        _num_validation_samples = 2000
-        _num_test_samples = 2000
+        _num_validation_samples_frames = 350000  # 5 %
+        _num_test_samples_frames = 400000  # 5 %
 
     elif socket.gethostname() == "swtse130":
         _cache_path = Path(r"C:\Users\stiebesi\CACHE")
@@ -201,8 +204,8 @@ if __name__ == "__main__":
         _save_path = Path(r"Y:\cache\output_simon")
         _epochs = 5
         _num_workers = 10
-        _num_validation_samples = 10
-        _num_test_samples = 2000
+        _num_validation_samples_frames = 10
+        _num_test_samples_frames = 2000
 
     elif socket.gethostname() == "swthiwi158":
         _cache_path = \
@@ -216,8 +219,8 @@ if __name__ == "__main__":
                           r"share=share/cache/output_niklas")
         _epochs = 5
         _num_workers = 10
-        _num_validation_samples = 1000
-        _num_test_samples = 2000
+        _num_validation_samples_frames = 1000
+        _num_test_samples_frames = 2000
 
     if not run_eval:
         _data_source_paths = [
@@ -228,13 +231,14 @@ if __name__ == "__main__":
             _data_root / "2019-08-24_11-51-48_5000p",
             _data_root / "2019-08-25_09-16-40_5000p",
             _data_root / "2019-08-26_16-59-08_6000p",
+            _data_root / '2019-09-06_17-03-51_10000p'
         ]
     else:
         _data_source_paths = []
 
-    # Running with the same dataset as with 63 Sensors, because that was the longest training
-    _load_datasets_path = Path(
-        '/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-06_15-44-58_63_sensors')
+    # Running with the same data sets
+    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets')
+    # _load_datasets_path = None
 
     st = SensorTrainer(cache_path=_cache_path,
                        data_source_paths=_data_source_paths,
@@ -245,8 +249,8 @@ if __name__ == "__main__":
                        load_datasets_path=_load_datasets_path,
                        epochs=_epochs,
                        num_workers=_num_workers,
-                       num_validation_samples=_num_validation_samples,
-                       num_test_samples=_num_test_samples)
+                       num_validation_samples=_num_validation_samples_frames,
+                       num_test_samples=_num_test_samples_frames)
 
     if not run_eval:
         st.run_training()
@@ -256,7 +260,7 @@ if __name__ == "__main__":
             st.inference_on_test_set(source_path=path,
                                      output_path=path)
         else:
-            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\2019-09-17_15-26-14")
+            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\sharing_datasets\2019-09-20_10-57-06_20_sensors")
             st.inference_on_test_set(source_path=path,
                                      output_path=path)
     logging.shutdown()

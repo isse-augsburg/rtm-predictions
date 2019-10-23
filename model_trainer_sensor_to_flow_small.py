@@ -185,7 +185,7 @@ def run_training(save_path):
         train_print_frequency=2,
         eval_frequency=eval_freq,
         classification_evaluator=SensorToFlowfrontEvaluator(
-            save_path=save_path, halfed=True
+            save_path=save_path, halving_factor=True
         ),
     )
     logger.info("The Training Will Start Shortly")
