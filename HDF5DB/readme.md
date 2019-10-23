@@ -5,7 +5,7 @@ First of all you have to import the HDF5DB-Toolbox via:
 Afterwords create a HDF5Toolbox-instance to address the different functions.  
 	e. g. hdf5db = HDF5Toolbox()  
 After these steps, you can execute the following commands:  
-    1. Add:  
+        1. Add:  
     To add data from a Simulation, please use the add_objects_from_path(self, path)-method.  
    	e. g. hdf5db.add_objects_from_path(/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/  
 	2019-07-23_15-38-08_5000p"  
