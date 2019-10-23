@@ -149,21 +149,32 @@ def get_images_of_flow_front_and_permeability_map(
     return [(img_stack[0:wanted_num], label)]
 
 
+# Deprecated! Use resampling.get_fixed_number_of_indices
+
 def get_fixed_number_of_elements_and_indices(
         input_list, wanted_num
 ):
+    if wanted_num > len(input_list):
+        return
+
     num = len(input_list)
     dist = num / wanted_num
+    dist = int(np.floor(dist))
     if num == wanted_num:
         return input_list
     input_list.reverse()
-    x = input_list[:: int(np.round(dist))]
+    x = input_list[:: dist]
     input_list.reverse()
     x.reverse()
     res = []
     for i in range(len(x)):
-        res.append((len(input_list) - 1) - i * int(np.round(dist)))
+        res.append((len(input_list) - 1) - i * dist)
     res.reverse()
+
+    while len(res) > wanted_num:
+        rnd_index = np.random.randint(0, len(res))
+        res.pop(rnd_index)
+
     return res
 
 
