@@ -29,8 +29,7 @@ After these steps, you can execute the following commands:
     get_result_path_list(self)
 	e. g. hdf5db.get_result_path_list()
     7. Save:
-    To save the current selection as a file, please use the save(self, path, filename="HDF5DB")-
-    method.
+    To save the current selection as a file, please use the save(self, path, filename="HDF5DB")-method.
 	e. g. hdf5db.save("/cfs/share/cache/HDF5DB_Cache",  "Test")
     8. Load:
     To load a selection from a file please use the load(self, path, filename="HDF5DB")-method.
