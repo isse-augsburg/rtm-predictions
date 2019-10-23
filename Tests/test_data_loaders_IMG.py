@@ -1,10 +1,7 @@
 import logging
-import shutil
 import unittest
 
 import Tests.resources_for_testing as Resources
-from Pipeline.data_loaders_IMG import \
-    get_images_of_flow_front_and_permeability_map
 from Pipeline.resampling import get_fixed_number_of_indices
 
 
