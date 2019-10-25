@@ -6,20 +6,7 @@ from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
 def test():
     h5db = HDF5DBToolbox()
-    # test.add_objects_from_path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-09-19_14-07-05_20p")
-    # test.add_objects_from_path(
-    #     "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
-    # )
-    # test.add_objects_from_path(
-    #      "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-24_16-32-40_5000p"
-    # )
-    # h5db.load(
-    #     "/cfs/share/cache/HDF5DB_Cache",
-    #     "Unrestricted404"
-    # )
-    # analyzer = H5DBAnalyzer(test)
-    # print(analyzer.get_sum_single_states())
-    # analyzer.plot_single_states_distribution()
+
     h5db.add_objects_from_path(
         "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
     )
@@ -48,31 +35,12 @@ def test():
         "/cfs/share/cache/HDF5DB_Cache",
         "Unrestricted"
     )
-    # test.load("Data", "HDF5DB")
-    # test.show_selection_options()
-    # test.showObjects()
-    # print(test.get_result_path_list()[0])
-    # test.select("age", "<", "2019-08-01_00-00-00")
-    # print(test.get_result_path_list()[0])
-    # test.select("fvc_circle", ">", 0.2)
-    # test.select("output_frequency", ">", 0.2)
-    # test.select("fibre_content_runners", "=", -0.7)
-    # test.select("avg_level", "<", 0.9)
-    # test.select("posy_circle", "=", 18.375)
-    # test.select
-    # print(test.get_sum_single_states())
-    # test.plot_single_states_distribution()
-    # test.show_objects()
 
 
-# def main():
-# cProfile.run('test()')
-#
-# if __name__ == "__main__":
-#     test()
+if __name__ == "__main__":
+    test()
+
 # TODO
 # Min/Max width/heigth of rectangles
 # Same for circle: radius
 # Total number of frames
-t = timeit.Timer("test()", "from __main__ import test")
-print(str(t.timeit(1)) + "s")
