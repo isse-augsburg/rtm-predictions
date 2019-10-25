@@ -1,6 +1,3 @@
-# import cProfile
-import timeit
-
 from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
 
