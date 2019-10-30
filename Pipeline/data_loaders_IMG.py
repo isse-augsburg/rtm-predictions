@@ -8,10 +8,11 @@ import numpy as np
 
 # from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
-from Pipeline.plots_and_images import (
+from plots_and_images import (
     draw_polygon_map,
     plot_wrapper,
     scale_coords_lautern,
+    scale_coords_leoben
 )
 
 
@@ -172,10 +173,12 @@ def get_local_properties_map(f, imsize):
         "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"
     ][()]
     _all_coords = coord_as_np_array[:, :-1]
-    scaled_coords = scale_coords_lautern(_all_coords)
+    
+    scaled_coords = scale_coords_leoben(_all_coords)
     # norm_cords = normalize_coords(_all_coords)
     triangle_coords = f["post/constant/connectivities/SHELL/erfblock/ic"][()]
-    triangle_coords = triangle_coords[:, :-1] - 1
+    triangle_coords = triangle_coords[:, :-1] - 151980 # required for Leoben data
+
     data = f["post/constant/entityresults/SHELL/"]
 
     im = create_local_properties_map(
@@ -190,7 +193,7 @@ def create_local_properties_map(
         data, scaled_coords, triangle_coords, _type="FIBER_FRACTION"
 ):
     values_for_triangles = data[_type]["ZONE1_set1"]["erfblock"]["res"][()]
-    im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords)
+    im = draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords,size=(152*3,120*3))
     return im
 
 
@@ -276,6 +279,10 @@ def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
 
 
 if __name__ == "__main__":
-    get_sensordata_and_flowfront(
-        Path(r"/home/schroeter/Desktop/2019-08-24_11-51-48_3_RESULT.erfh5")
-    )
+    f = h5py.File('/home/schroeter/Desktop/2019-07-23_15-38-08_7_RESULT.erfh5', 'r')
+    im, scaled_coords, triangle_coords = get_local_properties_map(f, (152*3,120*3))
+    im.show()
+
+    # get_sensordata_and_flowfront(
+    #     Path(r"/home/schroeter/Desktop/2019-08-24_11-51-48_3_RESULT.erfh5")
+    # )
