@@ -3,12 +3,11 @@ import shutil
 import unittest
 from datetime import datetime
 from pathlib import Path
-
-import deepdish as dd
 import numpy as np
 
 from HDF5DB.hdf5db_object import HDF5Object
 from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
+from HDF5DB.h5writer import create_h5, write_dict_to_Hdf5
 
 
 class TestHDF5DB(unittest.TestCase):
@@ -164,9 +163,6 @@ class TestHDF5DB(unittest.TestCase):
         }
 
         os.mkdir(os.getcwd() / self.testfolder)
-        dd.io.save(str(os.getcwd() / self.testfolder / self.path_meta), None, compression=None)
-        dd.io.save(str(os.getcwd() / self.testfolder / self.path_result), None, compression=None)
-
         self.test_object = HDF5Object.__init__
         self.test_object.meta_path = os.getcwd() / self.testfolder / self.path_meta
         self.test_object.output_frequency_type = self.output_frequency_type
@@ -201,19 +197,15 @@ class TestHDF5DB(unittest.TestCase):
         self.test_object.result_path = os.getcwd() / self.testfolder / self.path_meta
         self.test_object.avg_level = np.sum(self.state999) / len(self.state999)
         self.test_object.age = datetime.strptime(self.age, "%Y-%m-%d_%H-%M-%S")
-        os.remove(str(os.getcwd() / self.testfolder / self.path_meta))
-        os.remove(str(os.getcwd() / self.testfolder / self.path_result))
         self.setup_test_data()
 
     def setup_test_data(self):
         self.test_meta["perturbation_factors"] = self.test_meta_perturbation
         self.test_meta["shapes"] = self.test_meta_shapes
-        dd.io.save(
-            str(os.getcwd() / self.testfolder / self.path_meta), self.test_meta, compression=None
-        )
-        dd.io.save(
-            str(os.getcwd() / self.testfolder / self.path_result), self.test_result, compression=None
-        )
+        h5_meta = create_h5(str(self.testfolder / self.path_meta))
+        h5_result = create_h5(str(self.testfolder / self.path_result))
+        write_dict_to_Hdf5(h5_meta, self.test_meta)
+        write_dict_to_Hdf5(h5_result, self.test_result)
 
     def test_load_save(self):
         self.test_db = HDF5DBToolbox()
@@ -255,25 +247,26 @@ class TestHDF5DB(unittest.TestCase):
         # Illegal operator > and <
         path = self.path_meta
         str_paths = ["meta", "result"]
-        for i in range(2):
-            applied = self.test_db.select(
-                "path_" + str_paths[i], "<", str(os.getcwd() / self.testfolder / path)
-            )
-            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
-            self.assertEqual(applied, -1)
+        # for i in range(2):
+        i = 0
+        applied = self.test_db.select(
+            "path_" + str_paths[i], "<", str(os.getcwd() / self.testfolder / path)
+        )
+        self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+        self.assertEqual(applied, -1)
 
-            applied = self.test_db.select(
-                "path_" + str_paths[i], ">", str(os.getcwd() / self.testfolder / path)
-            )
-            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
-            self.assertEqual(applied, -1)
+        applied = self.test_db.select(
+            "path_" + str_paths[i], ">", str(os.getcwd() / self.testfolder / path)
+        )
+        self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+        self.assertEqual(applied, -1)
 
-            applied = self.test_db.select(
-                "path_" + str_paths[i], "=", str(os.getcwd() / self.testfolder / path)
-            )
-            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
-            self.assertEqual(applied, 1)
-            path = self.path_result
+        applied = self.test_db.select(
+            "path_" + str_paths[i], "=", str(os.getcwd() / self.testfolder / path)
+        )
+        self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+        self.assertEqual(applied, 1)
+        path = self.path_result
 
     def test_select_output_frequency(self):
         # Output_frequency

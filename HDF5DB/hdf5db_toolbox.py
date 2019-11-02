@@ -96,6 +96,7 @@ class HDF5DBToolbox:
                 + " "
                 + str(value)
                 + ". No filter was applied!"
+                + " Maybe the operator is not available for this parameter."
             )
             return -1
         else:
@@ -144,7 +145,7 @@ class HDF5DBToolbox:
 
             # Standardized queries
             # Metadata-queries
-            if variable == "path_meta" and operator1(obj.path_meta, value):
+            if variable == "path_meta" and comparisonOperator == "=":
                 return obj
             elif variable == "output_frequency_type" and operator1(
                     obj.output_frequency_type, value
@@ -173,7 +174,7 @@ class HDF5DBToolbox:
             ):
                 return obj
             # Result-queries
-            elif variable == "path_result" and operator1(obj.path_result, value):
+            elif variable == "path_result" and comparisonOperator == "=":
                 return obj
             elif variable == "avg_level" and operator1(obj.avg_level, value):
                 return obj
