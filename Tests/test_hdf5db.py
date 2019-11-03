@@ -247,26 +247,25 @@ class TestHDF5DB(unittest.TestCase):
         # Illegal operator > and <
         path = self.path_meta
         str_paths = ["meta", "result"]
-        # for i in range(2):
-        i = 0
-        applied = self.test_db.select(
-            "path_" + str_paths[i], "<", str(os.getcwd() / self.testfolder / path)
-        )
-        self.assertEqual(len(self.test_db.hdf5_object_list), 1)
-        self.assertEqual(applied, -1)
+        for i in range(2):
+            applied = self.test_db.select(
+                "path_" + str_paths[i], "<", str(os.getcwd() / self.testfolder / path)
+            )
+            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+            self.assertEqual(applied, -1)
 
-        applied = self.test_db.select(
-            "path_" + str_paths[i], ">", str(os.getcwd() / self.testfolder / path)
-        )
-        self.assertEqual(len(self.test_db.hdf5_object_list), 1)
-        self.assertEqual(applied, -1)
+            applied = self.test_db.select(
+                "path_" + str_paths[i], ">", str(os.getcwd() / self.testfolder / path)
+            )
+            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+            self.assertEqual(applied, -1)
 
-        applied = self.test_db.select(
-            "path_" + str_paths[i], "=", str(os.getcwd() / self.testfolder / path)
-        )
-        self.assertEqual(len(self.test_db.hdf5_object_list), 1)
-        self.assertEqual(applied, 1)
-        path = self.path_result
+            applied = self.test_db.select(
+                "path_" + str_paths[i], "=", str(os.getcwd() / self.testfolder / path)
+            )
+            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+            self.assertEqual(applied, 1)
+            path = self.path_result
 
     def test_select_output_frequency(self):
         # Output_frequency
