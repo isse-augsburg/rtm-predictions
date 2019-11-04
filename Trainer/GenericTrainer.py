@@ -1,4 +1,5 @@
 import logging
+import socket
 import time
 from collections import OrderedDict
 from pathlib import Path
@@ -220,12 +221,15 @@ class MasterTrainer:
         else:
             checkpoint = torch.load(path, map_location='cpu')
 
-        new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
-        for k, v in model_state_dict.items():
-            name = k[7:]  # remove `module.`
-            new_model_state_dict[name] = v
-        self.model.load_state_dict(new_model_state_dict)
+        if socket.gethostname() == "swtse130":
+            new_model_state_dict = OrderedDict()
+            for k, v in model_state_dict.items():
+                name = k[7:]  # remove `module.`
+                new_model_state_dict[name] = v
+            self.model.load_state_dict(new_model_state_dict)
+        else:
+            self.model.load_state_dict(model_state_dict)
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         epoch = checkpoint["epoch"]
         loss = checkpoint["loss"]

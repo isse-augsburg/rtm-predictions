@@ -256,11 +256,11 @@ if __name__ == "__main__":
         st.run_training()
     else:
         if socket.gethostname() != "swtse130":
-            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-17_15-26-14")
+            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/4_three_week_run/2019-09-25_16-42-53")
             st.inference_on_test_set(source_path=path,
                                      output_path=path)
         else:
-            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\sharing_datasets\2019-09-20_10-57-06_20_sensors")
+            path = Path(r'X:\s\t\stiebesi\results_leoben\4_three_week_run\2019-09-25_16-42-53')
             st.inference_on_test_set(source_path=path,
                                      output_path=path)
     logging.shutdown()
