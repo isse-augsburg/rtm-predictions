@@ -37,7 +37,3 @@ def test():
 if __name__ == "__main__":
     test()
 
-# TODO
-# Min/Max width/heigth of rectangles
-# Same for circle: radius
-# Total number of frames
