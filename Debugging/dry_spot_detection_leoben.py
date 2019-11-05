@@ -102,6 +102,7 @@ def analyze_image(img):
 
 
 def analyze_image_v2(img, perm_map=None):
+   #
     _, threshold = cv2.threshold(img, 70, 190, cv2.THRESH_BINARY)
     _, contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     font = cv2.FONT_HERSHEY_COMPLEX
@@ -127,8 +128,10 @@ def analyze_image_v2(img, perm_map=None):
         perm_cut = np.where((perm_cut == 0), 0 , 255) # focus on anything other than background
         avg_dryspot_prob = np.sum(perm_cut,dtype=np.float) / size # normalize with size of contour area
         print(avg_dryspot_prob, np.sum(perm_cut,dtype=np.float), size) # debug print statement
-        if avg_dryspot_prob > 220:
+        if avg_dryspot_prob > 250:
             cv2.fillPoly(dryspots, [np.squeeze(approx)], 255)
+
+
         
         # cv2.drawContours(img, [approx], 0, 175, 3)
         xx = approx.ravel()[0]
@@ -173,7 +176,7 @@ def dry_spot_analysis(path, id, perm_map=None):
     use_orig_mesh = True
 
     coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
-    output_dir = Path(r'C:\Users\stiebesi\Desktop\shapes\shape_detection%d' % id)
+    output_dir = Path(r'/home/schroeter/Desktop/shape/shape_detection%d' % id)
     output_dir.mkdir(exist_ok=True, parents=True)
     _all_coords = coord_as_np_array[:, :-1]
     scaled_coords = scale_coords_leoben(_all_coords)
@@ -220,7 +223,8 @@ def dry_spot_analysis(path, id, perm_map=None):
 
     extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     plt.clim(0, 1)
-    plt.savefig(r'C:\Users\stiebesi\Desktop\shapes\test_tripcolor\%d_fvc.png' % id, bbox_inches=extent)
+    # plt.savefig(r'C:\Users\stiebesi\Desktop\shapes\test_tripcolor\%d_fvc.png' % id, bbox_inches=extent)
+    plt.savefig(r'/home/schroeter/Desktop/test_tripcolor/%d_fvc.png' % id, bbox_inches=extent)
     plt.close()
 
     #keys = [keys[111], keys[112], keys[113], keys[114], keys[115], keys[116], keys[117], keys[118], keys[119]]
@@ -250,7 +254,8 @@ def dry_spot_analysis(path, id, perm_map=None):
         plt.close()
 
         img = cv2.imread(str(output_dir / ('test%d.png' % (i + 1))), cv2.IMREAD_GRAYSCALE)
-        perm_map = cv2.imread(r'C:\Users\stiebesi\Desktop\shapes\test_tripcolor\%d_fvc.png' % id, cv2.IMREAD_GRAYSCALE)
+        # perm_map = cv2.imread(r'C:\Users\stiebesi\Desktop\shapes\test_tripcolor\%d_fvc.png' % id, cv2.IMREAD_GRAYSCALE)
+        perm_map = cv2.imread(r'/home/schroeter/Desktop/test_tripcolor/%d_fvc.png' % id, cv2.IMREAD_GRAYSCALE)
         # add a border
         # img = cv2.copyMakeBorder(img, 1,1,1,1, cv2.BORDER_CONSTANT, value=255)
         img = 255 - img
@@ -263,29 +268,30 @@ def dry_spot_analysis(path, id, perm_map=None):
             if i >= start_detecting_changes_at:
                 changes.append(i + 1)
                 ups.append(i + 1)
-                print('Up detected!')
+                #print('Up detected!')
         if all < num_shapes:
             num_shapes = all
             if i >= start_detecting_changes_at:
                 changes.append(i + 1)
                 downs.append(i + 1)
-                print('Down detected!')
-        print(
-            f"{i} Found: all: {all}, tri: {_triangles}, rect: {rectangles}, pent: {pentagons}, ell: {ellipses}, circ: {circles}")
+                #print('Down detected!')
+        print(i
+            #f"{i} Found: all: {all}, tri: {_triangles}, rect: {rectangles}, pent: {pentagons}, ell: {ellipses}, circ: {circles}"
+            )
     print(
         f'{id} Overall time: {time() - t00}. Remember: Indeces in PAM RTM start with 1, images have pam-like indices. '
-        f'Changes detected: {changes}, Ups: {ups}, Downs: {downs}, delta: {len(ups) - len(downs)}')
+        f'Changes detected: {changes}, Ups: {ups}, Downs: {downs}, delta: {len(ups) - len(downs)}'
+        )
 
 
 if __name__ == "__main__":
     if socket.gethostname() == "swtse130":
         source = Path(r'X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-07-23_15-38-08_5000p')
     else:
-        source = Path('/home/schroeter/Desktop/')
-    # for i in range(5, 11):
-    i = 7
-    perm0 = analyze_for_path(source / str(i) / str('2019-07-23_15-38-08_%d_RESULT.erfh5' % i), i)
-    dry_spot_analysis(source / str(i) / str('2019-07-23_15-38-08_%d_RESULT.erfh5' % i), i, perm0)
+        source = Path('/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p')
+    for i in range(0, 11):
+        perm0 = analyze_for_path(source / str(i) / str('2019-07-23_15-38-08_%d_RESULT.erfh5' % i), i)
+        dry_spot_analysis(source / str(i) / str('2019-07-23_15-38-08_%d_RESULT.erfh5' % i), i, perm0)
 
     # perm1 = analyze_for_path(source / '7' / '2019-07-23_15-38-08_7_RESULT.erfh5', 1)
     # perm2 = analyze_for_path(source / '3' / '2019-08-24_11-51-48_3_RESULT.erfh5', 2)
