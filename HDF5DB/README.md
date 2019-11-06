@@ -13,7 +13,7 @@ After these steps, you can execute the following commands:
 1. Add:
     To add data from a Simulation, please use `add_objects_from_path(self, path)`.  
     
-        hdf5db.add_objects_from_path(/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
+        hdf5db.add_objects_from_path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p")
    
 2. Select:  
    To select a part of the simulation data, please use `select(self, variable, comparisonOperator="=", value)`.  
