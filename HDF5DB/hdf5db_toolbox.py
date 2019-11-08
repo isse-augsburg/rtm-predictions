@@ -7,7 +7,7 @@ from pathlib import Path
 
 import h5py
 import numpy as np
-import regex as re
+import re
 from prettytable import PrettyTable
 from tqdm import tqdm
 
@@ -33,9 +33,7 @@ class HDF5DBToolbox:
         dirpath = os.getcwd() / Path(path)
         if dirpath.is_dir():
             # List all hdf5-files
-            # hdf5File = dirpath.rglob("**/*.hdf5")
             print("Data is being retrieved...")
-            # hdf5File_list = [el for el in tqdm(dirpath.rglob("**/*.hdf5"))]
             for i in tqdm([el for el in tqdm(dirpath.rglob("**/*.hdf5"))]):
                 # Check that only *.hdf5 and *.erfh5 files will be opened
                 if h5py.is_hdf5(i.as_posix()):
@@ -43,9 +41,6 @@ class HDF5DBToolbox:
                     if erfh5File.exists():
                         self.hdf5_path.append(i.as_posix())
                         self.erfh5_path.append(erfh5File.as_posix())
-                        # self.newObject = HDF5Object(i.as_posix(), erfh5File.as_posix())
-                        # if self.newObject.path_meta not in self.meta:
-                        #     self.hdf5_object_list.append(self.newObject)
                 else:
                     print(i.as_posix() + " does not exist. The folder was skipped.")
             print("H5-files are currently being scanned...")
