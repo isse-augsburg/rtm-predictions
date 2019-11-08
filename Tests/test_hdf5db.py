@@ -208,20 +208,20 @@ class TestHDF5DB(unittest.TestCase):
         write_dict_to_Hdf5(h5_result, self.test_result)
 
     def test_load_save(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db2 = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
-        self.test_db.save(str(self.testfolder), "HDF5TESTDB")
-        self.test_db2.load(str(self.testfolder), "HDF5TESTDB")
-        self.assertTrue(self.test_db.__eq__(self.test_db2))
+        test_db = HDF5DBToolbox()
+        test_db2 = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        test_db.save(str(self.testfolder), "HDF5TESTDB")
+        test_db2.load(str(self.testfolder), "HDF5TESTDB")
+        self.assertTrue(test_db.__eq__(test_db2))
         os.remove(self.testfolder / Path("HDF5TESTDB.h5db"))
 
     def test_add_objects_from_path(self):
-        self.test_result_db = HDF5DBToolbox()
-        self.test_db = HDF5DBToolbox()
-        self.test_result_db.add_object(self.test_object)
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
-        self.assertTrue(self.test_db.__eq__(self.test_result_db))
+        test_result_db = HDF5DBToolbox()
+        test_db = HDF5DBToolbox()
+        test_result_db.add_object(self.test_object)
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        self.assertTrue(test_db.__eq__(test_result_db))
 
     # Select-tests
     def test_select_incorrect_entry(self):
@@ -242,323 +242,321 @@ class TestHDF5DB(unittest.TestCase):
 
     # Metapath and resultpath
     def test_select_paths(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         # Illegal operator > and <
         path = self.path_meta
         str_paths = ["meta", "result"]
         for i in range(2):
-            applied = self.test_db.select(
+            applied = test_db.select(
                 "path_" + str_paths[i], "<", str(os.getcwd() / self.testfolder / path)
             )
-            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+            self.assertEqual(len(test_db.hdf5_object_list), 1)
             self.assertEqual(applied, -1)
 
-            applied = self.test_db.select(
+            applied = test_db.select(
                 "path_" + str_paths[i], ">", str(os.getcwd() / self.testfolder / path)
             )
-            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+            self.assertEqual(len(test_db.hdf5_object_list), 1)
             self.assertEqual(applied, -1)
 
-            applied = self.test_db.select(
+            applied = test_db.select(
                 "path_" + str_paths[i], "=", str(os.getcwd() / self.testfolder / path)
             )
-            self.assertEqual(len(self.test_db.hdf5_object_list), 1)
+            self.assertEqual(len(test_db.hdf5_object_list), 1)
             self.assertEqual(applied, 1)
             path = self.path_result
 
     def test_select_output_frequency(self):
         # Output_frequency
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
-        applied = self.test_db.select("output_frequency", ">", 1)
-        self.assertGreater(self.test_db.hdf5_object_list[0].output_frequency, 1)
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        applied = test_db.select("output_frequency", ">", 1)
+        self.assertGreater(test_db.hdf5_object_list[0].output_frequency, 1)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("output_frequency", "<", 3)
-        self.assertLess(self.test_db.hdf5_object_list[0].output_frequency, 3)
+        applied = test_db.select("output_frequency", "<", 3)
+        self.assertLess(test_db.hdf5_object_list[0].output_frequency, 3)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("output_frequency", "=", 2)
-        self.assertEqual(self.test_db.hdf5_object_list[0].output_frequency, 2)
+        applied = test_db.select("output_frequency", "=", 2)
+        self.assertEqual(test_db.hdf5_object_list[0].output_frequency, 2)
         self.assertEqual(applied, 1)
         # Output_frequency_type
-        applied = self.test_db.select("output_frequency_type", ">", 98)
-        self.assertGreater(self.test_db.hdf5_object_list[0].output_frequency_type, 98)
+        applied = test_db.select("output_frequency_type", ">", 98)
+        self.assertGreater(test_db.hdf5_object_list[0].output_frequency_type, 98)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("output_frequency_type", "<", 100)
-        self.assertLess(self.test_db.hdf5_object_list[0].output_frequency_type, 100)
+        applied = test_db.select("output_frequency_type", "<", 100)
+        self.assertLess(test_db.hdf5_object_list[0].output_frequency_type, 100)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("output_frequency_type", "=", 99)
-        self.assertEqual(self.test_db.hdf5_object_list[0].output_frequency_type, 99)
+        applied = test_db.select("output_frequency_type", "=", 99)
+        self.assertEqual(test_db.hdf5_object_list[0].output_frequency_type, 99)
         self.assertEqual(applied, 1)
 
     def test_select_general_sigma(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
-        applied = self.test_db.select("general_sigma", ">", 99)
-        # self.test_db.show_objects()
-        self.assertGreater(self.test_db.hdf5_object_list[0].general_sigma, 99)
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        applied = test_db.select("general_sigma", ">", 99)
+        self.assertGreater(test_db.hdf5_object_list[0].general_sigma, 99)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("general_sigma", "<", 100)
-        self.assertLess(self.test_db.hdf5_object_list[0].general_sigma, 100)
+        applied = test_db.select("general_sigma", "<", 100)
+        self.assertLess(test_db.hdf5_object_list[0].general_sigma, 100)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("general_sigma", "=", 99.999)
-        self.assertEqual(self.test_db.hdf5_object_list[0].general_sigma, 99.999)
+        applied = test_db.select("general_sigma", "=", 99.999)
+        self.assertEqual(test_db.hdf5_object_list[0].general_sigma, 99.999)
         self.assertEqual(applied, 1)
 
     # Number of circles, rectangles, runners, shapes
     def test_select_num_shapes(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         str_shape = ["number_of_circles", "number_of_rectangles", "number_of_runners"]
         shape = [
-            self.test_db.hdf5_object_list[0].number_of_circles,
-            self.test_db.hdf5_object_list[0].number_of_rectangles,
-            self.test_db.hdf5_object_list[0].number_of_runners,
+            test_db.hdf5_object_list[0].number_of_circles,
+            test_db.hdf5_object_list[0].number_of_rectangles,
+            test_db.hdf5_object_list[0].number_of_runners,
         ]
         for i in range(3):
-            applied = self.test_db.select(str_shape[i], ">", 1)
+            applied = test_db.select(str_shape[i], ">", 1)
             self.assertGreater(shape[i], 1)
             self.assertEqual(applied, 1)
-            applied = self.test_db.select(str_shape[i], "<", 3)
+            applied = test_db.select(str_shape[i], "<", 3)
             self.assertLess(shape[i], 3)
             self.assertEqual(applied, 1)
-            applied = self.test_db.select(str_shape[i], "=", 2)
+            applied = test_db.select(str_shape[i], "=", 2)
             self.assertEqual(shape[i], 2)
             self.assertEqual(applied, 1)
 
         # Shapes
-        applied = self.test_db.select("number_of_shapes", ">", 5)
-        self.assertGreater(self.test_db.hdf5_object_list[0].number_of_shapes, 5)
+        applied = test_db.select("number_of_shapes", ">", 5)
+        self.assertGreater(test_db.hdf5_object_list[0].number_of_shapes, 5)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("number_of_shapes", "<", 7)
-        self.assertLess(self.test_db.hdf5_object_list[0].number_of_shapes, 7)
+        applied = test_db.select("number_of_shapes", "<", 7)
+        self.assertLess(test_db.hdf5_object_list[0].number_of_shapes, 7)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("number_of_shapes", "=", 6)
-        self.assertEqual(self.test_db.hdf5_object_list[0].number_of_shapes, 6)
+        applied = test_db.select("number_of_shapes", "=", 6)
+        self.assertEqual(test_db.hdf5_object_list[0].number_of_shapes, 6)
         self.assertEqual(applied, 1)
 
     def test_select_fibre_content(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         str_shape = [
             "fibre_content_circles",
             "fibre_content_rectangles",
             "fibre_content_runners",
         ]
         shape = [
-            self.test_db.hdf5_object_list[0].fibre_content_circles,
-            self.test_db.hdf5_object_list[0].fibre_content_rectangles,
-            self.test_db.hdf5_object_list[0].fibre_content_runners,
+            test_db.hdf5_object_list[0].fibre_content_circles,
+            test_db.hdf5_object_list[0].fibre_content_rectangles,
+            test_db.hdf5_object_list[0].fibre_content_runners,
         ]
         for i in range(3):
-            applied = self.test_db.select(str_shape[i], ">", 0)
+            applied = test_db.select(str_shape[i], ">", 0)
             self.assertGreater(np.amax(shape[i]), 0)
             self.assertEqual(applied, 1)
-            applied = self.test_db.select(str_shape[i], "<", 1)
+            applied = test_db.select(str_shape[i], "<", 1)
             self.assertLess(np.amin(shape[i]), 1)
             self.assertEqual(applied, 1)
-            applied = self.test_db.select(str_shape[i], "=", 0.99)
+            applied = test_db.select(str_shape[i], "=", 0.99)
             self.assertGreaterEqual(np.amax(shape[i]), 0.99)
             self.assertLessEqual(np.amin(shape[i]), 0.99)
             self.assertEqual(applied, 1)
 
     def test_select_shape(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
         str_shape = ["circle", "rectangle", "runner"]
         fvc_shapes = [
-            self.test_db.hdf5_object_list[0].fvc_circle,
-            self.test_db.hdf5_object_list[0].fvc_rectangle,
-            self.test_db.hdf5_object_list[0].fvc_runner,
+            test_db.hdf5_object_list[0].fvc_circle,
+            test_db.hdf5_object_list[0].fvc_rectangle,
+            test_db.hdf5_object_list[0].fvc_runner,
         ]
         height_shapes = [
-            self.test_db.hdf5_object_list[0].height_rectangle,
-            self.test_db.hdf5_object_list[0].height_rectangle,
-            self.test_db.hdf5_object_list[0].height_runner,
+            test_db.hdf5_object_list[0].height_rectangle,
+            test_db.hdf5_object_list[0].height_rectangle,
+            test_db.hdf5_object_list[0].height_runner,
         ]
         width_shapes = [
-            self.test_db.hdf5_object_list[0].width_rectangle,
-            self.test_db.hdf5_object_list[0].width_rectangle,
-            self.test_db.hdf5_object_list[0].width_runner,
+            test_db.hdf5_object_list[0].width_rectangle,
+            test_db.hdf5_object_list[0].width_rectangle,
+            test_db.hdf5_object_list[0].width_runner,
         ]
         x_shapes = [
-            self.test_db.hdf5_object_list[0].posx_circle,
-            self.test_db.hdf5_object_list[0].posx_rectangle,
-            self.test_db.hdf5_object_list[0].posx_runner,
+            test_db.hdf5_object_list[0].posx_circle,
+            test_db.hdf5_object_list[0].posx_rectangle,
+            test_db.hdf5_object_list[0].posx_runner,
         ]
         y_shapes = [
-            self.test_db.hdf5_object_list[0].posy_circle,
-            self.test_db.hdf5_object_list[0].posy_rectangle,
-            self.test_db.hdf5_object_list[0].posy_runner,
+            test_db.hdf5_object_list[0].posy_circle,
+            test_db.hdf5_object_list[0].posy_rectangle,
+            test_db.hdf5_object_list[0].posy_runner,
         ]
         for i in range(3):
             for j in range(3):
                 # Fvc
                 # <
-                applied = self.test_db.select("fvc_" + str_shape[i], "<", 1)
+                applied = test_db.select("fvc_" + str_shape[i], "<", 1)
                 self.assertLess(np.amax(fvc_shapes[j]), 1)
                 self.assertEqual(applied, 1)
                 # >
-                applied = self.test_db.select("fvc_" + str_shape[i], ">", 0)
+                applied = test_db.select("fvc_" + str_shape[i], ">", 0)
                 self.assertGreater(np.amin(fvc_shapes[j]), 0)
                 self.assertEqual(applied, 1)
                 # =
-                applied = self.test_db.select("fvc_" + str_shape[i], "=", 0.1)
+                applied = test_db.select("fvc_" + str_shape[i], "=", 0.1)
                 self.assertGreaterEqual(np.amax(fvc_shapes[j]), 0.5)
                 self.assertLessEqual(np.amin(fvc_shapes[j]), 0.5)
                 self.assertEqual(applied, 1)
                 if str_shape[i] != "circle":
                     # Height
                     # <
-                    applied = self.test_db.select("height_" + str_shape[i], "<", 1)
+                    applied = test_db.select("height_" + str_shape[i], "<", 1)
                     self.assertLess(np.amax(height_shapes[j]), 1)
                     self.assertEqual(applied, 1)
                     # >
-                    applied = self.test_db.select("height_" + str_shape[i], ">", 0)
+                    applied = test_db.select("height_" + str_shape[i], ">", 0)
                     self.assertGreater(np.amin(height_shapes[j]), 0)
                     self.assertEqual(applied, 1)
                     # =
-                    applied = self.test_db.select("height_" + str_shape[i], "=", 0.99)
+                    applied = test_db.select("height_" + str_shape[i], "=", 0.99)
                     self.assertGreaterEqual(np.amax(height_shapes[j]), 0.5)
                     self.assertLessEqual(np.amin(height_shapes[j]), 0.5)
                     self.assertEqual(applied, 1)
                     # Width
                     # <
-                    applied = self.test_db.select("width_" + str_shape[i], "<", 3)
+                    applied = test_db.select("width_" + str_shape[i], "<", 3)
                     self.assertLess(np.amax(width_shapes[j]), 3)
                     self.assertEqual(applied, 1)
                     # >
-                    applied = self.test_db.select("width_" + str_shape[i], ">", 0)
+                    applied = test_db.select("width_" + str_shape[i], ">", 0)
                     self.assertGreater(np.amin(width_shapes[j]), 0)
                     self.assertEqual(applied, 1)
                     # =
-                    applied = self.test_db.select("width_" + str_shape[i], "=", 2.1)
+                    applied = test_db.select("width_" + str_shape[i], "=", 2.1)
                     self.assertGreaterEqual(np.amax(width_shapes[j]), 2)
                     self.assertLessEqual(np.amin(width_shapes[j]), 2)
                     self.assertEqual(applied, 1)
                 # Position x
                 # <
-                applied = self.test_db.select("posx_" + str_shape[i], "<", 31)
+                applied = test_db.select("posx_" + str_shape[i], "<", 31)
                 self.assertLess(np.amax(x_shapes[j]), 31)
                 self.assertEqual(applied, 1)
                 # >
-                applied = self.test_db.select("posx_" + str_shape[i], ">", 4)
+                applied = test_db.select("posx_" + str_shape[i], ">", 4)
                 self.assertGreater(np.amin(x_shapes[j]), 4)
                 self.assertEqual(applied, 1)
                 # =
-                applied = self.test_db.select("posx_" + str_shape[i], "=", 5)
+                applied = test_db.select("posx_" + str_shape[i], "=", 5)
                 self.assertGreaterEqual(np.amax(x_shapes[j]), 5)
                 self.assertLessEqual(np.amin(x_shapes[j]), 5)
                 self.assertEqual(applied, 1)
                 # Position y
                 # <
-                applied = self.test_db.select("posy_" + str_shape[i], "<", 40)
+                applied = test_db.select("posy_" + str_shape[i], "<", 40)
                 self.assertLess(np.amax(y_shapes[j]), 40)
                 self.assertEqual(applied, 1)
                 # >
-                applied = self.test_db.select("posy_" + str_shape[i], ">", 4)
+                applied = test_db.select("posy_" + str_shape[i], ">", 4)
                 self.assertGreater(np.amin(y_shapes[j]), 4)
                 self.assertEqual(applied, 1)
                 # =
-                applied = self.test_db.select("posy_" + str_shape[i], "=", 30)
+                applied = test_db.select("posy_" + str_shape[i], "=", 30)
                 self.assertGreaterEqual(np.amax(y_shapes[j]), 10)
                 self.assertLessEqual(np.amin(y_shapes[j]), 10)
                 self.assertEqual(applied, 1)
 
         # Position lower left x of runner
         # <
-        applied = self.test_db.select("pos_lower_leftx_runner", "<", 30)
+        applied = test_db.select("pos_lower_leftx_runner", "<", 30)
         self.assertLess(
-            np.amax(self.test_db.hdf5_object_list[0].pos_lower_leftx_runner), 30
+            np.amax(test_db.hdf5_object_list[0].pos_lower_leftx_runner), 30
         )
         self.assertEqual(applied, 1)
         # >
-        applied = self.test_db.select("pos_lower_leftx_runner", ">", 10)
+        applied = test_db.select("pos_lower_leftx_runner", ">", 10)
         self.assertGreater(
-            np.amin(self.test_db.hdf5_object_list[0].pos_lower_leftx_runner), 10
+            np.amin(test_db.hdf5_object_list[0].pos_lower_leftx_runner), 10
         )
         self.assertEqual(applied, 1)
         # =
-        applied = self.test_db.select("pos_lower_leftx_runner", "=", 14.2)
+        applied = test_db.select("pos_lower_leftx_runner", "=", 14.2)
         self.assertGreaterEqual(
-            np.amax(self.test_db.hdf5_object_list[0].pos_lower_leftx_runner), 15
+            np.amax(test_db.hdf5_object_list[0].pos_lower_leftx_runner), 15
         )
         self.assertLessEqual(
-            np.amin(self.test_db.hdf5_object_list[0].pos_lower_leftx_runner), 15
+            np.amin(test_db.hdf5_object_list[0].pos_lower_leftx_runner), 15
         )
         self.assertEqual(applied, 1)
         # Position lower left y of runner
         # <
-        applied = self.test_db.select("pos_lower_lefty_runner", "<", 40)
+        applied = test_db.select("pos_lower_lefty_runner", "<", 40)
         self.assertLess(
-            np.amax(self.test_db.hdf5_object_list[0].pos_lower_lefty_runner), 40
+            np.amax(test_db.hdf5_object_list[0].pos_lower_lefty_runner), 40
         )
         self.assertEqual(applied, 1)
         # >
-        applied = self.test_db.select("pos_lower_lefty_runner", ">", 20)
+        applied = test_db.select("pos_lower_lefty_runner", ">", 20)
         self.assertGreater(
-            np.amin(self.test_db.hdf5_object_list[0].pos_lower_lefty_runner), 20
+            np.amin(test_db.hdf5_object_list[0].pos_lower_lefty_runner), 20
         )
         self.assertEqual(applied, 1)
         # =
-        applied = self.test_db.select("pos_lower_lefty_runner", "=", 21.6)
+        applied = test_db.select("pos_lower_lefty_runner", "=", 21.6)
         self.assertGreaterEqual(
-            np.amax(self.test_db.hdf5_object_list[0].pos_lower_lefty_runner), 25
+            np.amax(test_db.hdf5_object_list[0].pos_lower_lefty_runner), 25
         )
         self.assertLessEqual(
-            np.amin(self.test_db.hdf5_object_list[0].pos_lower_lefty_runner), 25
+            np.amin(test_db.hdf5_object_list[0].pos_lower_lefty_runner), 25
         )
         self.assertEqual(applied, 1)
 
     def test_select_fillinglevel(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
-        applied = self.test_db.select("avg_level", ">", 0)
-        self.assertGreater(self.test_db.hdf5_object_list[0].avg_level, 0)
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        applied = test_db.select("avg_level", ">", 0)
+        self.assertGreater(test_db.hdf5_object_list[0].avg_level, 0)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("avg_level", "<", 1)
-        self.assertLess(self.test_db.hdf5_object_list[0].avg_level, 1)
+        applied = test_db.select("avg_level", "<", 1)
+        self.assertLess(test_db.hdf5_object_list[0].avg_level, 1)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("avg_level", "=", self.test_object.avg_level)
+        applied = test_db.select("avg_level", "=", self.test_object.avg_level)
         self.assertEqual(
-            self.test_db.hdf5_object_list[0].avg_level, self.test_object.avg_level
+            test_db.hdf5_object_list[0].avg_level, self.test_object.avg_level
         )
         self.assertEqual(applied, 1)
 
     def test_select_age(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
-        applied = self.test_db.select("age", ">", "2019-08-30_12-23-58")
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        applied = test_db.select("age", ">", "2019-08-30_12-23-58")
         self.assertGreater(
-            self.test_db.hdf5_object_list[0].age,
+            test_db.hdf5_object_list[0].age,
             datetime.strptime("2019-08-30_12-23-58", "%Y-%m-%d_%H-%M-%S"),
         )
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("age", "<", "2019-09-29_12-24-59")
+        applied = test_db.select("age", "<", "2019-09-29_12-24-59")
         self.assertLess(
-            self.test_db.hdf5_object_list[0].age,
+            test_db.hdf5_object_list[0].age,
             datetime.strptime("2019-09-29_12-24-59", "%Y-%m-%d_%H-%M-%S"),
         )
         self.assertEqual(applied, 1)
-        self.temp = self.age
-        applied = self.test_db.select("age", "=", "2019-08-30_12-23-59")
+        applied = test_db.select("age", "=", "2019-08-30_12-23-59")
         self.assertEqual(
-            self.test_db.hdf5_object_list[0].age,
+            test_db.hdf5_object_list[0].age,
             datetime.strptime("2019-08-30_12-23-59", "%Y-%m-%d_%H-%M-%S"),
         )
         self.assertEqual(applied, 1)
 
     def test_select_num_sensors(self):
-        self.test_db = HDF5DBToolbox()
-        self.test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
-        applied = self.test_db.select("number_of_sensors", ">", 3)
-        self.assertGreater(self.test_db.hdf5_object_list[0].number_of_sensors, 3)
+        test_db = HDF5DBToolbox()
+        test_db.add_objects_from_path(str(os.getcwd() / self.testfolder))
+        applied = test_db.select("number_of_sensors", ">", 3)
+        self.assertGreater(test_db.hdf5_object_list[0].number_of_sensors, 3)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("number_of_sensors", "<", 6)
-        self.assertLess(self.test_db.hdf5_object_list[0].number_of_sensors, 6)
+        applied = test_db.select("number_of_sensors", "<", 6)
+        self.assertLess(test_db.hdf5_object_list[0].number_of_sensors, 6)
         self.assertEqual(applied, 1)
-        applied = self.test_db.select("number_of_sensors", "=", 5)
-        self.assertEqual(self.test_db.hdf5_object_list[0].number_of_sensors, 5)
+        applied = test_db.select("number_of_sensors", "=", 5)
+        self.assertEqual(test_db.hdf5_object_list[0].number_of_sensors, 5)
         self.assertEqual(applied, 1)
 
     def tearDown(self):

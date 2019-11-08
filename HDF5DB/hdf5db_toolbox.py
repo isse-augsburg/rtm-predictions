@@ -17,8 +17,6 @@ from HDF5DB.hdf5db_object import HDF5Object
 class HDF5DBToolbox:
     def __init__(self):
         self.hdf5_object_list = []
-        self.meta = []
-        self.result = []
 
     def add_object(self, object):
         if object is not None:
@@ -26,10 +24,10 @@ class HDF5DBToolbox:
 
     def add_objects_from_path(self, path):
         self.get_meta_path_list()
-        self.temp = len(self.hdf5_object_list)
-        self.erfh5_path = []
-        self.hdf5_path = []
-        self.newObjects = []
+        temp = len(self.hdf5_object_list)
+        erfh5_path = []
+        hdf5_path = []
+        newObjects = []
         dirpath = os.getcwd() / Path(path)
         if dirpath.is_dir():
             # List all hdf5-files
@@ -39,21 +37,21 @@ class HDF5DBToolbox:
                 if h5py.is_hdf5(i.as_posix()):
                     erfh5File = Path(str(i).replace("meta_data.hdf5", "RESULT.erfh5"))
                     if erfh5File.exists():
-                        self.hdf5_path.append(i.as_posix())
-                        self.erfh5_path.append(erfh5File.as_posix())
+                        hdf5_path.append(i.as_posix())
+                        erfh5_path.append(erfh5File.as_posix())
                 else:
                     print(i.as_posix() + " does not exist. The folder was skipped.")
             print("H5-files are currently being scanned...")
             with Pool(20) as p:
-                self.newObjects = p.starmap(
-                    HDF5Object, zip(self.hdf5_path, self.erfh5_path)
+                newObjects = p.starmap(
+                    HDF5Object, zip(hdf5_path, erfh5_path)
                 )
             print("Objects are currently being added...")
-            for i in self.newObjects:
-                if i.path_meta not in self.meta:
+            for i in newObjects:
+                if i.path_meta not in self.get_meta_path_list():
                     self.hdf5_object_list.append(i)
             print(
-                str(abs(self.temp - len(self.hdf5_object_list)))
+                str(abs(temp - len(self.hdf5_object_list)))
                 + " Objects have been added."
             )
         else:
@@ -76,10 +74,6 @@ class HDF5DBToolbox:
                 self.hdf5_object_list, my_variable, my_comparison_operator, my_value
         ):
             selected.append(self.select_per_object(a, b, c, d))
-        # with Pool(6) as p:
-        #     selected = p.starmap(
-        #         self.select, zip(self.hdf5_object_list, my_variable, my_value, my_comparison_operator)
-        #     )
         selected = [a for a in selected if a is not None]
 
         if len(selected) == 0:
@@ -120,8 +114,6 @@ class HDF5DBToolbox:
                     + str(len(selected))
                     + " object was found."
                 )
-            self.meta = [obj.path_meta for obj in self.hdf5_object_list]
-            self.result = [obj.path_result for obj in self.hdf5_object_list]
             return 1
 
     def select_per_object(self, obj, variable, comparisonOperator, value):
@@ -350,42 +342,42 @@ class HDF5DBToolbox:
         return None
 
     def show_selection_options(self):
-        self.options = PrettyTable()
-        self.options.field_names = ["Possible options are"]
+        options = PrettyTable()
+        options.field_names = ["Possible options are"]
         # Metadata
-        self.options.add_row(["path_meta"])
-        self.options.add_row(["output_frequency_type"])
-        self.options.add_row(["output_frequency"])
-        self.options.add_row(["general_sigma"])
-        self.options.add_row(["number_of_circles"])
-        self.options.add_row(["number_of_rectangles"])
-        self.options.add_row(["number_of_runners"])
-        self.options.add_row(["number_of_shapes"])
-        self.options.add_row(["fibre_content_circles"])
-        self.options.add_row(["fibre_content_rectangles"])
-        self.options.add_row(["fibre_content_runners"])
-        self.options.add_row(["fvc_circle"])
-        self.options.add_row(["radius_circle"])
-        self.options.add_row(["posx_circle"])
-        self.options.add_row(["posy_circle"])
-        self.options.add_row(["fvc_rectangle"])
-        self.options.add_row(["height_rectangle"])
-        self.options.add_row(["width_rectangle"])
-        self.options.add_row(["posx_rectangle"])
-        self.options.add_row(["posy_rectangle"])
-        self.options.add_row(["fvc_runner"])
-        self.options.add_row(["height_runner"])
-        self.options.add_row(["width_runner"])
-        self.options.add_row(["posx_runner"])
-        self.options.add_row(["posy_runner"])
-        self.options.add_row(["pos_lower_leftx_runner"])
-        self.options.add_row(["pos_lower_lefty_runner"])
+        options.add_row(["path_meta"])
+        options.add_row(["output_frequency_type"])
+        options.add_row(["output_frequency"])
+        options.add_row(["general_sigma"])
+        options.add_row(["number_of_circles"])
+        options.add_row(["number_of_rectangles"])
+        options.add_row(["number_of_runners"])
+        options.add_row(["number_of_shapes"])
+        options.add_row(["fibre_content_circles"])
+        options.add_row(["fibre_content_rectangles"])
+        options.add_row(["fibre_content_runners"])
+        options.add_row(["fvc_circle"])
+        options.add_row(["radius_circle"])
+        options.add_row(["posx_circle"])
+        options.add_row(["posy_circle"])
+        options.add_row(["fvc_rectangle"])
+        options.add_row(["height_rectangle"])
+        options.add_row(["width_rectangle"])
+        options.add_row(["posx_rectangle"])
+        options.add_row(["posy_rectangle"])
+        options.add_row(["fvc_runner"])
+        options.add_row(["height_runner"])
+        options.add_row(["width_runner"])
+        options.add_row(["posx_runner"])
+        options.add_row(["posy_runner"])
+        options.add_row(["pos_lower_leftx_runner"])
+        options.add_row(["pos_lower_lefty_runner"])
         # Result
-        self.options.add_row(["path_result"])
-        self.options.add_row(["avg_level"])
-        self.options.add_row(["single_states"])
-        self.options.add_row(["age"])
-        self.options.add_row(["number_of_sensors"])
+        options.add_row(["path_result"])
+        options.add_row(["avg_level"])
+        options.add_row(["single_states"])
+        options.add_row(["age"])
+        options.add_row(["number_of_sensors"])
         print(self.options)
 
     def show_objects(self):
@@ -397,12 +389,12 @@ class HDF5DBToolbox:
             print("No objects were found.")
 
     def get_meta_path_list(self):
-        self.meta = [obj.path_meta for obj in self.hdf5_object_list]
-        return self.meta
+        meta = [obj.path_meta for obj in self.hdf5_object_list]
+        return meta
 
     def get_result_path_list(self):
-        self.result = [obj.path_result for obj in self.hdf5_object_list]
-        return self.result
+        result = [obj.path_result for obj in self.hdf5_object_list]
+        return result
 
     def save(self, path, filename="HDF5DB"):
         dirpath = Path(path)
@@ -452,8 +444,6 @@ class HDF5DBToolbox:
         if h5db_path.is_file():
             infile = open(dir_path / Path(filename + ".h5db"), "rb")
             self.hdf5_object_list = pickle.load(infile)
-            self.meta = [obj.path_meta for obj in self.hdf5_object_list]
-            self.result = [obj.path_result for obj in self.hdf5_object_list]
             infile.close()
             print("HDF5DB loaded")
         else:
