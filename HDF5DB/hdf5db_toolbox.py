@@ -1,5 +1,4 @@
 import operator
-import os
 import pickle
 from datetime import datetime
 from multiprocessing import Pool
