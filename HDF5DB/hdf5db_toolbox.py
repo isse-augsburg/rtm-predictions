@@ -28,7 +28,7 @@ class HDF5DBToolbox:
         erfh5_path = []
         hdf5_path = []
         newObjects = []
-        dirpath = os.getcwd() / Path(path)
+        dirpath = Path(path)
         if dirpath.is_dir():
             # List all hdf5-files
             print("Data is being retrieved...")
@@ -40,7 +40,7 @@ class HDF5DBToolbox:
                         hdf5_path.append(i.as_posix())
                         erfh5_path.append(erfh5File.as_posix())
                 else:
-                    print(i.as_posix() + " does not exist. The folder was skipped.")
+                    print(f"{str(i)} does not exist. The folder was skipped.")
             print("H5-files are currently being scanned...")
             with Pool(20) as p:
                 newObjects = p.starmap(
@@ -51,11 +51,10 @@ class HDF5DBToolbox:
                 if i.path_meta not in self.get_meta_path_list():
                     self.hdf5_object_list.append(i)
             print(
-                str(abs(temp - len(self.hdf5_object_list)))
-                + " Objects have been added."
+                f"{str(abs(temp - len(self.hdf5_object_list)))} Objects have been added."
             )
         else:
-            print("The path " + path + " does not exist! No objects were added!")
+            print(f"The path {path} does not exist! No objects were added!")
 
     def select(self, variable, comparisonOperator, value):
         my_variable = []
@@ -78,13 +77,7 @@ class HDF5DBToolbox:
 
         if len(selected) == 0:
             print(
-                "No matches were found for "
-                + str(variable)
-                + " "
-                + str(comparisonOperator)
-                + " "
-                + str(value)
-                + ". No filter was applied!"
+                f"No matches were found for {variable} {comparisonOperator} {value}. No filter was applied!"
                 + " Maybe the operator is not available for this parameter."
             )
             return -1
@@ -92,27 +85,11 @@ class HDF5DBToolbox:
             self.hdf5_object_list = selected
             if len(selected) > 1:
                 print(
-                    "The filter "
-                    + str(variable)
-                    + " "
-                    + str(comparisonOperator)
-                    + " "
-                    + str(value)
-                    + " was applied. "
-                    + str(len(selected))
-                    + " objects were found."
+                    f"The filter {variable} {operator} {value} was applied. {selected} objects were found."
                 )
             else:
                 print(
-                    "The filter "
-                    + str(variable)
-                    + " "
-                    + str(comparisonOperator)
-                    + " "
-                    + str(value)
-                    + " was applied. "
-                    + str(len(selected))
-                    + " object was found."
+                    f"The filter {variable} {operator} {value} was applied. {selected} object was found."
                 )
             return 1
 
@@ -404,16 +381,15 @@ class HDF5DBToolbox:
                 h5db_path = dirpath / file
                 if h5db_path.is_file():
                     print(
-                        "A file with the given name already exists. "
-                        + filename
-                        + " will be overwritten. Do you want to continue?\nPlease type in yes to continue."
+                        f"A file with the given name already exists. {filename} will be overwritten. "
+                        "Do you want to continue?\nPlease type in yes to continue."
                     )
                     userinput = input("")
                     if not (userinput == "yes"):
                         print("Nothing has been saved.")
                         return
                     else:
-                        print(filename + " will be overwritten.")
+                        print(f"{filename} will be overwritten.")
                 outfile = open(dirpath / file, "wb")
                 pickle.dump(self.hdf5_object_list, outfile)
                 outfile.close()
@@ -421,7 +397,7 @@ class HDF5DBToolbox:
             else:
                 print("No objects were found. Nothing was saved!")
         else:
-            print(path + " does not exist! Nothing was saved!")
+            print(f"{path} does not exist! Nothing was saved!")
 
     def force_save(self, path, filename="HDF5DB"):
         dirpath = Path(path)
@@ -436,7 +412,7 @@ class HDF5DBToolbox:
             else:
                 print("No objects were found. Nothing was saved!")
         else:
-            print(path + " does not exist! Nothing was saved!")
+            print(f"{path} does not exist! Nothing was saved!")
 
     def load(self, path, filename="HDF5DB"):
         dir_path = Path(path)

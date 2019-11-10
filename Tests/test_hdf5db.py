@@ -8,12 +8,13 @@ import numpy as np
 from HDF5DB.hdf5db_object import HDF5Object
 from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 from HDF5DB.h5writer import create_h5, write_dict_to_Hdf5
+import Tests.resources_for_testing as Resources
 
 
 class TestHDF5DB(unittest.TestCase):
     def setUp(self):
         self.age = "2019-08-30_12-23-59"
-        self.testfolder = Path("H5_Testfolder")
+        self.testfolder = Resources.test_out_dir / Path("H5_Testfolder")
         # Metadata
         self.path_meta = Path("2019-08-30_12-23-59_test_meta_data.hdf5")
         self.output_frequency_type = 99
