@@ -1,12 +1,12 @@
 import operator
 import pickle
+import re
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
 
 import h5py
 import numpy as np
-import re
 from prettytable import PrettyTable
 from tqdm import tqdm
 
@@ -26,7 +26,6 @@ class HDF5DBToolbox:
         temp = len(self.hdf5_object_list)
         erfh5_path = []
         hdf5_path = []
-        newObjects = []
         dirpath = Path(path)
         if dirpath.is_dir():
             # List all hdf5-files
@@ -161,20 +160,17 @@ class HDF5DBToolbox:
             if comparisonOperator == "=":
                 if (
                         variable == "fibre_content_circles"
-                        and np.amin(obj.fibre_content_circles) <= value
-                        and np.amax(obj.fibre_content_circles) >= value
+                        and np.amin(obj.fibre_content_circles) <= value <= np.amax(obj.fibre_content_circles)
                 ):
                     return obj
                 elif (
                         variable == "fibre_content_rectangles"
-                        and np.amin(obj.fibre_content_rectangles) <= value
-                        and np.amax(obj.fibre_content_rectangles) >= value
+                        and np.amin(obj.fibre_content_rectangles) <= value <= np.amax(obj.fibre_content_rectangles)
                 ):
                     return obj
                 elif (
                         variable == "fibre_content_runners"
-                        and np.amin(obj.fibre_content_runners) <= value
-                        and np.amax(obj.fibre_content_runners) >= value
+                        and np.amin(obj.fibre_content_runners) <= value <= np.amax(obj.fibre_content_runners)
                 ):
                     return obj
                 # Circle
@@ -354,7 +350,7 @@ class HDF5DBToolbox:
         options.add_row(["single_states"])
         options.add_row(["age"])
         options.add_row(["number_of_sensors"])
-        print(self.options)
+        print(options)
 
     def show_objects(self):
         if not (len(self.hdf5_object_list) == 0):

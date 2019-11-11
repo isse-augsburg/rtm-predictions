@@ -1,9 +1,9 @@
+import re
 from datetime import datetime
-from prettytable import PrettyTable
 
 import h5py
 import numpy as np
-import re
+from prettytable import PrettyTable
 
 
 class HDF5Object:
@@ -16,15 +16,9 @@ class HDF5Object:
         self.number_of_circles_path = "perturbation_factors/Shapes/Circles/Num"
         self.number_of_rectangles_path = "perturbation_factors/Shapes/Rectangles/Num"
         self.number_of_runners_path = "perturbation_factors/Shapes/Runners/Num"
-        self.fibre_content_circles_path = (
-            "perturbation_factors/Shapes/Circles/Fiber_Content"
-        )
-        self.fibre_content_rectangles_path = (
-            "perturbation_factors/Shapes/Rectangles/Fiber_Content"
-        )
-        self.fibre_content_runners_path = (
-            "perturbation_factors/Shapes/Runners/Fiber_Content"
-        )
+        self.fibre_content_circles_path = "perturbation_factors/Shapes/Circles/Fiber_Content"
+        self.fibre_content_rectangles_path = "perturbation_factors/Shapes/Rectangles/Fiber_Content"
+        self.fibre_content_runners_path = "perturbation_factors/Shapes/Runners/Fiber_Content"
 
         # Shapes
         # -Circlepaths

@@ -1,7 +1,7 @@
 from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
 
-def test():
+def create_index():
     h5db = HDF5DBToolbox()
 
     h5db.add_objects_from_path(
@@ -35,4 +35,4 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    create_index()

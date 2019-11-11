@@ -3,12 +3,13 @@ import shutil
 import unittest
 from datetime import datetime
 from pathlib import Path
+
 import numpy as np
 
+import Tests.resources_for_testing as Resources
+from HDF5DB.h5writer import create_h5, write_dict_to_Hdf5
 from HDF5DB.hdf5db_object import HDF5Object
 from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
-from HDF5DB.h5writer import create_h5, write_dict_to_Hdf5
-import Tests.resources_for_testing as Resources
 
 
 class TestHDF5DB(unittest.TestCase):
@@ -32,11 +33,13 @@ class TestHDF5DB(unittest.TestCase):
         self.width_rect = np.array([1, 2.1])
         self.posx_rect = np.array([5, 30])
         self.posy_rect = np.array([5, 30])
+
         self.fvc_circ = np.array([0.99, 0.1])
         self.radius_circ = np.array([0.09, 0.99])
         self.posx_circ = np.array([5, 30])
         self.posy_circ = np.array([5, 30])
         self.fvc_runner = np.array([0.99, 0.1])
+
         self.height_runner = np.array([0.09, 0.99])
         self.width_runner = np.array([1, 2.1])
         self.posx_runner = np.array([5, 30])
@@ -164,7 +167,7 @@ class TestHDF5DB(unittest.TestCase):
         }
 
         os.mkdir(os.getcwd() / self.testfolder)
-        self.test_object = HDF5Object.__init__
+        self.test_object = HDF5Object()
         self.test_object.meta_path = os.getcwd() / self.testfolder / self.path_meta
         self.test_object.output_frequency_type = self.output_frequency_type
         self.test_object.output_frequency = self.output_frequency
@@ -178,15 +181,18 @@ class TestHDF5DB(unittest.TestCase):
         self.num_shapes = self.num_circ + self.num_rect + self.num_runners
         self.test_object.number_of_shapes = self.num_shapes
         self.test_object.fibre_content_runners = self.fibre_content_runners
+
         self.test_object.fvc_rectangle = self.fvc_rect
         self.test_object.height_rectangle = self.height_rect
         self.test_object.width_rectangle = self.width_rect
         self.test_object.posx_rectangle = self.posx_rect
         self.test_object.posy_rectangle = self.posy_rect
+
         self.test_object.fvc_circle = self.fvc_circ
         self.test_object.radius_circle = self.radius_circ
         self.test_object.posx_circle = self.posx_circ
         self.test_object.posy_circle = self.posy_circ
+
         self.test_object.fvc_runner = self.fvc_runner
         self.test_object.height_runner = self.height_runner
         self.test_object.width_runner = self.width_runner
