@@ -152,11 +152,12 @@ def transform_list_of_linux_paths_to_windows(input_list):
     else:
         return input_list
 
+
 class CachingMode(Enum):
     Nothing = 1
     Both = 2
     FileList = 3
-    
+
 
 class ERFH5DataGenerator:
     """ Iterable object that generates batches of a specified size. 
@@ -197,7 +198,7 @@ class ERFH5DataGenerator:
             save_path=None,
             load_datasets_path=None,
             test_mode=False,
-            cache_mode = CachingMode.Both
+            cache_mode=CachingMode.Both
     ):
         self.kill_t_shuffle = False
         self.kill_t_batch = False
