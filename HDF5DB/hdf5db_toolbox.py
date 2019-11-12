@@ -83,11 +83,11 @@ class HDF5DBToolbox:
             self.hdf5_object_list = selected
             if len(selected) > 1:
                 print(
-                    f"The filter {variable} {operator} {value} was applied. {selected} objects were found."
+                    f"The filter {variable} {operator} {value} was applied. {len(selected)} objects were found."
                 )
             else:
                 print(
-                    f"The filter {variable} {operator} {value} was applied. {selected} object was found."
+                    f"The filter {variable} {operator} {value} was applied. {len(selected)} object was found."
                 )
             return 1
 
