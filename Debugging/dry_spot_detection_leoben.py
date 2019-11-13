@@ -53,8 +53,8 @@ def __analyze_image(img, perm_map=None):
 def dry_spot_analysis(file_path, output_dir):
     try:
         f = h5py.File(file_path, "r")
+        meta_file = h5py.File(str(file_path).replace("RESULT.erfh5", "meta_data.hdf5"), "r+")
     except OSError:
-        # print(file_path, "does not exist")
         return
 
     t00 = time()
@@ -146,10 +146,24 @@ def dry_spot_analysis(file_path, output_dir):
             b_set = False
             spot_list_e.append(i + 1)
 
-        cv2.imwrite(str(output_dir / ("%d_dry.png" % (i + 1))), dryspot_img)
+        cv2.imwrite(str(output_dir / (f"{k}_dry.png")), dryspot_img)
 
     if len(spot_list_e) < len(spot_list_s):
-        spot_list_e.append("end")
+        spot_list_e.append(len(keys))
+
+    states = []
+    for i, key in enumerate(keys, 1):
+        for start, stop in zip(spot_list_s, spot_list_e):
+            if(i >= int(start) and i < int(stop)):
+                states.append(int(key.replace("state", "0")))
+
+    try:
+        dry_group = meta_file.require_group('dryspot_states')
+        dry_group.create_dataset('singlestates', data=np.array(states))
+        meta_file.close()
+    except RuntimeError:
+        pass
+
     print(
         f"{output_dir} Overall time: {time() - t00}. Remember: arrays start at one."
         f'Dryspots at: {[f"{one} - {two}" for (one,two) in zip(spot_list_s,spot_list_e)]}'
