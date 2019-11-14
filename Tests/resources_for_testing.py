@@ -6,8 +6,7 @@ from pathlib import Path
 def running_in_docker():
     path = '/proc/self/cgroup'
     return (
-        os.path.exists('/.dockerenv') or
-        os.path.isfile(path) and any(
+            os.path.exists('/.dockerenv') or os.path.isfile(path) and any(
             'docker' in line for line in open(path))
     )
 

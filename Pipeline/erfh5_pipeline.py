@@ -4,9 +4,9 @@ import pickle
 import random
 import socket
 import threading
+from enum import Enum
 from pathlib import Path
 from time import sleep
-from enum import Enum
 
 import torch
 
@@ -117,9 +117,8 @@ def assert_instance_correctness(instance):
             The required format is [(data_1, label1), ... , 
             (data_n, label_n)] or None.'''
     for i in instance:
-        assert (
-            isinstance(i, tuple) and len(i) == 2
-        ), '''The data loader seems to return instances in the wrong format. 
+        assert (isinstance(i, tuple) and len(i) == 2), \
+            '''The data loader seems to return instances in the wrong format. 
                 The required format is [(data_1, label1), ... , 
                 (data_n, label_n)] or None.'''
 
@@ -240,13 +239,13 @@ class ERFH5DataGenerator:
             self.init_generators_and_run(save_path, load_datasets_path)
 
     def init_cache_paths(self, cache_path):
-        if(self.cache_mode == CachingMode.Nothing):
-            return 
-        # Code duplication to allow more modes in future
-        if(self.cache_mode == CachingMode.FileList):
+        if self.cache_mode == CachingMode.Nothing:
+            return
+            # Code duplication to allow more modes in future
+        if self.cache_mode == CachingMode.FileList:
             self.cache_path_flist = Path(cache_path).joinpath("filelists")
             self.cache_path_flist.mkdir(parents=True, exist_ok=True)
-        if(self.cache_mode == CachingMode.Both):
+        if self.cache_mode == CachingMode.Both:
             self.cache_path = Path(cache_path).joinpath(self.data_function.__name__)
             self.cache_path.mkdir(parents=True, exist_ok=True)
             self.cache_path_flist = Path(cache_path).joinpath("filelists")
@@ -337,11 +336,8 @@ class ERFH5DataGenerator:
             self.paths = transform_list_of_linux_paths_to_windows(self.paths)
 
     def __shuffle_batch_queue(self):
-        while (
-                not self.kill_t_shuffle
-                and (len(self.path_queue) > self.batch_size
-                     or len(self.batch_queue) > self.batch_size)
-        ):
+        while (not self.kill_t_shuffle and
+               (len(self.path_queue) > self.batch_size or len(self.batch_queue) > self.batch_size)):
             self.batch_queue.randomise()
             sleep(10)
 
