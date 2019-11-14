@@ -9,6 +9,7 @@ from Pipeline import (
     data_loaders_IMG as dli,
     data_gather as dg,
 )
+from Utils import logging_cfg
 
 data_root = Path(
     "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes"
@@ -31,22 +32,16 @@ def create_datagenerator_pressure_flowfront():
             num_workers=4,
             cache_path=cache_path,
         )
-    except Exception as e:
+    except Exception:
         logger = logging.getLogger(__name__)
-        logger.addHandler(logging.StreamHandler())
-        logger.error(">>>ERROR: Fatal Error:", e)
-        logging.error("exception ", exc_info=1)
+        logger.exception("Fatal Error:")
         exit()
     return generator
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    logging_cfg.apply_logging_config(None)
     logger = logging.getLogger(__name__)
-    logger.addHandler(logging.StreamHandler())
     gen = create_datagenerator_pressure_flowfront()
     for inputs, labels in gen:
         print(np.shape(inputs), np.shape(labels))

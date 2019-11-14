@@ -24,7 +24,6 @@ def plot_wrapper(triangle_coords, scaled_coords, fillings, imsize, index):
         means_of_neighbour_nodes = b.mean(axis=1)
     except IndexError:
         logger = logging.getLogger(__name__)
-        logger.addHandler(logging.StreamHandler())
         logger.error('ERROR plot wrapper ... raising')
         logger.error(triangle_coords)
         logger.error(filling[triangle_coords])

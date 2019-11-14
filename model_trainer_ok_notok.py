@@ -10,6 +10,7 @@ from Pipeline import erfh5_pipeline as pipeline, data_loader_sensor as dls, \
     data_gather as dg
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
+from Utils import logging_cfg
 
 
 def get_comment():
@@ -55,25 +56,17 @@ class SuccessTrainer:
                 cache_path=self.cache_path
             )
 
-        except Exception as e:
+        except Exception:
             logger = logging.getLogger(__name__)
-            h = logging.StreamHandler()
-            h.setLevel(logging.ERROR)
-            logger.addHandler(h)
-            logger.error("Fatal Error:", e)
-            logging.error("exception ", exc_info=1)
+            logger.exception("Fatal Error:")
             exit()
         return generator
 
     def run_training(self):
         save_path = self.save_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)
+        logging_cfg.apply_logging_config(save_path)
 
-        logging.basicConfig(
-            filename=save_path / Path("output.log"),
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
         logger = logging.getLogger(__name__)
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path,

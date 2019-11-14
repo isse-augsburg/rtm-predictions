@@ -27,7 +27,6 @@ def normalize_coords(coords):
 def create_np_image(target_shape=(143, 111), norm_coords=None, data=None):
     if norm_coords is None or data is None:
         logger = logging.getLogger(__name__)
-        logger.addHandler(logging.StreamHandler())
         logger.error("ERROR in create_np_image")
         return
 
@@ -73,9 +72,8 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsiz
             res.append(wrapper(i))
         except IndexError or OSError:
             logger = logging.getLogger(__name__)
-            logger.addHandler(logging.StreamHandler())
             logger.error(f"ERROR at {filename}, len(fillings): {len(fillings)}")
-            # raise
+            raise
     # array of all images, array of the same permeability map
     # trues, falses = 0, 0
     #
