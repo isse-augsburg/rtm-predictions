@@ -4,6 +4,7 @@ import pickle
 import random
 import socket
 import threading
+from enum import Enum
 from pathlib import Path
 from time import sleep
 
@@ -116,9 +117,8 @@ def assert_instance_correctness(instance):
             The required format is [(data_1, label1), ... , 
             (data_n, label_n)] or None.'''
     for i in instance:
-        assert (
-            isinstance(i, tuple) and len(i) == 2
-        ), '''The data loader seems to return instances in the wrong format. 
+        assert (isinstance(i, tuple) and len(i) == 2), \
+            '''The data loader seems to return instances in the wrong format. 
                 The required format is [(data_1, label1), ... , 
                 (data_n, label_n)] or None.'''
 
@@ -150,6 +150,12 @@ def transform_list_of_linux_paths_to_windows(input_list):
         return win_paths
     else:
         return input_list
+
+
+class CachingMode(Enum):
+    Nothing = 1
+    Both = 2
+    FileList = 3
 
 
 class ERFH5DataGenerator:
@@ -191,6 +197,7 @@ class ERFH5DataGenerator:
             save_path=None,
             load_datasets_path=None,
             test_mode=False,
+            cache_mode=CachingMode.Both
     ):
         self.kill_t_shuffle = False
         self.kill_t_batch = False
@@ -208,6 +215,7 @@ class ERFH5DataGenerator:
         self.data_gather = data_gather_function
         self.cache_path = None
         self.cache_path_flist = None
+        self.cache_mode = cache_mode
         if cache_path is not None:
             self.init_cache_paths(cache_path)
 
@@ -231,10 +239,17 @@ class ERFH5DataGenerator:
             self.init_generators_and_run(save_path, load_datasets_path)
 
     def init_cache_paths(self, cache_path):
-        self.cache_path = Path(cache_path).joinpath(self.data_function.__name__)
-        self.cache_path.mkdir(parents=True, exist_ok=True)
-        self.cache_path_flist = Path(cache_path).joinpath("filelists")
-        self.cache_path_flist.mkdir(parents=True, exist_ok=True)
+        if self.cache_mode == CachingMode.Nothing:
+            return
+            # Code duplication to allow more modes in future
+        if self.cache_mode == CachingMode.FileList:
+            self.cache_path_flist = Path(cache_path).joinpath("filelists")
+            self.cache_path_flist.mkdir(parents=True, exist_ok=True)
+        if self.cache_mode == CachingMode.Both:
+            self.cache_path = Path(cache_path).joinpath(self.data_function.__name__)
+            self.cache_path.mkdir(parents=True, exist_ok=True)
+            self.cache_path_flist = Path(cache_path).joinpath("filelists")
+            self.cache_path_flist.mkdir(parents=True, exist_ok=True)
 
     def end_threads(self):
         self.kill_t_batch = True
@@ -321,11 +336,8 @@ class ERFH5DataGenerator:
             self.paths = transform_list_of_linux_paths_to_windows(self.paths)
 
     def __shuffle_batch_queue(self):
-        while (
-                not self.kill_t_shuffle
-                and (len(self.path_queue) > self.batch_size
-                     or len(self.batch_queue) > self.batch_size)
-        ):
+        while (not self.kill_t_shuffle and
+               (len(self.path_queue) > self.batch_size or len(self.batch_queue) > self.batch_size)):
             self.batch_queue.randomise()
             sleep(10)
 

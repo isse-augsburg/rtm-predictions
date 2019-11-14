@@ -137,21 +137,21 @@ class BinaryClassificationEvaluator(Evaluator):
             label: single label for the prediction.
         """
 
-        if math.isnan(net_output[0][0]):
+        if math.isnan(net_output[0]):
             return
 
         prediction = np.around(net_output)
 
-        self.confusion_matrix[int(label[0][0].cpu())][
-            int(prediction[0][0].cpu())] += 1
+        self.confusion_matrix[int(label[0].cpu())][
+            int(prediction[0].cpu())] += 1
 
         if np.array_equal(prediction, label):
-            if prediction[0][0] == 1:
+            if prediction[0] == 1:
                 self.tp += 1
             else:
                 self.tn += 1
         else:
-            if prediction[0][0] == 1:
+            if prediction[0] == 1:
                 self.fp += 1
             else:
                 self.fn += 1

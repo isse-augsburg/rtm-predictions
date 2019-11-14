@@ -2,7 +2,7 @@ import logging
 import socket
 from datetime import datetime
 from pathlib import Path
-
+import getpass
 import torch
 
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
@@ -13,7 +13,7 @@ from Trainer.evaluation import BinaryClassificationEvaluator
 
 
 def get_comment():
-    return "Trying 38x30 sensor grid as input for a conventional CNN"
+    return "Trying 38x30 sensor grid as input for a conventional CNN. Using subsampled version of sequence."
 
 
 class SuccessTrainer:
@@ -21,7 +21,7 @@ class SuccessTrainer:
                  data_source_paths,
                  save_path,
                  cache_path=None,
-                 batch_size=1,
+                 batch_size=2,
                  eval_freq=2,
                  epochs=10,
                  num_workers=10,
@@ -90,7 +90,7 @@ class SuccessTrainer:
             comment=get_comment(),
             loss_criterion=torch.nn.BCELoss(),
             savepath=save_path,
-            learning_rate=0.0001,
+            learning_rate=0.0005,
             calc_metrics=False,
             train_print_frequency=50,
             eval_frequency=self.eval_freq,
@@ -105,41 +105,34 @@ class SuccessTrainer:
 if __name__ == "__main__":
 
     if socket.gethostname() == "swt-dgx1":
-        """ _cache_path = None
-        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/
-        output/with_shapes")
-        _batch_size = 320
+        print("On DGX.")
+        _cache_path = None
+        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+        _batch_size = 64
         _eval_freq = 50
 
-        if getpass.getuser() == "stiebesi":
-            _save_path = Path("/cfs/share/cache/output_simon")
-        elif getpass.getuser() == "schroeni":
-            _save_path = Path("/cfs/share/cache/output_niklas")
-            # cache_path = "/run/user/1001/gvfs/smb-share:
-            server=137.250.170.56,share=share/cache"
+        if getpass.getuser() == "lodesluk":
+            _save_path = Path("/cfs/share/cache/output_lukas")
         else:
             _save_path = Path("/cfs/share/cache/output")
-        _epochs = 10
+        _epochs = 50
         _num_workers = 18
-        _num_validation_samples = 2000
-        _num_test_samples = 2000 """
-
-        print("TODO Fix paths for DGX")
+        _num_validation_samples = 200
+        _num_test_samples = 200
 
     else:
         _cache_path = Path(
             '/run/user/1001/gvfs/smb-share:server=137.250.170.56,'
             'share=share/cache')
         # _cache_path = None
-        # _data_root = Path('/run/user/1001/gvfs/smb-share:
-        # server=137.250.170.56,share=share/data/RTM/Leoben/output/with_shapes')
+
         _data_root = Path(
             '/run/user/1001/gvfs/smb-share:server=137.250.170.56,'
             'share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
-        _batch_size = 4
+        _batch_size = 8
         _eval_freq = 50
         _save_path = Path('/home/lodes/Train_Out')
-        _epochs = 200
+        _epochs = 10
         _num_workers = 4
         _num_validation_samples = 50
         _num_test_samples = 50
@@ -171,11 +164,3 @@ if __name__ == "__main__":
 
     if train:
         st.run_training()
-    r""" else:
-        if socket.gethostname() != "swtse130":
-            st.inference_on_test_set(
-                Path("/cfs/share/cache/output_simon/2019-08-29_16-45-59")
-            )
-        else:
-            st.inference_on_test_set(
-            Path(r"Y:\cache\output_simon\2019-09-02_19-40-56")) """

@@ -145,8 +145,8 @@ class MasterTrainer:
             loss = 0
             count = 0
             for i, (data, label) in enumerate(self.__batched(data_set, self.generator.batch_size)):
-                data = data.to(self.device)
-                label = label.to(self.device)
+                data = data.to(self.device, non_blocking=True)
+                label = label.to(self.device, non_blocking=True)
                 # data = torch.unsqueeze(data, 0)
                 # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
@@ -221,9 +221,9 @@ class MasterTrainer:
         else:
             checkpoint = torch.load(path, map_location='cpu')
 
+        new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
-        if socket.gethostname() == "swtse130":
-            new_model_state_dict = OrderedDict()
+        if socket.gethostname() != "swt-dgx1":
             for k, v in model_state_dict.items():
                 name = k[7:]  # remove `module.`
                 new_model_state_dict[name] = v
