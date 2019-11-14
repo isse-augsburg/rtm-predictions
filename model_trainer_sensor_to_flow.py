@@ -117,6 +117,8 @@ class SensorTrainer:
         full = False
         for p in test_set:
             instance = self.test_data_generator.data_function(p)
+            if instance is None:
+                continue
             for num, i in enumerate(instance):
                 data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                 data_list.append((data, label))
@@ -194,7 +196,7 @@ if __name__ == "__main__":
         _epochs = 100
         _num_workers = 18
         _num_validation_samples_frames = 350000  # 5 %
-        _num_test_samples_frames = 400000  # 5 %
+        _num_test_samples_frames = 40000  # 5 %
 
     elif socket.gethostname() == "swtse130":
         _cache_path = Path(r"C:\Users\stiebesi\CACHE")
@@ -256,11 +258,11 @@ if __name__ == "__main__":
         st.run_training()
     else:
         if socket.gethostname() != "swtse130":
-            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-17_15-26-14")
+            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/4_three_week_run/2019-09-25_16-42-53")
             st.inference_on_test_set(source_path=path,
                                      output_path=path)
         else:
-            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\sharing_datasets\2019-09-20_10-57-06_20_sensors")
+            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\4_three_week_run\2019-09-25_16-42-53")
             st.inference_on_test_set(source_path=path,
                                      output_path=path)
     logging.shutdown()

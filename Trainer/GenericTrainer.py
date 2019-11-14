@@ -1,4 +1,5 @@
 import logging
+import socket
 import time
 from collections import OrderedDict
 from pathlib import Path
@@ -144,8 +145,8 @@ class MasterTrainer:
             loss = 0
             count = 0
             for i, (data, label) in enumerate(self.__batched(data_set, self.generator.batch_size)):
-                data = data.to(self.device)
-                label = label.to(self.device)
+                data = data.to(self.device, non_blocking=True)
+                label = label.to(self.device, non_blocking=True)
                 # data = torch.unsqueeze(data, 0)
                 # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
@@ -222,10 +223,13 @@ class MasterTrainer:
 
         new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
-        for k, v in model_state_dict.items():
-            name = k[7:]  # remove `module.`
-            new_model_state_dict[name] = v
-        self.model.load_state_dict(new_model_state_dict)
+        if socket.gethostname() != "swt-dgx1":
+            for k, v in model_state_dict.items():
+                name = k[7:]  # remove `module.`
+                new_model_state_dict[name] = v
+            self.model.load_state_dict(new_model_state_dict)
+        else:
+            self.model.load_state_dict(model_state_dict)
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         epoch = checkpoint["epoch"]
         loss = checkpoint["loss"]
