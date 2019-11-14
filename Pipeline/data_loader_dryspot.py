@@ -1,6 +1,7 @@
-import numpy as np 
 import logging
+
 import h5py
+import numpy as np
 
 
 def normalize_coords(coords):
@@ -14,7 +15,6 @@ def normalize_coords(coords):
     coords[:, 1] = coords[:, 1] - min_c
     coords[:, 1] = coords[:, 1] / (max_c - min_c)
     return coords
-
     # for new data 38 and 30.0
 
 
@@ -80,4 +80,8 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
 
 
 if __name__ == "__main__":
-    things = get_flowfront_bool_dryspot('/home/schroeter/Desktop/HDF5Dryspot/2019-07-23_15-38-08_0_RESULT.erfh5', (143, 111))
+    # things = get_flowfront_bool_dryspot('/home/schroeter/Desktop/HDF5Dryspot/2019-07-23_15-38-08_0_RESULT.erfh5',
+    # (143, 111))
+    things = get_flowfront_bool_dryspot(r'X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-07-23_15-38'
+                                        r'-08_5000p\0\2019-07-23_15-38-08_0_RESULT.erfh5', (143, 111))
+    print('x')

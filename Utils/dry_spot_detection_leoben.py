@@ -1,13 +1,14 @@
+import io
 import socket
+from multiprocessing import Pool
 from pathlib import Path
 from time import time
+
 import cv2
 import h5py
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
-from multiprocessing import Pool
-import io
 
 
 def scale_coords_leoben(input_coords):
@@ -16,7 +17,6 @@ def scale_coords_leoben(input_coords):
 
 
 def __analyze_image(img, perm_map=None):
-    #
     _, threshold = cv2.threshold(img, 70, 190, cv2.THRESH_BINARY)
     _, contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     min_size = 3
@@ -101,7 +101,6 @@ def dry_spot_analysis(file_path, output_dir):
     file_bytes = np.asarray(bytearray(perm_bytes.read()), dtype=np.uint8)
     perm_map = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
 
-    # keys = [keys[111], keys[112], keys[113], keys[114], keys[115], keys[116], keys[117], keys[118], keys[119]]
     spot_list_s = []
     spot_list_e = []
     b_set = False
@@ -154,7 +153,7 @@ def dry_spot_analysis(file_path, output_dir):
     states = []
     for i, key in enumerate(keys, 1):
         for start, stop in zip(spot_list_s, spot_list_e):
-            if(i >= int(start) and i < int(stop)):
+            if int(start) <= i < int(stop):
                 states.append(int(key.replace("state", "0")))
 
     try:
