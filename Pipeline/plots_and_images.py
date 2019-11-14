@@ -45,7 +45,7 @@ def plot_wrapper(triangle_coords, scaled_coords, fillings, imsize, index):
 def draw_polygon_map(values_for_triangles, scaled_coords, triangle_coords,
                      colored=False, size=(465, 465)):
     mode = 'RGB' if colored else 'L'
-    im = Image.new(mode, size)
+    im = Image.new(mode, (np.max(scaled_coords[:, 0]).astype(int), np.max(scaled_coords[:, 1].astype(int))))
     draw = ImageDraw.Draw(im)
     for i, triangle_coord in enumerate(triangle_coords):
         val = values_for_triangles[i]
