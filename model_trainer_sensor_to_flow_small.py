@@ -17,6 +17,7 @@ from Pipeline import (
 )
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
+from Utils import logging_cfg
 
 num_data_points = 31376
 initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
@@ -92,13 +93,9 @@ def create_datagenerator_pressure_flowfront(paths, save_path=None,
             save_path=save_path,
             test_mode=test_mode,
         )
-    except Exception as e:
+    except Exception:
         logger = logging.getLogger(__name__)
-        h = logging.StreamHandler()
-        h.setLevel(logging.ERROR)
-        logger.addHandler(h)
-        logger.error("Fatal Error:", e)
-        logging.error("exception ", exc_info=1)
+        logger.exception("Fatal Error:")
         exit()
     return generator
 
@@ -110,11 +107,7 @@ def get_comment():
 def inference_on_test_set(path):
     save_path = path / "eval_on_test_set"
     save_path.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(
-        filename=save_path / Path("test_output.log"),
-        level=logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    logging_cfg.apply_logging_config(save_path)
 
     model = DeconvModel2x()
     if socket.gethostname() == "swt-dgx1":
@@ -156,12 +149,8 @@ def inference_on_test_set(path):
 def run_training(save_path):
     save_path = save_path / initial_timestamp
     save_path.mkdir(parents=True, exist_ok=True)
+    logging_cfg.apply_logging_config(save_path)
 
-    logging.basicConfig(
-        filename=save_path / Path("output.log"),
-        level=logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
     logger = logging.getLogger(__name__)
 
     logger.info("Generating Generator")
