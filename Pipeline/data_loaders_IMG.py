@@ -1,14 +1,12 @@
 import logging
-# import random
 from functools import partial
-from pathlib import Path
 
 import h5py
 import numpy as np
 
 # from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
-from plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_leoben
+from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_leoben, scale_coords_lautern
 
 
 def normalize_coords(coords):
@@ -50,7 +48,7 @@ def create_np_image(target_shape=(143, 111), norm_coords=None, data=None):
 
 def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsize=(155, 155)):
     f = h5py.File(filename, "r")
-    im, scaled_coords, triangle_coords = get_local_properties_map(f, imsize)
+    im, scaled_coords, triangle_coords = get_local_properties_map_leoben(f, imsize)
 
     all_states = list(f["post"]["singlestate"].keys())
     selected_states = get_fixed_number_of_elements_and_indices(all_states, wanted_num=wanted_num)
@@ -91,12 +89,8 @@ def get_images_of_flow_front_and_permeability_map(filename, wanted_num=10, imsiz
     return [(img_stack[0:wanted_num], label)]
 
 
-def get_fixed_number_of_elements_and_indices(input_list, wanted_num):
 # Deprecated! Use resampling.get_fixed_number_of_indices
-
-def get_fixed_number_of_elements_and_indices(
-        input_list, wanted_num
-):
+def get_fixed_number_of_elements_and_indices(input_list, wanted_num):
     if wanted_num > len(input_list):
         return
 
@@ -121,7 +115,7 @@ def get_fixed_number_of_elements_and_indices(
     return res
 
 
-def get_local_properties_map(f, imsize):
+def get_local_properties_map_lautern(f, imsize):
     coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
     _all_coords = coord_as_np_array[:, :-1]
     scaled_coords = scale_coords_lautern(_all_coords)
@@ -138,21 +132,22 @@ def get_local_properties_map(f, imsize):
     return im, scaled_coords, triangle_coords
 
 
-# def get_local_properties_map(f, imsize):
-#     coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
-#     _all_coords = coord_as_np_array[:, :-1]
-#
-#     scaled_coords = scale_coords_leoben(_all_coords)
-#     # norm_cords = normalize_coords(_all_coords)
-#     triangle_coords = f["post/constant/connectivities/SHELL/erfblock/ic"][()]
-#     triangle_coords = triangle_coords[:, :-1] - 151980  # required for Leoben data
-#
-#     data = f["post/constant/entityresults/SHELL/"]
-#
-#     im = create_local_properties_map(data, scaled_coords, triangle_coords, "FIBER_FRACTION")
-#     if im.size != imsize:
-#         im = im.resize(imsize)
-#     return im, scaled_coords, triangle_coords
+def get_local_properties_map_leoben(f, imsize):
+    coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
+    _all_coords = coord_as_np_array[:, :-1]
+
+    scaled_coords = scale_coords_leoben(_all_coords)
+    # norm_cords = normalize_coords(_all_coords)
+    triangle_coords = f["post/constant/connectivities/SHELL/erfblock/ic"][()]
+    triangle_coords = triangle_coords[:, :-1] - 151980  # required for Leoben data
+
+    data = f["post/constant/entityresults/SHELL/"]
+
+    im = create_local_properties_map(data, scaled_coords, triangle_coords, "FIBER_FRACTION")
+    if im.size != imsize:
+        im = im.resize(imsize)
+    return im, scaled_coords, triangle_coords
+
 
 def create_local_properties_map(data, scaled_coords, triangle_coords, _type="FIBER_FRACTION"):
     values_for_triangles = data[_type]["ZONE1_set1"]["erfblock"]["res"][()]
@@ -239,5 +234,5 @@ if __name__ == "__main__":
     #     Path(r"/home/schroeter/Desktop/2019-08-24_11-51-48_3_RESULT.erfh5")
     # )
     f = h5py.File("/home/schroeter/Desktop/2019-07-23_15-38-08_7_RESULT.erfh5", "r")
-    im, scaled_coords, triangle_coords = get_local_properties_map(f, (152 * 3, 120 * 3))
+    im, scaled_coords, triangle_coords = get_local_properties_map_lautern(f, (152 * 3, 120 * 3))
     im.show()
