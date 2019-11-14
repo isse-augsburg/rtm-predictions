@@ -11,50 +11,6 @@ import numpy as np
 from plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_leoben
 
 
-# from PIL import Image
-
-# FIXME: Lukas or Niklas, where is the load_image() function?
-# def get_image_state_sequence(
-#         folder, start_state=0, end_state=100, step=5, label_offset=3
-# ):
-#     filelist = get_filelist_within_folder(folder)
-#     if len(filelist) == 0:
-#         return None
-#     filelist.sort()
-#     state_list = list()
-#
-#     f = 0
-#
-#     c_state = start_state
-#
-#     label = None
-#
-#     while f < len(filelist):
-#         f_meta = filelist[f]
-#         f_split = f_meta.split("/")[-1].split("_")
-#         state_index = int(f_split[0])
-#
-#         if state_index <= c_state:
-#             state_list.append(load_image(f_meta))
-#         f += 1
-#         c_state += step
-#
-#         if c_state > end_state:
-#             f += label_offset - 1
-#             if f < len(filelist):
-#                 f_meta = filelist[f]
-#                 label = load_image(f_meta)
-#
-#             break
-#
-#     if label is None:
-#         return None
-#
-#     data = np.stack(state_list)
-#     if np.shape(data)[0] != int((end_state - start_state) / step) + 1:
-#         return None
-#
-#     return [(data, label)]
 
 
 def normalize_coords(coords):

@@ -172,8 +172,8 @@ def dry_spot_analysis(file_path, output_dir):
 
 def multiprocess_wrapper(i):
     dry_spot_analysis(
-        source / str(i) / str("2019-07-23_15-38-08_%d_RESULT.erfh5" % i),
-        Path("/cfs/share/cache/DrySpotDet/2019-07-23_15-38-08_5000p") / str(i),
+        source / str(i) / str("2019-07-29_10-45-18_%d_RESULT.erfh5" % i),
+        Path("/cfs/share/cache/DrySpotDet/2019-07-29_10-45-18_5000p") / str(i),
     )
 
 
@@ -185,7 +185,7 @@ if __name__ == "__main__":
             "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/"
             "Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
         )
-        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p")
+        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p")
 
     with Pool() as p:
         p.map(multiprocess_wrapper, range(0, 5000))
