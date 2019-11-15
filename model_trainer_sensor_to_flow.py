@@ -81,7 +81,7 @@ class SensorTrainer:
     def inference_on_test_set(self, output_path, source_path):
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
-        logging_cfg.apply_logging_config(save_path)
+        logging_cfg.apply_logging_config(save_path, eval=True)
 
         logger = logging.getLogger(__name__)
 
