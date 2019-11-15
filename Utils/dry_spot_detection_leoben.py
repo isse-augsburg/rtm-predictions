@@ -10,10 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
 
-
-def scale_coords_leoben(input_coords):
-    scaled_coords = input_coords * 10
-    return scaled_coords
+from Utils.img_utils import scale_coords_leoben
 
 
 def __analyze_image(img, perm_map=None):
@@ -22,7 +19,8 @@ def __analyze_image(img, perm_map=None):
     min_size = 3
     dryspots = np.zeros_like(img, dtype=np.float)
     spots = False
-    for cnt in contours:
+    probs = []
+    for i, cnt in enumerate(contours):
         approx = cv2.approxPolyDP(cnt, 0.005 * cv2.arcLength(cnt, True), True)
         # (x, y, w, h) = cv2.boundingRect(approx)
         # cv2.rectangle(img, (x,y), (x+w,y+h), 100, 2)
@@ -30,7 +28,7 @@ def __analyze_image(img, perm_map=None):
         size = cv2.contourArea(cnt)
         if size < min_size:
             continue
-        # max countour
+        # max contour
         if size > 273440:
             continue
 
@@ -43,19 +41,24 @@ def __analyze_image(img, perm_map=None):
         perm_cut = np.where((perm_cut == 0), 0, 255)  # focus on anything other than background
         avg_dryspot_prob = np.sum(perm_cut, dtype=np.float) / size  # normalize with size of contour area
         # print(avg_dryspot_prob, np.sum(perm_cut,dtype=np.float), size) # debug print statement
-        print(avg_dryspot_prob)
-        if avg_dryspot_prob > 200:
+        probs.append(avg_dryspot_prob)
+        if avg_dryspot_prob > 250:
             cv2.fillPoly(dryspots, [np.squeeze(approx)], 255)
             spots = True
 
-    return spots, dryspots
+    return spots, dryspots, probs
 
 
 def dry_spot_analysis(file_path, output_dir_imgs):
     try:
         f = h5py.File(file_path, "r")
+    except OSError:
+        print('ERROR: Could not open file(s)!', file_path)
+        return
+    try:
         meta_file = h5py.File(str(file_path).replace("RESULT.erfh5", "meta_data.hdf5"), "r+")
     except OSError:
+        print('ERROR: Could not open file(s)!', str(file_path).replace("RESULT.erfh5", "meta_data.hdf5"))
         return
 
     t00 = time()
@@ -83,11 +86,9 @@ def dry_spot_analysis(file_path, output_dir_imgs):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plt.tripcolor(triang, fvc, cmap="gray")
-
     ax.set(xlim=(0, 375), ylim=(0, 300))
     plt.axis("off")
     plt.tight_layout()
-
     extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     plt.clim(0, 1)
 
@@ -101,8 +102,14 @@ def dry_spot_analysis(file_path, output_dir_imgs):
     spot_list_s = []
     spot_list_e = []
     b_set = False
+    min_count_of_consecutive_dryspots = 2
+    consecutive_dryspots = 0
+    max_prob_old = 0
+
+    deltas_prob = []
+
     for i, k in enumerate(keys):
-        print(i)
+        # print(i + 1, k, end=' ')
         try:
             data = f[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()]
         except KeyError:
@@ -119,20 +126,36 @@ def dry_spot_analysis(file_path, output_dir_imgs):
         plt.tight_layout()
         extent = ax2.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
 
-        bytes_tmp = io.BytesIO()
-        plt.savefig(bytes_tmp, bbox_inches=extent)
-        plt.close()
-        bytes_tmp.seek(0)
-        file_bytes = np.asarray(bytearray(bytes_tmp.read()), dtype=np.uint8)
-        img = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
-
+        debug = False
+        if debug:
+            plt.savefig(str(output_dir_imgs / (f"{k}_ff.png")), bbox_inches=extent)
+            plt.close()
+            img = cv2.imread(str(output_dir_imgs / (f"{k}_ff.png")), cv2.IMREAD_GRAYSCALE)
+        else:
+            bytes_tmp = io.BytesIO()
+            plt.savefig(bytes_tmp, bbox_inches=extent)
+            plt.close()
+            bytes_tmp.seek(0)
+            file_bytes = np.asarray(bytearray(bytes_tmp.read()), dtype=np.uint8)
+            img = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
         img = 255 - img
-        spot_b, dryspot_img = __analyze_image(img, perm_map)
+
+        spot_b, dryspot_img, probs = __analyze_image(img, perm_map)
+        if len(probs) > 0:
+            # Saving the course of the maximum of avg. probabilities of dry spot
+            max_prob = max(probs)
+            delta_prob = max_prob_old - max_prob
+            if abs(delta_prob) > 20:
+                deltas_prob.append((abs(delta_prob), i + 1, k))
+            max_prob_old = max_prob
         if spot_b:
-            if i + 1 != spot_t + 1:
-                spot_list_s.append(i + 1)
-                b_set = True
-            spot_t = i + 1
+            # Skipping dry spots that last very short
+            consecutive_dryspots += 1
+            if consecutive_dryspots >= min_count_of_consecutive_dryspots:
+                if i + 1 != spot_t + 1:
+                    spot_list_s.append(i + 1)
+                    b_set = True
+                spot_t = i + 1
 
         elif b_set:
             b_set = False
@@ -156,19 +179,28 @@ def dry_spot_analysis(file_path, output_dir_imgs):
     except RuntimeError:
         pass
 
-    print(
-        f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one."
-        f'Dryspots at: {[f"{one} - {two}" for (one,two) in zip(spot_list_s,spot_list_e)]}'
-    )
+    if len(spot_list_s) == 0:
+        print(
+            f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one. "
+            f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}'
+        )
 
-    return spot_list_s, spot_list_e
+    return spot_list_s, spot_list_e, deltas_prob
 
 
 def multiprocess_wrapper(i):
-    dry_spot_analysis(
-        source / str(i) / str("2019-07-29_10-45-18_%d_RESULT.erfh5" % i),
-        Path("/cfs/share/cache/DrySpotDet/2019-07-29_10-45-18_5000p") / str(i),
-    )
+    if socket.gethostname() == "swtse130":
+        source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-07-23_15-38-08_5000p")
+        output = Path(r"Y:\cache\DrySpotDet2\2019-07-23_15-38-08_5000p") / str(i)
+        dry_spot_analysis(
+            source / str(i) / str("2019-07-23_15-38-08_%d_RESULT.erfh5" % i),
+            output,
+        )
+    else:
+        dry_spot_analysis(
+            source / str(i) / str("2019-07-29_10-45-18_%d_RESULT.erfh5" % i),
+            Path("/cfs/share/cache/DrySpotDet/2019-07-29_10-45-18_5000p") / str(i),
+        )
 
 
 if __name__ == "__main__":
@@ -182,4 +214,4 @@ if __name__ == "__main__":
         source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p")
 
     with Pool() as p:
-        p.map(multiprocess_wrapper, range(0, 5000))
+        p.map(multiprocess_wrapper, range(0, 250))

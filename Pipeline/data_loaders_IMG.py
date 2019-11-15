@@ -6,7 +6,8 @@ import numpy as np
 
 # from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
-from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper, scale_coords_leoben, scale_coords_lautern
+from Pipeline.plots_and_images import draw_polygon_map, plot_wrapper
+from Utils.img_utils import scale_coords_lautern, scale_coords_leoben
 
 
 def normalize_coords(coords):

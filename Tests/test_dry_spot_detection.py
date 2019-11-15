@@ -1,3 +1,4 @@
+import shutil
 import unittest
 
 import Tests.resources_for_testing as resources
@@ -10,23 +11,20 @@ class TestDrySpotDetectionLeoben(unittest.TestCase):
         self.output = resources.test_out_dir / 'output_dry_spots'
 
     def test_dry_spots(self):
-        first_occurrences = [203, 69, 31, 108, 37, 81, 185, 117, 208, 71, 108]
+        first_occurrences = [203, 69, 31, 108, 37, 171, 185, 117, 208, 71, 108]
         a = list(self.p.glob('**/*.erfh5'))
-        a = [a[2]]
         for entry in a:
             output_dir = self.output / entry.parent.stem
             index = int(entry.parent.stem)
             print(entry, output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
-            spot_list_s, spot_list_e = dry_spot_analysis(entry, output_dir)
-            # first_occurr = spot_list_s[0]
-            # self.assertEqual(first_occurr, first_occurrences[index])
+            spot_list_s, spot_list_e, deltas_prob = dry_spot_analysis(entry, output_dir)
+            if len(spot_list_s) == 0:
+                print(f'Wrong index: should be {first_occurrences[index]}, is {spot_list_s}, '
+                      f'found following deltas: {deltas_prob}')
+                continue
+            first_occurr = spot_list_s[0]
+            self.assertAlmostEqual(first_occurr, first_occurrences[index], delta=4)
 
-        # for i, entry in enumerate(self.p.iterdir()):
-        #     output_dir = self.output / str(i)
-        #     print(entry / f'2019-07-23_15-38-08_{i}_RESULT.erfh5')
-        #     output_dir.mkdir(parents=True, exist_ok=True)
-        #     dry_spot_analysis(entry, output_dir)
-
-    # def tearDown(self):
-    #     shutil.rmtree(self.output)
+    def tearDown(self):
+        shutil.rmtree(self.output)
