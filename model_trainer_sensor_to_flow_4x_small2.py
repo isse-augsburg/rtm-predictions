@@ -19,6 +19,7 @@ from Pipeline import (
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
+from Utils import logging_cfg
 
 
 def get_comment():
@@ -71,24 +72,17 @@ class SensorTrainer:
                 load_datasets_path=self.load_datasets_path,
                 test_mode=test_mode,
             )
-        except Exception as e:
+        except Exception:
             logger = logging.getLogger(__name__)
-            h = logging.StreamHandler()
-            h.setLevel(logging.ERROR)
-            logger.addHandler(h)
-            logger.error(f"Fatal Error: {e}")
-            logging.error("exception ", exc_info=1)
+            logger.exception("Fatal Error:")
             exit()
         return generator
 
     def inference_on_test_set(self, output_path, source_path):
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
-        logging.basicConfig(
-            filename=save_path / Path("test_output.log"),
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
+        logging_cfg.apply_logging_config(save_path, eval=True)
+
         logger = logging.getLogger(__name__)
 
         model = DeconvModel4x()
@@ -136,12 +130,8 @@ class SensorTrainer:
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)
+        logging_cfg.apply_logging_config(save_path)
 
-        logging.basicConfig(
-            filename=save_path / Path("output.log"),
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
         logger = logging.getLogger(__name__)
 
         logger.info("Generating Generator")
