@@ -107,7 +107,7 @@ def get_comment():
 def inference_on_test_set(path):
     save_path = path / "eval_on_test_set"
     save_path.mkdir(parents=True, exist_ok=True)
-    logging_cfg.apply_logging_config(save_path)
+    logging_cfg.apply_logging_config(save_path, eval=True)
 
     model = DeconvModel2x()
     if socket.gethostname() == "swt-dgx1":
