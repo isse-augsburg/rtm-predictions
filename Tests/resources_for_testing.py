@@ -17,10 +17,10 @@ elif getpass.getuser() == 'lodes':
                         '/test_data')
 elif getpass.getuser() == 'Lukas':
     test_out_dir = Path(r'X:\l\o\lodesluk\code\tests')
-    test_src_dir = test_src_dir = Path(r'X:\s\t\stiebesi\code\tests\test_data')
+    test_src_dir = Path(r'X:\s\t\stiebesi\code\tests\test_data')
 elif running_in_docker():
-    test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
     test_out_dir = Path('/cache')
+    test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
 else:
     raise Exception("User not defined. Please define username.")
 
