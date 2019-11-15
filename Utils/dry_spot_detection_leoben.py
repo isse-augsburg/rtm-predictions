@@ -182,7 +182,8 @@ def dry_spot_analysis(file_path, output_dir_imgs):
     if len(spot_list_s) == 0:
         print(
             f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one. "
-            f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}'
+            f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}, '
+            f'num of states {len(keys)}'
         )
 
     return spot_list_s, spot_list_e, deltas_prob
@@ -197,6 +198,7 @@ def multiprocess_wrapper(i):
             output,
         )
     else:
+        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p")
         dry_spot_analysis(
             source / str(i) / str("2019-07-29_10-45-18_%d_RESULT.erfh5" % i),
             Path("/cfs/share/cache/DrySpotDet/2019-07-29_10-45-18_5000p") / str(i),
