@@ -76,7 +76,6 @@ def save_img(path, _str, x, index):
         im.close()
     except KeyError:
         logger = logging.getLogger(__name__)
-        logger.addHandler(logging.StreamHandler())
         logger.error("ERROR: save_img")
 
 

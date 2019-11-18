@@ -19,6 +19,7 @@ from Pipeline import (
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
+from Utils import logging_cfg
 
 
 def get_comment():
@@ -71,24 +72,17 @@ class SensorTrainer:
                 load_datasets_path=self.load_datasets_path,
                 test_mode=test_mode,
             )
-        except Exception as e:
+        except Exception:
             logger = logging.getLogger(__name__)
-            h = logging.StreamHandler()
-            h.setLevel(logging.ERROR)
-            logger.addHandler(h)
-            logger.error(f"Fatal Error: {e}")
-            logging.error("exception ", exc_info=1)
+            logger.exception("Fatal Error:")
             exit()
         return generator
 
     def inference_on_test_set(self, output_path, source_path):
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
-        logging.basicConfig(
-            filename=save_path / Path("test_output.log"),
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
+        logging_cfg.apply_logging_config(save_path, eval=True)
+
         logger = logging.getLogger(__name__)
 
         model = DeconvModel4x()
@@ -119,6 +113,8 @@ class SensorTrainer:
         full = False
         for p in test_set:
             instance = self.test_data_generator.data_function(p)
+            if instance is None:
+                continue
             for num, i in enumerate(instance):
                 data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
                 data_list.append((data, label))
@@ -134,12 +130,8 @@ class SensorTrainer:
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)
+        logging_cfg.apply_logging_config(save_path)
 
-        logging.basicConfig(
-            filename=save_path / Path("output.log"),
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
         logger = logging.getLogger(__name__)
 
         logger.info("Generating Generator")
@@ -196,7 +188,7 @@ if __name__ == "__main__":
         _epochs = 100
         _num_workers = 18
         _num_validation_samples_frames = 350000  # 5 %
-        _num_test_samples_frames = 400000  # 5 %
+        _num_test_samples_frames = 40000  # 5 %
 
     elif socket.gethostname() == "swtse130":
         _cache_path = Path(r"C:\Users\stiebesi\CACHE")
@@ -257,9 +249,8 @@ if __name__ == "__main__":
     if not run_eval:
         st.run_training()
     else:
-        # TODo adapt
         if socket.gethostname() != "swtse130":
-            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/2019-09-17_15-26-14")
+            path = Path("/cfs/home/s/t/stiebesi/results_leoben/4_three_week_run/2019-10-03_21-17-14")
             st.inference_on_test_set(source_path=path,
                                      output_path=path)
         else:
