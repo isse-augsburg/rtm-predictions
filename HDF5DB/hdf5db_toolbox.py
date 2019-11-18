@@ -33,10 +33,10 @@ class HDF5DBToolbox:
             for i in tqdm([el for el in tqdm(dirpath.rglob("**/*.hdf5"))]):
                 # Check that only *.hdf5 and *.erfh5 files will be opened
                 if h5py.is_hdf5(i.as_posix()):
-                    erfh5File = Path(str(i).replace("meta_data.hdf5", "RESULT.erfh5"))
-                    if erfh5File.exists():
+                    erfh5_file = Path(str(i).replace("meta_data.hdf5", "RESULT.erfh5"))
+                    if erfh5_file.exists():
                         hdf5_path.append(i.as_posix())
-                        erfh5_path.append(erfh5File.as_posix())
+                        erfh5_path.append(erfh5_file.as_posix())
                 else:
                     print(f"{str(i)} does not exist. The folder was skipped.")
             print("H5-files are currently being scanned...")
