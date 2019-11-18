@@ -170,7 +170,13 @@ def get_sensordata_and_flowfront_154x122(file, target_shape=(154, 122)):
 
 
 def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
-    f = h5py.File(file, "r")
+    try:
+        f = h5py.File(file, "r")
+    except OSError:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error: File not found: {file}")
+        return None
+
     instances = []
     try:
         coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/" "erfblock/res"][()]
