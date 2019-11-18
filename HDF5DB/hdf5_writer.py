@@ -6,49 +6,49 @@ def create_hdf5(filename):
     return h5py.File(filename, 'a')
 
 
-# f - a h5py file or group, d - a dictionary
-def write_dict_to_hdf5(f, d: dict):
-    for k, v in d.items():
-        if type(v) is dict:
+# outfile - a h5py file or group, dict_to_save - a dictionary
+def write_dict_to_hdf5(outfile, dict_to_save: dict):
+    for name, value in dict_to_save.items():
+        if type(value) is dict:
             try:
-                grp = f.create_group(str(k))
+                grp = outfile.create_group(str(name))
             except ValueError:
-                grp = f[str(k)]
+                grp = outfile[str(name)]
 
-            write_dict_to_hdf5(grp, v)
-        elif type(v) is list and type(v[0]) is dict:
+            write_dict_to_hdf5(grp, value)
+        elif type(value) is list and type(value[0]) is dict:
             try:
-                f = f.create_group(str(k))
+                outfile = outfile.create_group(str(name))
             except ValueError:
-                f = f[str(k)]
-            wrapped = wrap_list(v)
-            write_dict_to_hdf5(f, wrapped)
+                outfile = outfile[str(name)]
+            wrapped = wrap_list(value)
+            write_dict_to_hdf5(outfile, wrapped)
         else:
-            f.create_dataset(str(k), data=np.array(v))
+            outfile.create_dataset(str(name), data=np.array(value))
 
 
-def wrap_list(v):
+def wrap_list(inputlist):
     new_dict = {}
-    for el in v:
-        dict_appendor(el, new_dict)
+    for element in inputlist:
+        dict_appendor(element, new_dict)
     return new_dict
 
 
-def dict_appendor(el, d):
-    for k, v in el.items():
-        if k not in d:
-            d[k] = {}
-        if type(v) is dict:
-            dict_appendor(v, d[k])
+def dict_appendor(element, dict_to_append):
+    for name, value in element.items():
+        if name not in dict_to_append:
+            dict_to_append[name] = {}
+        if type(value) is dict:
+            dict_appendor(value, dict_to_append[name])
         else:
-            if type(d[k]) is dict:
-                d[k] = np.array(v)
+            if type(dict_to_append[name]) is dict:
+                dict_to_append[name] = np.array(value)
             else:
-                d[k] = np.append(d[k], v)
+                dict_to_append[name] = np.append(dict_to_append[name], value)
 
 
 if __name__ == "__main__":
-    d = {
+    dictionary = {
         "output_frequency_type": "time",
         "perturbation_factors": {
             "General_Sigma": 0.001,
@@ -223,5 +223,5 @@ if __name__ == "__main__":
         ]
     }
 
-    f = create_hdf5("test10")
-    write_dict_to_hdf5(f, d)
+    file = create_hdf5("test10")
+    write_dict_to_hdf5(file, dictionary)
