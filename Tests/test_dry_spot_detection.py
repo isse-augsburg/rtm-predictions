@@ -10,12 +10,12 @@ class TestDrySpotDetectionLeoben(unittest.TestCase):
         self.output = resources.test_out_dir / 'output_dry_spots'
 
     def test_dry_spots(self):
-        first_occurrences = [203, 69, 31, 108, 37, 81, 185, 117, 208, 71, 108]
+        # first_occurrences = [203, 69, 31, 108, 37, 81, 185, 117, 208, 71, 108]
         a = list(self.p.glob('**/*.erfh5'))
         a = [a[2]]
         for entry in a:
             output_dir = self.output / entry.parent.stem
-            index = int(entry.parent.stem)
+            # index = int(entry.parent.stem)
             print(entry, output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
             spot_list_s, spot_list_e = dry_spot_analysis(entry, output_dir)
