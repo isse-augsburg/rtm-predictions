@@ -8,23 +8,23 @@ def create_hdf5(filename):
 
 # outfile - a h5py file or group, dict_to_save - a dictionary
 def write_dict_to_hdf5(outfile, dict_to_save: dict):
-    for name, value in dict_to_save.items():
+    for key, value in dict_to_save.items():
         if type(value) is dict:
             try:
-                grp = outfile.create_group(str(name))
+                grp = outfile.create_group(str(key))
             except ValueError:
-                grp = outfile[str(name)]
+                grp = outfile[str(key)]
 
             write_dict_to_hdf5(grp, value)
         elif type(value) is list and type(value[0]) is dict:
             try:
-                outfile = outfile.create_group(str(name))
+                outfile = outfile.create_group(str(key))
             except ValueError:
-                outfile = outfile[str(name)]
+                outfile = outfile[str(key)]
             wrapped = wrap_list(value)
             write_dict_to_hdf5(outfile, wrapped)
         else:
-            outfile.create_dataset(str(name), data=np.array(value))
+            outfile.create_dataset(str(key), data=np.array(value))
 
 
 def wrap_list(inputlist):
@@ -35,16 +35,16 @@ def wrap_list(inputlist):
 
 
 def dict_appendor(element, dict_to_append):
-    for name, value in element.items():
-        if name not in dict_to_append:
-            dict_to_append[name] = {}
+    for key, value in element.items():
+        if key not in dict_to_append:
+            dict_to_append[key] = {}
         if type(value) is dict:
-            dict_appendor(value, dict_to_append[name])
+            dict_appendor(value, dict_to_append[key])
         else:
-            if type(dict_to_append[name]) is dict:
-                dict_to_append[name] = np.array(value)
+            if type(dict_to_append[key]) is dict:
+                dict_to_append[key] = np.array(value)
             else:
-                dict_to_append[name] = np.append(dict_to_append[name], value)
+                dict_to_append[key] = np.append(dict_to_append[key], value)
 
 
 if __name__ == "__main__":
