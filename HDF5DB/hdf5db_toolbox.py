@@ -41,11 +41,11 @@ class HDF5DBToolbox:
                     print(f"{str(i)} does not exist. The folder was skipped.")
             print("H5-files are currently being scanned...")
             with Pool(20) as p:
-                newObjects = p.starmap(
+                new_objects = p.starmap(
                     HDF5Object, zip(hdf5_path, erfh5_path)
                 )
             print("Objects are currently being added...")
-            for i in newObjects:
+            for i in new_objects:
                 if i.path_meta not in self.get_meta_path_list():
                     self.hdf5_object_list.append(i)
             print(
@@ -372,7 +372,7 @@ class HDF5DBToolbox:
         dirpath = Path(path)
         if dirpath.is_dir():
             if not (len(self.hdf5_object_list) == 0):
-                file = Path(filename + r".h5db")
+                file = Path(filename + r".hdf5db")
                 h5db_path = dirpath / file
                 if h5db_path.is_file():
                     print(
@@ -398,7 +398,7 @@ class HDF5DBToolbox:
         dirpath = Path(path)
         if dirpath.is_dir():
             if not (len(self.hdf5_object_list) == 0):
-                file = Path(filename + r".h5db")
+                file = Path(filename + r".hdf5db")
                 h5db_path = dirpath / file
                 outfile = open(h5db_path, "wb")
                 pickle.dump(self.hdf5_object_list, outfile)

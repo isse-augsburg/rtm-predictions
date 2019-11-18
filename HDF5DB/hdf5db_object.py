@@ -225,18 +225,10 @@ class HDF5Object:
                 self.single_states = len(r[self.single_state_path].keys())
                 for key in r[self.single_state_path].keys():
                     temp = key
-                    while not (
-                            self.single_state_path
-                            + "/"
-                            + temp
-                            + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"
-                            in r
-                    ):
+                    while not (f"{self.single_state_path}/{temp}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/"
+                               f"erfblock/res" in r):
                         temp = self.decrement(temp)
-                temp = r["post/singlestate/"
-                         + temp
-                         + "/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"
-                         ][()]
+                temp = r[f"post/singlestate/{temp}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()]
             if len(temp) > 0:
                 self.avg_level = np.sum(temp) / len(temp)
 
