@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 import Tests.resources_for_testing as Resources
-from HDF5DB.h5writer import create_h5, write_dict_to_Hdf5
+from HDF5DB.hdf5_writer import create_hdf5, write_dict_to_hdf5
 from HDF5DB.hdf5db_object import HDF5Object
 from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
@@ -209,10 +209,10 @@ class TestHDF5DB(unittest.TestCase):
     def setup_test_data(self):
         self.test_meta["perturbation_factors"] = self.test_meta_perturbation
         self.test_meta["shapes"] = self.test_meta_shapes
-        h5_meta = create_h5(str(self.testfolder / self.path_meta))
-        h5_result = create_h5(str(self.testfolder / self.path_result))
-        write_dict_to_Hdf5(h5_meta, self.test_meta)
-        write_dict_to_Hdf5(h5_result, self.test_result)
+        h5_meta = create_hdf5(str(self.testfolder / self.path_meta))
+        h5_result = create_hdf5(str(self.testfolder / self.path_result))
+        write_dict_to_hdf5(h5_meta, self.test_meta)
+        write_dict_to_hdf5(h5_result, self.test_result)
 
     def test_load_save(self):
         test_db = HDF5DBToolbox()
