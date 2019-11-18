@@ -49,7 +49,8 @@ def __analyze_image(img, perm_map=None):
     return spots, dryspots, probs
 
 
-def dry_spot_analysis(file_path, output_dir_imgs):
+def dry_spot_analysis(file_path, output_dir_imgs,
+                      change_meta_file=False, save_flowfront_img=False):
     try:
         f = h5py.File(file_path, "r")
     except OSError:
@@ -109,7 +110,6 @@ def dry_spot_analysis(file_path, output_dir_imgs):
     deltas_prob = []
 
     for i, k in enumerate(keys):
-        # print(i + 1, k, end=' ')
         try:
             data = f[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()]
         except KeyError:
@@ -126,8 +126,7 @@ def dry_spot_analysis(file_path, output_dir_imgs):
         plt.tight_layout()
         extent = ax2.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
 
-        debug = False
-        if debug:
+        if save_flowfront_img:
             plt.savefig(str(output_dir_imgs / (f"{k}_ff.png")), bbox_inches=extent)
             plt.close()
             img = cv2.imread(str(output_dir_imgs / (f"{k}_ff.png")), cv2.IMREAD_GRAYSCALE)
@@ -166,54 +165,47 @@ def dry_spot_analysis(file_path, output_dir_imgs):
     if len(spot_list_e) < len(spot_list_s):
         spot_list_e.append(len(keys))
 
-    states = []
-    for i, key in enumerate(keys, 1):
-        for start, stop in zip(spot_list_s, spot_list_e):
-            if int(start) <= i < int(stop):
-                states.append(int(key.replace("state", "0")))
+    if change_meta_file:
+        states = []
+        for i, key in enumerate(keys, 1):
+            for start, stop in zip(spot_list_s, spot_list_e):
+                if int(start) <= i < int(stop):
+                    states.append(int(key.replace("state", "0")))
 
-    try:
-        dry_group = meta_file.require_group('dryspot_states')
-        dry_group.create_dataset('singlestates', data=np.array(states))
-        meta_file.close()
-    except RuntimeError:
-        pass
+        try:
+            dry_group = meta_file.require_group('dryspot_states')
+            dry_group.create_dataset('singlestates', data=np.array(states))
+            meta_file.close()
+        except RuntimeError:
+            pass
 
-    if len(spot_list_s) == 0:
-        print(
-            f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one. "
-            f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}, '
-            f'num of states {len(keys)}'
-        )
+    # if len(spot_list_s) == 0:
+    print(
+        f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one. "
+        f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}, '
+        f'num of states {len(keys)}'
+    )
 
     return spot_list_s, spot_list_e, deltas_prob
 
 
 def multiprocess_wrapper(i):
     if socket.gethostname() == "swtse130":
-        source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-07-23_15-38-08_5000p")
-        output = Path(r"Y:\cache\DrySpotDet2\2019-07-23_15-38-08_5000p") / str(i)
+        source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-11-08_15-40-44_5000p")
+        output = Path(r"Y:\cache\DrySpotDet2\2019-11-08_15-40-44_5000p") / str(i)
         dry_spot_analysis(
-            source / str(i) / str("2019-07-23_15-38-08_%d_RESULT.erfh5" % i),
+            source / str(i) / str("2019-11-08_15-40-44_%d_RESULT.erfh5" % i),
             output,
         )
     else:
-        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p")
-        dry_spot_analysis(
-            source / str(i) / str("2019-07-29_10-45-18_%d_RESULT.erfh5" % i),
-            Path("/cfs/share/cache/DrySpotDet/2019-07-29_10-45-18_5000p") / str(i),
+        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-08_15-40-44_5000p")
+        dry_spot_analysis(source / str(i) / str("2019-11-08_15-40-44_%d_RESULT.erfh5" % i),
+                          Path("/cfs/share/cache/DrySpotDet2/2019-11-08_15-40-44_5000p") / str(i),
+                          change_meta_file=False,
+                          save_flowfront_img=True
         )
 
 
 if __name__ == "__main__":
-    if socket.gethostname() == "swtse130":
-        source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-07-23_15-38-08_5000p")
-    else:
-        source = Path(
-            "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/data/RTM/"
-            "Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"
-        )
-        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-29_10-45-18_5000p")
-
     with Pool() as p:
-        p.map(multiprocess_wrapper, range(0, 250))
+        p.map(multiprocess_wrapper, range(0, 5000))
