@@ -106,8 +106,7 @@ class HDF5Object:
             self.avg_level = 0
 
             self.age = datetime.strptime("2019-09-24_9-00-00",
-                                         "%Y-%m-%d_%H-%M-%S",
-                                         )
+                                         "%Y-%m-%d_%H-%M-%S", )
             self.number_of_sensors = 0
         else:
             # Metadata
