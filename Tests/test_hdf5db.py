@@ -221,7 +221,7 @@ class TestHDF5DB(unittest.TestCase):
         test_db.save(str(self.testfolder), "HDF5TESTDB")
         test_db2.load(str(self.testfolder), "HDF5TESTDB")
         self.assertTrue(test_db.__eq__(test_db2))
-        os.remove(self.testfolder / Path("HDF5TESTDB.h5db"))
+        # os.remove(self.testfolder / Path("HDF5TESTDB.h5db"))
 
     def test_add_objects_from_path(self):
         test_result_db = HDF5DBToolbox()

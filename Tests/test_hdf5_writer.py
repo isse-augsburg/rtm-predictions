@@ -1,10 +1,11 @@
 import os
 import unittest
 from pathlib import Path
+
 import h5py
 
-from Tests import resources_for_testing
 from HDF5DB.hdf5_writer import create_hdf5, write_dict_to_hdf5
+from Tests import resources_for_testing
 
 
 class TestPyWriter(unittest.TestCase):
@@ -47,6 +48,7 @@ class TestPyWriter(unittest.TestCase):
         write_dict_to_hdf5(hdf5, self.testdata)
         test = h5py.File(str(self.testfolder / self.filename), "r")
         self.assertEqual(self.testdata.keys(), test.keys())
+
         # For 1 key
         hdf5 = create_hdf5(str(self.testfolder / self.filename2))
         write_dict_to_hdf5(hdf5, self.testdata2)
