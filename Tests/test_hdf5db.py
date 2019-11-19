@@ -424,7 +424,7 @@ class TestHDF5DB(unittest.TestCase):
                     self.assertGreater(np.amin(height_shapes[j]), 0)
                     self.assertEqual(applied, 1)
                     # =
-                    applied = test_db.select(f"width_{str_shape[i]}", "=", 0.99)
+                    applied = test_db.select(f"width_{str_shape[i]}", "=", 1)
                     self.assertGreaterEqual(np.amax(height_shapes[j]), 0.5)
                     self.assertLessEqual(np.amin(height_shapes[j]), 0.5)
                     self.assertEqual(applied, 1)
