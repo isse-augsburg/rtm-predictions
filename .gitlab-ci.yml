@@ -1,4 +1,4 @@
-image: nvcr.io/isse/pytorch_extended:19.07
+image: nvcr.io/isse/pytorch_extended:19.10
 
 stages:
   - lint
@@ -12,8 +12,7 @@ linter:
 test:
   stage: test
   script:
-    - pip install prettytable
     - python3 -m unittest discover -s Tests -t Tests
 
-#  only:
-#    - master
+  only:
+    - master
