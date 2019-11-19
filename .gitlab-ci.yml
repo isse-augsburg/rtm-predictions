@@ -1,4 +1,4 @@
-image: nvcr.io/isse/pyh5db:3.7-extended.v3
+image: nvcr.io/isse/pytorch_extended:19.07
 
 stages:
   - lint
