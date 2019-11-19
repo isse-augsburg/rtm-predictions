@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
 
-from Utils.img_utils import scale_coords_leoben
+from img_utils import scale_coords_leoben
 
 
 def __analyze_image(img, perm_map=None):
@@ -137,6 +137,7 @@ def dry_spot_analysis(file_path, output_dir_imgs,
             bytes_tmp.seek(0)
             file_bytes = np.asarray(bytearray(bytes_tmp.read()), dtype=np.uint8)
             img = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
+            bytes_tmp.close()
         img = 255 - img
 
         spot_b, dryspot_img, probs = __analyze_image(img, perm_map)
@@ -180,6 +181,8 @@ def dry_spot_analysis(file_path, output_dir_imgs,
             pass
 
     # if len(spot_list_s) == 0:
+    perm_bytes.close()
+    f.close()
     print(
         f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one. "
         f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}, '
@@ -200,10 +203,9 @@ def multiprocess_wrapper(i):
     else:
         source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-08_15-40-44_5000p")
         dry_spot_analysis(source / str(i) / str("2019-11-08_15-40-44_%d_RESULT.erfh5" % i),
-                          Path("/cfs/share/cache/DrySpotDet2/2019-11-08_15-40-44_5000p") / str(i),
+                          Path("/cfs/share/cache/DrySpotDet_mem/2019-11-08_15-40-44_5000p") / str(i),
                           change_meta_file=False,
-                          save_flowfront_img=True
-        )
+                          save_flowfront_img=True)
 
 
 if __name__ == "__main__":
