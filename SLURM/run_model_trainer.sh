@@ -11,5 +11,7 @@
 
 export SINGULARITY_DOCKER_USERNAME=\$oauthtoken
 export SINGULARITY_DOCKER_PASSWORD="get it somewhere!"
+# Adapt this to your code root dir
+export PYTHONPATH="${PYTHONPATH}:/cfs/home/s/t/stiebesi/code/tu-kaiserslautern-data"
 
 singularity exec --nv -B /cfs:/cfs docker://nvcr.io/isse/pytorch_extended:190513 python3 -u  /cfs/home/s/t/stiebesi/Git/tu-kaiserslautern-data/model_trainer.py
