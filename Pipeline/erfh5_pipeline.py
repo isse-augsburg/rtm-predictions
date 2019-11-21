@@ -48,7 +48,6 @@ class ThreadSafeList:
 
         self.lock.acquire()
         random.shuffle(self.list)
-        # print(">>>INFO: Successfully shuffeled batch queue")
         self.lock.release()
 
     def put(self, element):
@@ -104,12 +103,6 @@ class ThreadSafeList:
         return items
 
 
-# def clear_last_line():
-#     """Hack for deleting the last printed console line
-#     """
-#     sys.stdout.write("\033[F")
-
-
 def assert_instance_correctness(instance):
     assert isinstance(
         instance, list
@@ -124,20 +117,28 @@ def assert_instance_correctness(instance):
 
 
 def transform_to_tensor_and_cache(i, num, s_path, separate_set_list):
-    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-    separate_set_list.append((data, label))
+    _data = torch.FloatTensor(i[0])
+    # The following if else is necessary to have 0, 1 Binary Labels in Tensors
+    # since FloatTensor(0) = FloatTensor([])
+    if i[1] == 0:
+        _label = torch.FloatTensor([0.])
+    elif i[1] == 1:
+        _label = torch.FloatTensor([1.])
+    else:
+        _label = torch.FloatTensor(i[1])
+    separate_set_list.append((_data, _label))
     if s_path is not None:
         s_path.mkdir(parents=True, exist_ok=True)
-        torch.save(data, s_path.joinpath(str(num) + "-data" + ".pt"))
-        torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
+        torch.save(_data, s_path.joinpath(str(num) + "-data" + ".pt"))
+        torch.save(_label, s_path.joinpath(str(num) + "-label" + ".pt"))
 
 
 def load_cached_data_and_label(instance_f, s_path):
     _list = []
     for i in range(len(instance_f) // 2):
-        data = torch.load(s_path.joinpath(instance_f[i * 2]))
-        label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
-        _list.append((data, label))
+        _data = torch.load(s_path.joinpath(instance_f[i * 2]))
+        _label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
+        _list.append((_data, _label))
     return _list
 
 

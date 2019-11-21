@@ -227,10 +227,10 @@ def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
 def main():
     if socket.gethostname() == "swtse130":
         file_path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-11-08_15-40-44_5000p\0"
-                    r"\2019-11-08_15-40-44_0_RESULT.erfh5")
+                         r"\2019-11-08_15-40-44_0_RESULT.erfh5")
     else:
         file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-08_15-40-44_5000p/0"
-                    "/2019-11-08_15-40-44_0_RESULT.erfh5")
+                         "/2019-11-08_15-40-44_0_RESULT.erfh5")
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
 
     t00 = time()

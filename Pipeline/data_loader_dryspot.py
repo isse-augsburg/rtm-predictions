@@ -1,7 +1,13 @@
+import logging
+
 import h5py
 import numpy as np
 
 from Utils.img_utils import normalize_coords, create_np_image
+
+
+def get_flowfront_bool_dryspot_143x111(file, target_shape=(143, 111)):
+    return get_flowfront_bool_dryspot(file, target_shape)
 
 
 def get_flowfront_bool_dryspot(filename, target_shape, states=None):
@@ -42,6 +48,8 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
         meta_file.close()
         return instances
     except KeyError:
+        logger = logging.getLogger(__name__)
+        logger.error('KeyError', filename)
         f.close()
         meta_file.close()
         return None
