@@ -226,18 +226,26 @@ def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
 
 def main():
     if socket.gethostname() == "swtse130":
-        path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-11-08_15-40-44_5000p\0"
+        file_path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-11-08_15-40-44_5000p\0"
                     r"\2019-11-08_15-40-44_0_RESULT.erfh5")
     else:
-        path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-08_15-40-44_5000p/0"
+        file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-08_15-40-44_5000p/0"
                     "/2019-11-08_15-40-44_0_RESULT.erfh5")
-    f = h5py.File(path, "r")
+    Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
+
+    t00 = time()
+    with Pool() as p:
+        p.map(partial(multiprocess_wrapper, triang, Xi, Yi, xi, yi), range(0, 5000))
+    print(f'Took {time() - t00} s.')
+
+
+def create_triangle_mesh(file_path):
+    f = h5py.File(file_path, "r")
     coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
     _all_coords = coord_as_np_array[:, :-1]
     scaled_coords = scale_coords_leoben(_all_coords)
     x = scaled_coords[:, 0]
     y = scaled_coords[:, 1]
-
     triangles = f["/post/constant/connectivities/SHELL/erfblock/ic"][()]
     triangles = triangles - triangles.min()
     triangles = triangles[:, :-1]
@@ -245,11 +253,7 @@ def main():
     yi = np.linspace(0, 300, 301)
     Xi, Yi = np.meshgrid(xi, yi)
     triang = tri.Triangulation(x, y, triangles=triangles)
-
-    t00 = time()
-    with Pool() as p:
-        p.map(partial(multiprocess_wrapper, triang, Xi, Yi, xi, yi), range(0, 5000))
-    print(f'Took {time() - t00} s.')
+    return Xi, Yi, triang, xi, yi
 
 
 if __name__ == "__main__":

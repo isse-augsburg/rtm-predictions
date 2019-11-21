@@ -35,11 +35,15 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
         instances = []
         for filling, state in zip(flat_fillings, states):
             label = 0
-            if (int(str(state).replace("state", "0")) in set_of_states):
+            if int(str(state).replace("state", "0")) in set_of_states:
                 label = 1
             instances.append((create_np_image(target_shape=target_shape, norm_coords=_coords, data=filling), label))
+        f.close()
+        meta_file.close()
         return instances
     except KeyError:
+        f.close()
+        meta_file.close()
         return None
 
 
