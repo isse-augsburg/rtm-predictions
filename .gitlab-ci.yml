@@ -1,4 +1,4 @@
-image: nvcr.io/isse/pytorch_extended:19.07
+image: nvcr.io/isse/pytorch_extended:19.10
 
 stages:
   - lint

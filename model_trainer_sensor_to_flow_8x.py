@@ -185,7 +185,7 @@ if __name__ == "__main__":
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 100
         _num_workers = 18
-        _num_validation_samples_frames = 350000  # 5 %
+        _num_validation_samples_frames = 35000  # 0.5 %
         _num_test_samples_frames = 40000  # 0.5 %
 
     elif socket.gethostname() == "swtse130":
