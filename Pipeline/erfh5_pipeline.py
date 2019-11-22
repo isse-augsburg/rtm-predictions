@@ -9,6 +9,7 @@ from enum import Enum
 from pathlib import Path
 from time import sleep, time
 
+import numpy as np
 import torch
 
 from Pipeline import data_gather as dg, data_loader_sensor as dls
@@ -121,12 +122,14 @@ def transform_to_tensor_and_cache(i, num, s_path, separate_set_list):
     _data = torch.FloatTensor(i[0])
     # The following if else is necessary to have 0, 1 Binary Labels in Tensors
     # since FloatTensor(0) = FloatTensor([])
-    if i[1] == 0:
-        _label = torch.FloatTensor([0.])
-    elif i[1] == 1:
-        _label = torch.FloatTensor([1.])
-    else:
+    if type(i[1]) is np.ndarray and len(i[1]) > 1:
         _label = torch.FloatTensor(i[1])
+    else:
+        if i[1] == 0:
+            _label = torch.FloatTensor([0.])
+        elif i[1] == 1:
+            _label = torch.FloatTensor([1.])
+
     separate_set_list.append((_data, _label))
     if s_path is not None:
         s_path.mkdir(parents=True, exist_ok=True)

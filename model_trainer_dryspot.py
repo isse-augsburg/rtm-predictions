@@ -236,7 +236,10 @@ if __name__ == "__main__":
         _data_source_paths = []
 
     # Running with the same data sets
-    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection')
+    if socket.gethostname() == "swtse130":
+        _load_datasets_path = Path(r'X:\s\t\stiebesi\data\RTM\Leoben\reference_datasets\dryspot_detection')
+    else:
+        _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection')
     # _load_datasets_path = None
 
     st = DrySpotTrainer(cache_path=_cache_path,
