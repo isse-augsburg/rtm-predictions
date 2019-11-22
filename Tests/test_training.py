@@ -23,8 +23,6 @@ class TestTraining(unittest.TestCase):
                                 epochs=self.expected_num_epochs_during_training,
                                 batch_size=1)
 
-    # @unittest.skipIf(resources.running_in_docker(),
-    #                  "Skipped only on runner / in docker: not enough memory: currently not working")
     def test_training(self):
         self.st.run_training()
         dirs = [e for e in self.training_save_path.iterdir() if e.is_dir()]

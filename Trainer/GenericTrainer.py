@@ -7,6 +7,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from Utils.training_utils import count_parameters
+
 
 class MasterTrainer:
     """Class that runs train and evaluation loops of PyTorch models
@@ -92,6 +94,7 @@ class MasterTrainer:
         self.logger.info(f"Learning rate: {self.learning_rate}")
         self.logger.info(f"Evaluation frequency: {self.eval_frequency}")
         self.logger.info(f"Model: {self.model}")
+        self.logger.info(f"Param count: {count_parameters(self.model)}")
         self.logger.info("###########################################")
 
     def __print_comment(self):

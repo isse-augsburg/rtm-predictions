@@ -1,15 +1,21 @@
+import logging
+
 import h5py
 import numpy as np
 
 from Utils.img_utils import normalize_coords, create_np_image
 
 
+def get_flowfront_bool_dryspot_143x111(file, target_shape=(143, 111)):
+    return get_flowfront_bool_dryspot(file, target_shape)
+
+
 def get_flowfront_bool_dryspot(filename, target_shape, states=None):
     """
     Load the flow front for the given states or all available states if states is None
     """
-    f = h5py.File(filename)
-    meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"))
+    f = h5py.File(filename, 'r')
+    meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
     try:
         array_of_states = meta_file["dryspot_states/singlestates"][()]
         set_of_states = set(array_of_states.flatten())
@@ -35,11 +41,17 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
         instances = []
         for filling, state in zip(flat_fillings, states):
             label = 0
-            if (int(str(state).replace("state", "0")) in set_of_states):
+            if int(str(state).replace("state", "0")) in set_of_states:
                 label = 1
             instances.append((create_np_image(target_shape=target_shape, norm_coords=_coords, data=filling), label))
+        f.close()
+        meta_file.close()
         return instances
     except KeyError:
+        logger = logging.getLogger(__name__)
+        logger.error(f'KeyError: {filename}')
+        f.close()
+        meta_file.close()
         return None
 
 
