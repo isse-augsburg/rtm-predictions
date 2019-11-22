@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import pickle
@@ -6,7 +7,7 @@ import socket
 import threading
 from enum import Enum
 from pathlib import Path
-from time import sleep
+from time import sleep, time
 
 import torch
 
@@ -314,13 +315,23 @@ class ERFH5DataGenerator:
         self.threadlist.append(self.t_shuffle)
         self.t_shuffle.start()
 
-    def save_data_sets(self, save_path):
-        with open(save_path / "validation_set.p", "wb") as f:
-            pickle.dump(self.validation_fnames, f)
-        with open(save_path / "test_set.p", "wb") as f:
-            pickle.dump(self.test_fnames, f)
-        with open(save_path / "training_set.p", "wb") as f:
-            pickle.dump(self.paths, f)
+    def save_data_sets(self, save_path, to_json=False):
+        t0 = time()
+        if to_json:
+            with open(save_path / "validation_set.json", "w") as f:
+                json.dump(self.validation_fnames, f)
+            with open(save_path / "test_set.json", "w") as f:
+                json.dump(self.test_fnames, f)
+            with open(save_path / "training_set.json", "w") as f:
+                json.dump(self.paths, f)
+        else:
+            with open(save_path / "validation_set.p", "wb") as f:
+                pickle.dump(self.validation_fnames, f)
+            with open(save_path / "test_set.p", "wb") as f:
+                pickle.dump(self.test_fnames, f)
+            with open(save_path / "training_set.p", "wb") as f:
+                pickle.dump(self.paths, f)
+        print(f'Saving cost: {time() - t0}')
 
     def load_data_sets(self, load_path):
         with open(load_path / "validation_set.p", 'rb') as f:
@@ -369,7 +380,7 @@ class ERFH5DataGenerator:
         self.logger.info(f"Used data processing function: {self.data_function}")
         self.logger.info(f"Number of epochs: {self.epochs}")
         self.logger.info(f"Batchsize: {self.batch_size}")
-        self.logger.info(f"Number of unique samples: {len(self.paths)}")
+        self.logger.info(f"Number of files: {len(self.paths)}")
         self.logger.info(f"Number of total samples: {self.__len__()}")
         self.logger.info(
             f"Number of validation samples: {self.num_validation_samples}")

@@ -14,8 +14,8 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
     """
     Load the flow front for the given states or all available states if states is None
     """
-    f = h5py.File(filename)
-    meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"))
+    f = h5py.File(filename, 'r')
+    meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
     try:
         array_of_states = meta_file["dryspot_states/singlestates"][()]
         set_of_states = set(array_of_states.flatten())
@@ -49,7 +49,7 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
         return instances
     except KeyError:
         logger = logging.getLogger(__name__)
-        logger.error('KeyError', filename)
+        logger.error(f'KeyError: {filename}')
         f.close()
         meta_file.close()
         return None

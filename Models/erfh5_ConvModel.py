@@ -117,7 +117,7 @@ class DrySpotModel(nn.Module):
         self.conv4 = Conv2d(32, 16, 4, padding=0)
         self.conv5 = Conv2d(16, 8, 4, padding=0)
         self.conv6 = Conv2d(8, 4, 2, padding=0)
-        self.fc_f1 = nn.Linear(128, 2)
+        self.fc_f1 = nn.Linear(128, 1)
 
     def forward(self, x):
         a = x.reshape(-1, 1, 143, 111)
