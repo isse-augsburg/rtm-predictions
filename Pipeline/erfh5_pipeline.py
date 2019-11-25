@@ -450,7 +450,7 @@ class ERFH5DataGenerator:
         while not self.kill_t_batch and (
                 len(self.batch_queue) < self.max_queue_length):
             s_path = None
-            if len(self.path_queue) < self.batch_size:
+            if len(self.path_queue) == 0:
                 return
 
             file = self.path_queue.get(1)
@@ -502,14 +502,8 @@ class ERFH5DataGenerator:
         return self
 
     def __next__(self):
-        if (
-                len(self.path_queue) < self.batch_size
-                and len(self.batch_queue) < self.batch_size
-        ):
-            raise StopIteration
-
         while len(self.batch_queue) < self.batch_size:
-            if len(self.path_queue) < self.batch_size:
+            if len(self.path_queue) == 0:
                 raise StopIteration
             sleep(0.1)
         batch = self.batch_queue.get(self.batch_size)
