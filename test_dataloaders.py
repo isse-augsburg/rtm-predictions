@@ -28,7 +28,7 @@ if __name__ == "__main__":
     batch_size = 128
     num_workers = 16
     load_data = data_loader_dryspot.get_flowfront_bool_dryspot_143x111
-    num_runs = 5
+    num_runs = 1
     epochs = 2
     cache_path = Path("/cfs/share/cache/output_johannes/cache")
 
