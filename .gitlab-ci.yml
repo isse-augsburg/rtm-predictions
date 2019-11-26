@@ -14,5 +14,5 @@ test:
   script:
     - python3 -m unittest discover -s Tests -t Tests
 
- only:
+  only:
     - master
