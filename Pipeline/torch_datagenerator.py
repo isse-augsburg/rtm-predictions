@@ -66,7 +66,6 @@ class HDF5Iterator:
             if len(self.files) == 0:
                 return False
             fn = self.files.pop(0)
-            print(f"Worker {self.worker_id} loading file {fn}")
             if self.load_cached_samples(fn):
                 break # This file was already cached; nothing to do here
 
