@@ -79,9 +79,39 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
         return None
 
 
+def get_sensor_bool_dryspot(filename):
+    """
+    Load the flow front for the given states or all available states if states is None
+    """
+    f = h5py.File(filename)
+    meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"))
+    try:
+        array_of_states = meta_file["dryspot_states/singlestates"][()]
+        set_of_states = set(array_of_states.flatten())
+        pressure_array = \
+            f['post']['multistate']['TIMESERIES1']['multientityresults'][
+                'SENSOR']['PRESSURE']['ZONE1_set1'][
+                'erfblock'][
+                'res'][()]
+        instances = []
+        states = f["post"]["singlestate"]
+        for state in (states):
+            label = 0
+            state_num = int(str(state).replace("state", "0"))
+            if (state_num in set_of_states):
+                label = 1
+            try:
+                instances.append((pressure_array[state_num - 1], label))
+            except IndexError:
+                continue
+            
+        return instances
+    except KeyError:
+        return None
+
+
 if __name__ == "__main__":
-    # things = get_flowfront_bool_dryspot('/home/schroeter/Desktop/HDF5Dryspot/2019-07-23_15-38-08_0_RESULT.erfh5',
-    # (143, 111))
-    things = get_flowfront_bool_dryspot(r'X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-07-23_15-38'
-                                        r'-08_5000p\0\2019-07-23_15-38-08_0_RESULT.erfh5', (143, 111))
+    things = get_sensor_bool_dryspot('/home/schroeter/Desktop/HDF5Dryspot/2019-07-23_15-38-08_0_RESULT.erfh5')
+    # things = get_flowfront_bool_dryspot(r'X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-07-23_15-38'
+    #                                     r'-08_5000p\0\2019-07-23_15-38-08_0_RESULT.erfh5', (143, 111))
     print('x')
