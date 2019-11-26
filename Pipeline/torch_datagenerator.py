@@ -17,8 +17,6 @@ import torch
 from Pipeline import data_gather as dg, data_loader_sensor as dls
 
 
-
-
 class HDF5Iterator:
     def __init__(self, files, dataloader, cache_path, worker_id):
         self.files = files
@@ -79,7 +77,7 @@ class HDF5Iterator:
                 # TODO: assert_instance_correctness
                 s_path = None
                 if self.cache_path is not None:
-                    s_path = self.get_cache_path_for_file(filename)
+                    s_path = self.get_cache_path_for_file(fn)
                     s_path.mkdir(parents=True, exist_ok=True)
                 for num, i in enumerate(instance):
                     self.transform_to_tensor_and_cache(i, num, s_path)
@@ -92,8 +90,43 @@ class HDF5Iterator:
                 raise StopIteration
         return self.sample_queue.get()
 
-class ERFH5_DataSetIterable(torch.utils.data.IterableDataset):
-    def __init__(self, data_paths, cache_path, gather_data, load_data):
+
+class CachingMode(Enum):
+    Nothing = 1
+    Both = 2
+    FileList = 3
+
+
+class FileDiscovery:
+    def __init__(self, gather_data, cache_path=None, cache_mode=CachingMode.FileList):
+        self.filelist_cache_path = None
+        if cache_path is not None and cache_mode in [CachingMode.Both, CachingMode.FileList]:
+            self.filelist_cache_path = Path(cache_path).joinpath("filelists")
+            self.filelist_cache_path.mkdir(parents=True, exist_ok=True)
+        self.gather_data = gather_data
+
+    def discover(self, data_paths):
+        paths = []
+        for path in data_paths:
+            if self.filelist_cache_path is not None:
+                path_name = Path(path).stem
+                cachefile = self.filelist_cache_path.joinpath(path_name)
+                if os.path.isfile(cachefile):
+                    with open(cachefile, "rb") as f:
+                        paths.extend(pickle.load(f))
+                else:
+                    files = self.gather_data(path)
+                    with open(cachefile, "wb") as f:
+                        pickle.dump(files, f)
+                    paths.extend(files)
+            else:
+                files = self.gather_data(path)
+                paths.extend(files)
+        return paths
+
+
+class DataLoaderIterable(torch.utils.data.IterableDataset):
+    def __init__(self, data_paths, gather_data, load_data, cache_path=None, cache_mode=CachingMode.Both):
         self.data_paths = [str(x) for x in data_paths]
         self.cache_path = cache_path
         self.paths = []
@@ -101,14 +134,13 @@ class ERFH5_DataSetIterable(torch.utils.data.IterableDataset):
         self.load_data = load_data
 
         self.logger = logging.getLogger(__name__)
-        self.gather_files()
-
-    def gather_files(self):
-        for path in self.data_paths:
-            files = self.gather_data(path)
-            self.paths.extend(files)
+        discovery = FileDiscovery(gather_data, cache_path=cache_path, cache_mode=cache_mode)
+        self.paths = discovery.discover(self.data_paths)
         print(f"Gathered {len(self.paths)} files")
-        # self.logger.info(f"Gathered {len(self.paths)} files")
+        self.sample_cache_path = None
+        if cache_path is not None and cache_mode in [CachingMode.Both]:
+            self.sample_cache_path = Path(cache_path).joinpath(self.load_data.__name__)
+            self.sample_cache_path.mkdir(parents=True, exist_ok=True)
 
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
@@ -123,8 +155,44 @@ class ERFH5_DataSetIterable(torch.utils.data.IterableDataset):
             iter_start = worker_id * per_worker
             iter_end = iter_start + per_worker
             worker_paths = self.paths[iter_start:iter_end]
-        return HDF5Iterator(worker_paths, self.load_data, self.cache_path, worker_id)
+        return HDF5Iterator(worker_paths, self.load_data, self.sample_cache_path, worker_id)
 
-def get_dataloader(data_paths, cache_path, gather_data, load_data, batch_size, num_workers):
-    iterable = ERFH5_DataSetIterable(data_paths, cache_path, gather_data, load_data)
-    return torch.utils.data.DataLoader(iterable, batch_size=batch_size, num_workers=num_workers)
+
+class LoopingDataGenerator:
+    def __init__(self,
+                 data_paths,
+                 gather_data,
+                 load_data,
+                 batch_size=1,
+                 epochs=1,
+                 num_workers=0,
+                 cache_path=None,
+                 cache_mode=CachingMode.Both,
+                 ):
+        loader_iterable = DataLoaderIterable(data_paths, gather_data, load_data,
+                                             cache_path=cache_path, cache_mode=cache_mode)
+        self.iterator = iter(torch.utils.data.DataLoader(loader_iterable, batch_size=1, num_workers=num_workers))
+        self.remaining_epochs = epochs
+        self.samples = []
+        self.store_samples = True
+        self.batch_size = batch_size
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            samples = [next(self.iterator) for _ in range(self.batch_size)]
+            samples = [[e.clone() for e in sample] for sample in samples]
+            if self.store_samples:
+                self.samples.extend(samples)
+        except StopIteration:
+            self.store_samples = False
+            random.shuffle(self.samples)
+            self.iterator = iter(self.samples)
+            samples = [next(self.iterator) for _ in range(self.batch_size)]
+        data = [i[0] for i in samples]
+        labels = [i[1] for i in samples]
+        batch_data = torch.stack(data)
+        batch_labels = torch.stack(labels)
+        return batch_data, batch_labels

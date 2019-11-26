@@ -13,7 +13,7 @@ import time
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    _data_root = Path("/home/may/Mounts/isse/data/RTM/Leoben/output/with_shapes")
+    _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
     data_paths = [
         # _data_root / "2019-07-23_15-38-08_5000p",
         _data_root / "2019-07-24_16-32-40_5000p",
@@ -29,17 +29,21 @@ if __name__ == "__main__":
     num_workers = 16
     load_data = data_loader_dryspot.get_flowfront_bool_dryspot_143x111
     num_runs = 5
+    epochs = 2
+    cache_path = Path("/cfs/share/cache/output_johannes/cache")
 
     total_time = 0
     total_samples = 0
     for i in range(num_runs):
         start = time.time()
-        generator = td.get_dataloader(data_paths, None, dg.get_filelist_within_folder, load_data, batch_size, num_workers)
+        generator = td.LoopingDataGenerator(data_paths, dg.get_filelist_within_folder, load_data, batch_size=batch_size,
+                                            epochs=epochs, num_workers=num_workers,
+                                            cache_path=cache_path, cache_mode=td.CachingMode.FileList)
         for i in generator:
             total_samples += batch_size
 
         end = time.time()
-        total_time += end-start
+        total_time += end - start
         print(f"Iteration done. Stats: {total_samples} samples; {total_time}s elapsed")
     print(f"Average time for new loader: {total_time/num_runs}s; average samples: {total_samples/num_runs}")
 
@@ -57,7 +61,8 @@ if __name__ == "__main__":
             data_processing_function=load_data,
             data_gather_function=dg.get_filelist_within_folder,
             num_workers=num_workers,
-            cache_path=None,
+            cache_path=cache_path,
+            cache_mode=pipeline.CachingMode.FileList,
             save_path=None,
             load_datasets_path=None,
             test_mode=False,
