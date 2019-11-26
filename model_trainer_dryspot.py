@@ -109,7 +109,10 @@ class DrySpotTrainer:
 
         with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
-
+        # blacklists = [
+        #     'X:/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-24_16-32-40_5000p/blacklist.txt'
+        #     'X:/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-08_15-40-44_5000p/blacklist.txt'
+        #     apply_blacklists(test_set, )
         data_list = self.create_data_set_from_paths(test_set)
 
         eval_wrapper.eval(data_list, test_mode=True)
@@ -178,15 +181,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     run_eval = args.eval
 
-    num_samples_runs = 10000 * 188  # guestimate ~ 188 p. Sim.
+    num_samples_runs = 9080 * 188  # guestimate ~ 188 p. Sim.
     _train_print_freq = 10
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path(
             "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        _batch_size = 8192
-        # _eval_freq = int(num_samples_runs / _batch_size)
-        _eval_freq = 70
+        _batch_size = 16384
+        _eval_freq = int(num_samples_runs / _batch_size)
+        # _eval_freq = 70
         if getpass.getuser() == "stiebesi":
             _save_path = Path("/cfs/share/cache/output_simon")
         elif getpass.getuser() == "schroeni":
@@ -196,13 +199,12 @@ if __name__ == "__main__":
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 1000
         _num_workers = 18
-        _num_validation_samples_frames = 1000
-        _num_test_samples_frames = 1000
+        _num_validation_samples_frames = 5000
+        _num_test_samples_frames = 5000
 
     elif socket.gethostname() == "swtse130":
         _cache_path = Path(r"C:\Users\stiebesi\CACHE")
         # _cache_path = None
-
         _data_root = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
         _batch_size = 2048
         _eval_freq = int(num_samples_runs / _batch_size)

@@ -46,4 +46,4 @@ def apply_blacklists(_data_source_paths):
                     continue
                 _cleaned.append(subdir)
 
-    return cleaned
+    return _cleaned

@@ -263,8 +263,8 @@ class ERFH5DataGenerator:
             random.shuffle(self.paths)
         self.logger.info("Gathering Data... Done.")
         self.barrier = threading.Barrier(self.num_workers)
-        self.logger.info("Separating data sets ...")
-        if load_path is None:
+        if load_path is None or not (load_path / "training_set.p").exists():
+            self.logger.info("Separating data sets ...")
             self.validation_list, self.validation_fnames = \
                 self.__fill_separate_set_list_from_all_paths(
                     self.num_validation_samples
