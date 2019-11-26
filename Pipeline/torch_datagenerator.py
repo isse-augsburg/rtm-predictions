@@ -186,6 +186,9 @@ class LoopingDataGenerator:
             if self.store_samples:
                 self.samples.extend(samples)
         except StopIteration:
+            self.remaining_epochs -= 1
+            if self.remaining_epochs == 0:
+                raise StopIteration
             self.store_samples = False
             random.shuffle(self.samples)
             self.iterator = iter(self.samples)
