@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.nn import Conv2d
 
 
 class erfh5_Conv3d(nn.Module):
@@ -149,3 +150,28 @@ class erfh5_Conv25D_Frame(nn.Module):
         out = torch.squeeze(out, 1)
 
         return out
+
+
+class DrySpotModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = Conv2d(1, 128, 12, stride=2, padding=0)
+        self.conv2 = Conv2d(128, 64, 4, stride=2, padding=0)
+        self.conv3 = Conv2d(64, 32, 4, stride=2, padding=0)
+        self.conv4 = Conv2d(32, 16, 4, padding=0)
+        self.conv5 = Conv2d(16, 8, 4, padding=0)
+        self.conv6 = Conv2d(8, 4, 2, padding=0)
+        self.fc_f1 = nn.Linear(128, 1)
+
+    def forward(self, x):
+        a = x.reshape(-1, 1, 143, 111)
+        b = F.relu(self.conv1(a))
+        c = F.relu(self.conv2(b))
+        d = F.relu(self.conv3(c))
+        e = F.relu(self.conv4(d))
+        f = F.relu(self.conv5(e))
+        g = F.relu(self.conv6(f))
+        h = g.flatten(start_dim=1)
+        i = torch.sigmoid(self.fc_f1(h))
+
+        return i

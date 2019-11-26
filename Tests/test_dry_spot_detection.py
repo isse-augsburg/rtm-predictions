@@ -2,7 +2,7 @@ import shutil
 import unittest
 
 import Tests.resources_for_testing as resources
-from Utils.dry_spot_detection_leoben import dry_spot_analysis
+from Utils.dry_spot_detection_leoben import dry_spot_analysis, create_triangle_mesh
 
 
 class TestDrySpotDetectionLeoben(unittest.TestCase):
@@ -18,7 +18,8 @@ class TestDrySpotDetectionLeoben(unittest.TestCase):
             index = int(entry.parent.stem)
             print(entry, output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
-            spot_list_s, spot_list_e, deltas_prob = dry_spot_analysis(entry, output_dir)
+            Xi, Yi, triang, xi, yi = create_triangle_mesh(entry)
+            spot_list_s, spot_list_e, deltas_prob = dry_spot_analysis(entry, output_dir, triang, Xi, Yi, xi, yi)
             if len(spot_list_s) == 0:
                 print(f'Wrong index: should be {first_occurrences[index]}, is {spot_list_s}, '
                       f'found following deltas: {deltas_prob}')

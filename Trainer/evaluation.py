@@ -189,7 +189,7 @@ class BinaryClassificationEvaluator(Evaluator):
             ),
         )
 
-        logger.info("Confusion matrix: %s", str(self.confusion_matrix))
+        logger.info("Confusion matrix:\n%s", str(self.confusion_matrix))
 
     def reset(self):
         """Resets the internal counters for the next evaluation loop. 

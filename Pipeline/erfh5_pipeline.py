@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import pickle
@@ -6,8 +7,9 @@ import socket
 import threading
 from enum import Enum
 from pathlib import Path
-from time import sleep
+from time import sleep, time
 
+import numpy as np
 import torch
 
 from Pipeline import data_gather as dg, data_loader_sensor as dls
@@ -48,7 +50,6 @@ class ThreadSafeList:
 
         self.lock.acquire()
         random.shuffle(self.list)
-        # print(">>>INFO: Successfully shuffeled batch queue")
         self.lock.release()
 
     def put(self, element):
@@ -104,12 +105,6 @@ class ThreadSafeList:
         return items
 
 
-# def clear_last_line():
-#     """Hack for deleting the last printed console line
-#     """
-#     sys.stdout.write("\033[F")
-
-
 def assert_instance_correctness(instance):
     assert isinstance(
         instance, list
@@ -124,20 +119,30 @@ def assert_instance_correctness(instance):
 
 
 def transform_to_tensor_and_cache(i, num, s_path, separate_set_list):
-    data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-    separate_set_list.append((data, label))
+    _data = torch.FloatTensor(i[0])
+    # The following if else is necessary to have 0, 1 Binary Labels in Tensors
+    # since FloatTensor(0) = FloatTensor([])
+    if type(i[1]) is np.ndarray and len(i[1]) > 1:
+        _label = torch.FloatTensor(i[1])
+    else:
+        if i[1] == 0:
+            _label = torch.FloatTensor([0.])
+        elif i[1] == 1:
+            _label = torch.FloatTensor([1.])
+
+    separate_set_list.append((_data, _label))
     if s_path is not None:
         s_path.mkdir(parents=True, exist_ok=True)
-        torch.save(data, s_path.joinpath(str(num) + "-data" + ".pt"))
-        torch.save(label, s_path.joinpath(str(num) + "-label" + ".pt"))
+        torch.save(_data, s_path.joinpath(str(num) + "-data" + ".pt"))
+        torch.save(_label, s_path.joinpath(str(num) + "-label" + ".pt"))
 
 
 def load_cached_data_and_label(instance_f, s_path):
     _list = []
     for i in range(len(instance_f) // 2):
-        data = torch.load(s_path.joinpath(instance_f[i * 2]))
-        label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
-        _list.append((data, label))
+        _data = torch.load(s_path.joinpath(instance_f[i * 2]))
+        _label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
+        _list.append((_data, _label))
     return _list
 
 
@@ -313,13 +318,23 @@ class ERFH5DataGenerator:
         self.threadlist.append(self.t_shuffle)
         self.t_shuffle.start()
 
-    def save_data_sets(self, save_path):
-        with open(save_path / "validation_set.p", "wb") as f:
-            pickle.dump(self.validation_fnames, f)
-        with open(save_path / "test_set.p", "wb") as f:
-            pickle.dump(self.test_fnames, f)
-        with open(save_path / "training_set.p", "wb") as f:
-            pickle.dump(self.paths, f)
+    def save_data_sets(self, save_path, to_json=False):
+        t0 = time()
+        if to_json:
+            with open(save_path / "validation_set.json", "w") as f:
+                json.dump(self.validation_fnames, f)
+            with open(save_path / "test_set.json", "w") as f:
+                json.dump(self.test_fnames, f)
+            with open(save_path / "training_set.json", "w") as f:
+                json.dump(self.paths, f)
+        else:
+            with open(save_path / "validation_set.p", "wb") as f:
+                pickle.dump(self.validation_fnames, f)
+            with open(save_path / "test_set.p", "wb") as f:
+                pickle.dump(self.test_fnames, f)
+            with open(save_path / "training_set.p", "wb") as f:
+                pickle.dump(self.paths, f)
+        print(f'Saving cost: {time() - t0}')
 
     def load_data_sets(self, load_path):
         with open(load_path / "validation_set.p", 'rb') as f:
@@ -368,7 +383,7 @@ class ERFH5DataGenerator:
         self.logger.info(f"Used data processing function: {self.data_function}")
         self.logger.info(f"Number of epochs: {self.epochs}")
         self.logger.info(f"Batchsize: {self.batch_size}")
-        self.logger.info(f"Number of unique samples: {len(self.paths)}")
+        self.logger.info(f"Number of files: {len(self.paths)}")
         self.logger.info(f"Number of total samples: {self.__len__()}")
         self.logger.info(
             f"Number of validation samples: {self.num_validation_samples}")
