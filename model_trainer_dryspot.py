@@ -6,7 +6,6 @@ import socket
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 import torch
 from torch import nn
 
@@ -20,6 +19,7 @@ from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils import logging_cfg
+from Utils.training_utils import transform_to_tensor_and_cache, apply_blacklists
 
 
 def get_comment():
@@ -42,8 +42,7 @@ class DrySpotTrainer:
                  model=None,
                  evaluator=None):
         self.train_print_frequency = train_print_freq
-        self.initial_timestamp = str(
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
@@ -111,6 +110,12 @@ class DrySpotTrainer:
         with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
 
+        data_list = self.create_data_set_from_paths(test_set)
+
+        eval_wrapper.eval(data_list, test_mode=True)
+        logging.shutdown()
+
+    def create_data_set_from_paths(self, test_set):
         test_set = transform_list_of_linux_paths_to_windows(test_set)
         data_list = []
         full = False
@@ -119,25 +124,13 @@ class DrySpotTrainer:
             if instance is None:
                 continue
             for num, i in enumerate(instance):
-                _data = torch.FloatTensor(i[0])
-                # The following if else is necessary to have 0, 1 Binary Labels in Tensors
-                # since FloatTensor(0) = FloatTensor([])
-                if type(i[1]) is np.ndarray and len(i[1]) > 1:
-                    _label = torch.FloatTensor(i[1])
-                else:
-                    if i[1] == 0:
-                        _label = torch.FloatTensor([0.])
-                    elif i[1] == 1:
-                        _label = torch.FloatTensor([1.])
-                data_list.append((_data, _label))
+                transform_to_tensor_and_cache(i, data_list, 0, None)
                 if len(data_list) >= self.num_test_samples:
                     full = True
             if full:
                 data_list = data_list[:self.num_test_samples]
                 break
-
-        eval_wrapper.eval(data_list, test_mode=True)
-        logging.shutdown()
+        return data_list
 
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
@@ -249,6 +242,8 @@ if __name__ == "__main__":
         ]
     else:
         _data_source_paths = []
+
+    _data_source_paths = apply_blacklists(_data_source_paths)
 
     # Running with the same data sets
     if socket.gethostname() == "swtse130":
