@@ -10,7 +10,6 @@ import torch
 from torch import nn
 
 from Models.erfh5_ConvModel import DrySpotModel
-from Models.erfh5_DeconvModel import DeconvModel
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_gather as dg,
@@ -18,8 +17,9 @@ from Pipeline import (
 )
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
-from Trainer.evaluation import SensorToFlowfrontEvaluator, BinaryClassificationEvaluator
+from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils import logging_cfg
+from Utils.training_utils import transform_to_tensor_and_cache, apply_blacklists
 
 
 def get_comment():
@@ -38,10 +38,10 @@ class DrySpotTrainer:
                  epochs=10,
                  num_workers=10,
                  num_validation_samples=10,
-                 num_test_samples=10):
+                 num_test_samples=10,
+                 model=DrySpotModel()):
         self.train_print_frequency = train_print_freq
-        self.initial_timestamp = str(
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
@@ -54,8 +54,9 @@ class DrySpotTrainer:
         self.num_test_samples = num_test_samples
         self.training_data_generator = None
         self.test_data_generator = None
+        self.model = model
 
-    def create_datagenerator(self, save_path, test_mode=False):
+    def create_datagenerator(self, save_path, data_processing_function, max_queue_length=8192 * 16, test_mode=False):
         try:
             generator = pipeline.ERFH5DataGenerator(
                 data_paths=self.data_source_paths,
@@ -63,9 +64,8 @@ class DrySpotTrainer:
                 num_test_samples=self.num_test_samples,
                 batch_size=self.batch_size,
                 epochs=self.epochs,
-                max_queue_length=8192 * 16,
-                # max_queue_length=16,
-                data_processing_function=data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                max_queue_length=max_queue_length,
+                data_processing_function=data_processing_function,
                 data_gather_function=dg.get_filelist_within_folder,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
@@ -82,31 +82,38 @@ class DrySpotTrainer:
     def inference_on_test_set(self, output_path, source_path):
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
+
         logging_cfg.apply_logging_config(save_path, eval=True)
 
         logger = logging.getLogger(__name__)
 
-        model = DeconvModel()
         if socket.gethostname() == "swt-dgx1":
             logger.info('Invoking data parallel model.')
-            model = nn.DataParallel(model).to("cuda:0")
+            self.model = nn.DataParallel(self.model).to("cuda:0")
         else:
-            model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         logger.info("Generating Test Generator")
-        self.test_data_generator = self.create_datagenerator(save_path, test_mode=True)
-
+        self.test_data_generator = self.create_datagenerator(save_path,
+                                                             data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                                                             max_queue_length=8192 * 16,
+                                                             test_mode=True)
+        evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=False)
         eval_wrapper = MasterTrainer(
-            model,
+            self.model,
             self.test_data_generator,
-            classification_evaluator=SensorToFlowfrontEvaluator(
-                save_path=save_path),
+            classification_evaluator=evaluator,
         )
         eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
 
         with open(source_path / "test_set.p", "rb") as f:
             test_set = pickle.load(f)
+        data_list = self.create_data_set_from_paths(test_set)
 
+        eval_wrapper.eval(data_list, test_mode=True)
+        logging.shutdown()
+
+    def create_data_set_from_paths(self, test_set):
         test_set = transform_list_of_linux_paths_to_windows(test_set)
         data_list = []
         full = False
@@ -115,38 +122,37 @@ class DrySpotTrainer:
             if instance is None:
                 continue
             for num, i in enumerate(instance):
-                data, label = torch.FloatTensor(i[0]), torch.FloatTensor(i[1])
-                data_list.append((data, label))
+                transform_to_tensor_and_cache(i, data_list, 0, None)
                 if len(data_list) >= self.num_test_samples:
                     full = True
             if full:
                 data_list = data_list[:self.num_test_samples]
                 break
-
-        eval_wrapper.eval(data_list, test_mode=True)
-        logging.shutdown()
+        return data_list
 
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)
         logging_cfg.apply_logging_config(save_path)
-
         logger = logging.getLogger(__name__)
+        evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=True)
 
         logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
+        self.training_data_generator = self.create_datagenerator(save_path,
+                                                                 data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                                                                 max_queue_length=8192 * 16,
+                                                                 test_mode=False)
 
         logger.info("Generating Model")
-        model = DrySpotModel()
         if torch.cuda.is_available():
             logger.info("Model to GPU")
         if socket.gethostname() == "swt-dgx1":
-            model = nn.DataParallel(model).to("cuda:0")
+            self.model = nn.DataParallel(self.model).to("cuda:0")
         else:
-            model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         train_wrapper = MasterTrainer(
-            model,
+            self.model,
             self.training_data_generator,
             comment=get_comment(),
             loss_criterion=torch.nn.MSELoss(),
@@ -155,8 +161,7 @@ class DrySpotTrainer:
             calc_metrics=False,
             train_print_frequency=self.train_print_frequency,
             eval_frequency=self.eval_freq,
-            classification_evaluator=BinaryClassificationEvaluator(
-                save_path=save_path)
+            classification_evaluator=evaluator
         )
         logger.info("The Training Will Start Shortly")
 
@@ -170,15 +175,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     run_eval = args.eval
 
-    num_samples_runs = 10000 * 188  # guestimate ~ 188 p. Sim.
+    num_samples_runs = 9080 * 188  # guestimate ~ 188 p. Sim.
     _train_print_freq = 10
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path(
             "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        _batch_size = 8192
-        # _eval_freq = int(num_samples_runs / _batch_size)
-        _eval_freq = 70
+        _batch_size = 16384 / 2
+        _eval_freq = int(num_samples_runs / _batch_size)
+        # _eval_freq = 70
         if getpass.getuser() == "stiebesi":
             _save_path = Path("/cfs/share/cache/output_simon")
         elif getpass.getuser() == "schroeni":
@@ -188,22 +193,21 @@ if __name__ == "__main__":
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 1000
         _num_workers = 18
-        _num_validation_samples_frames = 1000
-        _num_test_samples_frames = 1000
+        _num_validation_samples_frames = 5000
+        _num_test_samples_frames = 5000
 
     elif socket.gethostname() == "swtse130":
-        _cache_path = Path(r"C:\Users\stiebesi\CACHE")
-        # _cache_path = None
-
+        # _cache_path = Path(r"C:\Users\stiebesi\CACHE")
+        _cache_path = None
         _data_root = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
-        _batch_size = 2048
-        _eval_freq = int(num_samples_runs / _batch_size)
+        _batch_size = 16
+        _eval_freq = 1
         # _save_path = Path(r"Y:\cache\output_simon")
         _save_path = Path(r"C:\Users\stiebesi\CACHE\train_out")
-        _epochs = 10
+        _epochs = 1
         _num_workers = 10
-        _num_validation_samples_frames = 200
-        _num_test_samples_frames = 200
+        _num_validation_samples_frames = 5
+        _num_test_samples_frames = 5
 
     elif socket.gethostname() == "swthiwi158":
         _cache_path = \
@@ -235,6 +239,8 @@ if __name__ == "__main__":
     else:
         _data_source_paths = []
 
+    _data_source_paths = apply_blacklists(_data_source_paths)
+
     # Running with the same data sets
     if socket.gethostname() == "swtse130":
         _load_datasets_path = Path(r'X:\s\t\stiebesi\data\RTM\Leoben\reference_datasets\dryspot_detection')
@@ -252,17 +258,19 @@ if __name__ == "__main__":
                         epochs=_epochs,
                         num_workers=_num_workers,
                         num_validation_samples=_num_validation_samples_frames,
-                        num_test_samples=_num_test_samples_frames)
+                        num_test_samples=_num_test_samples_frames,
+                        model=DrySpotModel(),
+                        )
 
     if not run_eval:
         st.run_training()
     else:
         if socket.gethostname() != "swtse130":
-            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/4_three_week_run/2019-09-25_16-42-53")
+            path = Path("/cfs/home/s/t/stiebesi/output_simon/2019-11-22_17-40-11_blue_curacao")
             st.inference_on_test_set(source_path=path,
                                      output_path=path)
-        else:
-            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\4_three_week_run\2019-09-25_16-42-53")
-            st.inference_on_test_set(source_path=path,
-                                     output_path=path)
+        # else:
+        #     path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\4_three_week_run\2019-09-25_16-42-53")
+        #     st.inference_on_test_set(source_path=path,
+        #                              output_path=path)
     logging.shutdown()

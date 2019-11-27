@@ -1,8 +1,9 @@
+import getpass
 import logging
 import socket
 from datetime import datetime
 from pathlib import Path
-import getpass
+
 import torch
 
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model

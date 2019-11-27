@@ -44,6 +44,7 @@ data_loader_img_file = test_src_dir / '2019-06-05_15-30-52_0_RESULT.erfh5'
 
 test_eval_output_path = test_out_dir / 'eval'
 test_training_out_dir = test_out_dir / 'training'
+test_training_datasets_dir = test_out_dir / 'datasets'
 
 test_caching_dir = test_out_dir / 'erfh5_pipeline' / 'caching'
 
