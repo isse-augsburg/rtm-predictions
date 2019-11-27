@@ -1,5 +1,4 @@
 from abc import abstractmethod, ABC
-import logging
 import math
 import os
 import pickle
@@ -13,7 +12,7 @@ import torch
 
 
 class HDF5Iterator:
-    def __init__(self, files, dataloader, cache_path, worker_id):
+    def __init__(self, files, dataloader, cache_path=None, worker_id=0):
         self.files = files
         self.data_function = dataloader
         self.cache_path = cache_path
@@ -78,6 +77,9 @@ class HDF5Iterator:
                 break
         return True
 
+    def get_remaining_files(self):
+        return self.files
+
     def __next__(self):
         if self.sample_queue.empty():
             if not self.load_file():
@@ -120,17 +122,12 @@ class FileDiscovery:
 
 
 class DataLoaderIterable(torch.utils.data.IterableDataset):
-    def __init__(self, data_paths, gather_data, load_data, cache_path=None, cache_mode=CachingMode.Both):
-        self.data_paths = [str(x) for x in data_paths]
+    def __init__(self, h5paths, load_data, cache_path=None, cache_mode=CachingMode.Both):
         self.cache_path = cache_path
         self.paths = []
-        self.gather_data = gather_data
         self.load_data = load_data
+        self.paths = h5paths
 
-        self.logger = logging.getLogger(__name__)
-        discovery = FileDiscovery(gather_data, cache_path=cache_path, cache_mode=cache_mode)
-        self.paths = discovery.discover(self.data_paths)
-        print(f"Gathered {len(self.paths)} files")
         self.sample_cache_path = None
         if cache_path is not None and cache_mode in [CachingMode.Both]:
             self.sample_cache_path = Path(cache_path).joinpath(self.load_data.__name__)
@@ -149,7 +146,7 @@ class DataLoaderIterable(torch.utils.data.IterableDataset):
             iter_start = worker_id * per_worker
             iter_end = iter_start + per_worker
             worker_paths = self.paths[iter_start:iter_end]
-        return HDF5Iterator(worker_paths, self.load_data, self.sample_cache_path, worker_id)
+        return HDF5Iterator(worker_paths, self.load_data, cache_path=self.sample_cache_path, worker_id=worker_id)
 
 
 class LoopingStrategy(ABC):
@@ -203,6 +200,48 @@ class ComplexListLoopingStrategy(LoopingStrategy):
             yield torch.stack(features), torch.stack(labels)
 
 
+class SubSetGenerator:
+    def __init__(self, load_data, subset_name, num_samples, save_path=None):
+        self.load_data = load_data
+        self.num_samples = num_samples
+        self.subset_filenames_file = None
+        if save_path is not None:
+            self.subset_filenames_file = Path(save_path) / f"{subset_name}.p"
+        self.samples = None
+        self.used_filenames = None
+
+    def _list_difference(self, a, b):
+        bset = set(b)
+        return [ai for ai in a if ai not in bset]
+
+    def _load_sub_set_from_files(self, h5paths):
+        sample_iterator = HDF5Iterator(h5paths, self.load_data)
+        # TODO: Should we catch a StopIteration here?
+        subset = [next(sample_iterator) for _ in range(self.num_samples)]
+
+        return subset, sample_iterator.get_remaining_files()
+
+    def prepare_subset(self, h5paths):
+        if self.subset_filenames_file is not None and self.subset_filenames_file.is_file():
+            with open(self.subset_filenames_file, 'rb') as f:
+                self.used_filenames = pickle.load(f)
+                unused_files = self._list_difference(h5paths, self.used_filenames)
+        else:
+            paths_copy = list(h5paths)
+            random.shuffle(paths_copy)
+            self.samples, unused_files = self._load_sub_set_from_files(paths_copy)
+            self.used_filenames = self._list_difference(h5paths, unused_files)
+        if self.subset_filenames_file is not None and not self.subset_filenames_file.exists():
+            with open(self.subset_filenames_file, 'wb') as f:
+                pickle.dump(self.used_filenames, f)
+        return unused_files
+
+    def get_samples(self):
+        if self.samples is None:  # Use this as a sort of lazy property
+            self.samples, _ = self._load_sub_set_from_files(self.used_filenames)
+        return self.samples
+
+
 class LoopingDataGenerator:
     def __init__(self,
                  data_paths,
@@ -210,15 +249,14 @@ class LoopingDataGenerator:
                  load_data,
                  batch_size=1,
                  epochs=1,
+                 num_validation_samples=100,
+                 num_test_samples=100,
+                 split_save_path=None,
                  num_workers=0,
                  cache_path=None,
                  cache_mode=CachingMode.Both,
                  looping_strategy: LoopingStrategy = None
                  ):
-        loader_iterable = DataLoaderIterable(data_paths, gather_data, load_data,
-                                             cache_path=cache_path, cache_mode=cache_mode)
-        self.iterator = iter(torch.utils.data.DataLoader(loader_iterable,
-                                                         batch_size=batch_size, num_workers=num_workers))
         self.remaining_epochs = epochs
         self.store_samples = True
         self.batch_size = batch_size
@@ -227,6 +265,27 @@ class LoopingDataGenerator:
         if looping_strategy is None:
             looping_strategy = ComplexListLoopingStrategy(batch_size)
         self.looping_strategy = looping_strategy
+        h5files = self._discover_files(data_paths, gather_data)
+
+        self.eval_set_generator = SubSetGenerator(load_data, "validation_set", num_validation_samples,
+                                                  save_path=split_save_path)
+        self.test_set_generator = SubSetGenerator(load_data, "test_set", num_test_samples,
+                                                  save_path=split_save_path)
+        remaining_files = self.eval_set_generator.prepare_subset(h5files)
+        remaining_files = self.test_set_generator.prepare_subset(remaining_files)
+        print(f"{len(remaining_files)} files remain after splitting eval and test sets.")
+
+        loader_iterable = DataLoaderIterable(remaining_files, load_data,
+                                             cache_path=cache_path, cache_mode=cache_mode)
+        self.iterator = iter(torch.utils.data.DataLoader(loader_iterable,
+                                                         batch_size=batch_size, num_workers=num_workers))
+
+    def _discover_files(self, data_paths, gather_data):
+        data_paths = [str(x) for x in data_paths]
+        discovery = FileDiscovery(gather_data, cache_path=self.cache_path, cache_mode=self.cache_mode)
+        paths = discovery.discover(data_paths)
+        print(f"Gathered {len(paths)} files")
+        return paths
 
     def __iter__(self):
         return self
@@ -245,3 +304,9 @@ class LoopingDataGenerator:
             self.iterator = self.looping_strategy.get_new_iterator()
             batch = next(self.iterator)
         return batch[0], batch[1]
+
+    def get_validation_samples(self):
+        return self.eval_set_generator.get_samples()
+
+    def get_test_samples(self):
+        return self.test_set_generator.get_samples()
