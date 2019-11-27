@@ -1,9 +1,7 @@
-import resources_for_training as resources
 from general_model_trainer import ModelTrainer
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
-from Pipeline import erfh5_pipeline as pipeline, data_loader_sensor as dls, \
+from Pipeline import data_loader_sensor as dls, \
     data_gather as dg
-from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 import torch
 

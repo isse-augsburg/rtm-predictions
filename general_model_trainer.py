@@ -1,24 +1,10 @@
-import argparse
-import getpass
 import logging
-import math
-import pickle
 import socket
 from datetime import datetime
-from pathlib import Path
-
 import torch
 from torch import nn
-
-from Models.erfh5_DeconvModel import DeconvModel
-from Pipeline import (
-    erfh5_pipeline as pipeline,
-    data_loaders_IMG as dli,
-    data_gather as dg,
-)
-from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
+from Pipeline import erfh5_pipeline as pipeline
 from Trainer.GenericTrainer import MasterTrainer
-from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils import logging_cfg
 
 

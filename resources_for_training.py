@@ -10,4 +10,3 @@ if getpass.getuser() == 'lodes':
     cache_dir = Path(
             '/run/user/1001/gvfs/smb-share:server=137.250.170.56,'
             'share=share/cache')
-
