@@ -1,8 +1,7 @@
-import logging
 import re
 import shutil
 import unittest
-
+import logging
 import Tests.resources_for_testing as resources
 from model_trainer_ok_notok import SuccessTrainer
 
