@@ -30,6 +30,11 @@ elif getpass.getuser() == 'lodes':
 elif getpass.getuser() == 'Lukas':
     test_out_dir = Path(r'X:\l\o\lodesluk\code\tests')
     test_src_dir = Path(r'X:\s\t\stiebesi\code\tests\test_data')
+
+elif getpass.getuser() == 'bs':
+    test_out_dir = Path(r'/cfs/home/s/e/sertolbe/code/tests')
+    test_src_dir = Path(r'/cfs/home/s/t/stiebesi/code/tests/test_data')
+
 elif running_in_docker():
     test_out_dir = Path('/cache')
     test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
