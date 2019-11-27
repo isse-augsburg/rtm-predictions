@@ -384,7 +384,8 @@ class ERFH5DataGenerator:
             else:
                 assert_instance_correctness(instance)
                 for num, i in enumerate(instance):
-                    transform_to_tensor_and_cache(i, separate_set_list, num)
+                    transform_to_tensor_and_cache(i, num, None,
+                                                  separate_set_list)
                     if len(separate_set_list) == wanted_len:
                         break
 
@@ -422,7 +423,8 @@ class ERFH5DataGenerator:
             else:
                 assert_instance_correctness(instance)
                 for num, i in enumerate(instance):
-                    transform_to_tensor_and_cache(i, separate_set_list, num, s_path)
+                    transform_to_tensor_and_cache(i, num, s_path,
+                                                  separate_set_list)
                     if len(separate_set_list) == wanted_len:
                         break
 
@@ -475,7 +477,8 @@ class ERFH5DataGenerator:
                     tensor_instances = list()
 
                     for num, i in enumerate(instance):
-                        transform_to_tensor_and_cache(i, tensor_instances, num, s_path)
+                        transform_to_tensor_and_cache(i, num, s_path,
+                                                      tensor_instances)
                     self.batch_queue.put_batch(tensor_instances)
                     self.data_dict[file] = tensor_instances
 

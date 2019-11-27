@@ -249,5 +249,5 @@ class MasterTrainer:
                 yield torch.stack(dats), torch.stack(labs)
                 dats = []
                 labs = []
-        if(len(dats) > 1):
+        if len(dats) > 1:
             yield torch.stack(dats), torch.stack(labs)
