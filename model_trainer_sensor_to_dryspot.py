@@ -231,7 +231,7 @@ if __name__ == "__main__":
     else:
         _data_source_paths = []
 
-    # _data_source_paths = apply_blacklists(_data_source_paths)
+    _data_source_paths = apply_blacklists(_data_source_paths)
 
     # Running with the same data sets
     if socket.gethostname() == "swtse130":

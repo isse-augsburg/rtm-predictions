@@ -29,4 +29,3 @@ class SensorDryspotModelFC(nn.Module):
         out = self.drop(out)
         out = F.sigmoid(self.fc7(out))
         return out
-

@@ -80,7 +80,7 @@ def get_sensor_bool_dryspot(filename):
                 instances.append((np.squeeze(pressure_array[state_num - 1]) / 100000, label))
             except IndexError:
                 continue
-            
+
         return instances
     except KeyError:
         return None
