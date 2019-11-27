@@ -200,6 +200,14 @@ class ComplexListLoopingStrategy(LoopingStrategy):
             yield torch.stack(features), torch.stack(labels)
 
 
+class NoOpLoopingStrategy(LoopingStrategy):
+    def __init__(self):
+        super().__init__()
+
+    def get_new_iterator(self):
+        return iter([])
+
+
 class SubSetGenerator:
     def __init__(self, load_data, subset_name, num_samples, save_path=None):
         self.load_data = load_data
@@ -263,7 +271,10 @@ class LoopingDataGenerator:
         self.cache_path = cache_path
         self.cache_mode = cache_mode
         if looping_strategy is None:
-            looping_strategy = ComplexListLoopingStrategy(batch_size)
+            if epochs > 1:
+                looping_strategy = ComplexListLoopingStrategy(batch_size)
+            else:
+                looping_strategy = NoOpLoopingStrategy()
         self.looping_strategy = looping_strategy
         h5files = self._discover_files(data_paths, gather_data)
 
