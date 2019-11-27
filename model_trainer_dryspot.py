@@ -122,7 +122,7 @@ class DrySpotTrainer:
             if instance is None:
                 continue
             for num, i in enumerate(instance):
-                transform_to_tensor_and_cache(i, data_list, 0, None)
+                transform_to_tensor_and_cache(i, data_list)
                 if len(data_list) >= self.num_test_samples:
                     full = True
             if full:

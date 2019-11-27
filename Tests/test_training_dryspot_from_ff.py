@@ -7,7 +7,7 @@ import Tests.resources_for_testing as resources
 from model_trainer_dryspot import DrySpotTrainer
 
 
-class TestOkNotOkTraining(unittest.TestCase):
+class TestTrainingDryspotFF(unittest.TestCase):
     def setUp(self):
         self.training_save_path = resources.test_training_out_dir
         self.training_data_paths = [resources.test_training_src_dir / 'dry_spot_from_ff']
@@ -22,7 +22,7 @@ class TestOkNotOkTraining(unittest.TestCase):
             num_test_samples=5,
         )
 
-    def test_training_ok_notok(self):
+    def test_training(self):
         self.dt.run_training()
         dirs = [e for e in self.training_save_path.iterdir() if e.is_dir()]
         with open(dirs[0] / "output.log") as f:
