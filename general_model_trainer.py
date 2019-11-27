@@ -8,7 +8,6 @@ from Trainer.GenericTrainer import MasterTrainer
 from Utils import logging_cfg
 
 
-
 class ModelTrainer:
     def __init__(self,
                  data_source_paths,

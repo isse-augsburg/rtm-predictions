@@ -8,5 +8,4 @@ if getpass.getuser() == 'lodes':
             '/run/user/1001/gvfs/smb-share:server=137.250.170.56,'
             'share=home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes')
     cache_dir = Path(
-            '/run/user/1001/gvfs/smb-share:server=137.250.170.56,'
-            'share=share/cache')
+            '/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache')
