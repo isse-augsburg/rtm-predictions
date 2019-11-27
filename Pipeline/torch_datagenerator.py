@@ -6,7 +6,6 @@ import pickle
 import random
 from enum import Enum
 from pathlib import Path
-from time import time
 from queue import Queue
 
 import numpy as np
@@ -63,7 +62,7 @@ class HDF5Iterator:
                 return False
             fn = self.files.pop(0)
             if self.load_cached_samples(fn):
-                break # This file was already cached; nothing to do here
+                break  # This file was already cached; nothing to do here
 
             instance = self.data_function(fn)
             if instance is None:
@@ -153,6 +152,57 @@ class DataLoaderIterable(torch.utils.data.IterableDataset):
         return HDF5Iterator(worker_paths, self.load_data, self.sample_cache_path, worker_id)
 
 
+class LoopingStrategy(ABC):
+    def __init__(self):
+        pass
+
+    def store(self, batch):
+        pass
+
+    @abstractmethod
+    def get_new_iterator(self):
+        pass
+
+
+class SimpleListLoopingStrategy(LoopingStrategy):
+    def __init__(self):
+        super().__init__()
+        self.batches = []
+
+    def store(self, batch):
+        self.batches.append(batch)
+
+    def get_new_iterator(self):
+        random.shuffle(self.batches)
+        return iter(self.batches)
+
+
+class ComplexListLoopingStrategy(LoopingStrategy):
+    def __init__(self, batch_size):
+        super().__init__()
+        self.features = []
+        self.labels   = []
+        self.batch_size = batch_size
+
+    def store(self, batch):
+        features, labels = batch
+        self.features.extend(torch.split(features, 1))
+        self.labels.extend(torch.split(labels, 1))
+
+    def get_new_iterator(self):
+        samples = list(zip(self.features, self.labels))
+        random.shuffle(samples)
+        list_iter = iter(samples)
+        while True:
+            try:
+                batch = [next(list_iter) for _ in range(self.batch_size)]
+            except StopIteration:
+                break
+            features = [b[0].squeeze(0) for b in batch]
+            labels = [b[1].squeeze(0) for b in batch]
+            yield torch.stack(features), torch.stack(labels)
+
+
 class LoopingDataGenerator:
     def __init__(self,
                  data_paths,
@@ -163,39 +213,35 @@ class LoopingDataGenerator:
                  num_workers=0,
                  cache_path=None,
                  cache_mode=CachingMode.Both,
+                 looping_strategy: LoopingStrategy = None
                  ):
         loader_iterable = DataLoaderIterable(data_paths, gather_data, load_data,
                                              cache_path=cache_path, cache_mode=cache_mode)
         self.iterator = iter(torch.utils.data.DataLoader(loader_iterable,
                                                          batch_size=batch_size, num_workers=num_workers))
         self.remaining_epochs = epochs
-        self.samples = []
         self.store_samples = True
         self.batch_size = batch_size
         self.cache_path = cache_path
         self.cache_mode = cache_mode
+        if looping_strategy is None:
+            looping_strategy = ComplexListLoopingStrategy(batch_size)
+        self.looping_strategy = looping_strategy
 
     def __iter__(self):
         return self
 
     def __next__(self):
         try:
-            # samples = [next(self.iterator) for _ in range(self.batch_size)]
             batch = next(self.iterator)
             if self.store_samples:
-                cloned_batch = [e.clone() for e in batch]
-                self.samples.append(cloned_batch)
+                batch = [e.clone() for e in batch]
+                self.looping_strategy.store(batch)
         except StopIteration:
             self.remaining_epochs -= 1
             if self.remaining_epochs == 0:
                 raise StopIteration
             self.store_samples = False
-            random.shuffle(self.samples)
-            self.iterator = iter(self.samples)
+            self.iterator = self.looping_strategy.get_new_iterator()
             batch = next(self.iterator)
-        # data = [i[0] for i in samples]
-        # labels = [i[1] for i in samples]
-        # batch_data = torch.stack(data)
-        # batch_labels = torch.stack(labels)
         return batch[0], batch[1]
-        # return batch_data, batch_labels
