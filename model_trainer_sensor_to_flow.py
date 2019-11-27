@@ -2,8 +2,10 @@ import argparse
 import getpass
 import logging
 import math
+import os
 import pickle
 import socket
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -20,6 +22,7 @@ from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils import logging_cfg
+from Utils.eval_utils import eval_preparation
 
 
 def get_comment():
@@ -132,6 +135,9 @@ class SensorTrainer:
 
         logger = logging.getLogger(__name__)
 
+        logger.info("Saving code and generating SLURM script for later evaluation")
+        eval_preparation(save_path, os.path.abspath(__file__))
+
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
@@ -165,8 +171,17 @@ class SensorTrainer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run training or test.')
     parser.add_argument('--eval', action='store_true', help='Run a test.')
+    parser.add_argument('--eval_path', type=str, default=None, help='Full directory path of trained model (to test).')
     args = parser.parse_args()
     run_eval = args.eval
+    eval_path = args.eval_path
+
+    if run_eval and eval_path is None:
+        logger = logging.getLogger(__name__)
+        logger.error("No eval_path given. You should specify the --eval_path argument if you would like to run a test.")
+        logger.error(parser.format_help())
+        logging.shutdown()
+        sys.exit()
 
     num_samples_runs = 40827  # or 7.713.044 frames ~ 188 p. Sim.
     _train_print_freq = 20
@@ -247,12 +262,7 @@ if __name__ == "__main__":
     if not run_eval:
         st.run_training()
     else:
-        if socket.gethostname() != "swtse130":
-            path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/Results/4_three_week_run/2019-09-25_16-42-53")
-            st.inference_on_test_set(source_path=path,
-                                     output_path=path)
-        else:
-            path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\4_three_week_run\2019-09-25_16-42-53")
-            st.inference_on_test_set(source_path=path,
-                                     output_path=path)
+        st.inference_on_test_set(source_path=eval_path,
+                                 output_path=eval_path)
+
     logging.shutdown()
