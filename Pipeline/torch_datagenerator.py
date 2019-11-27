@@ -1,20 +1,16 @@
-import json
+from abc import abstractmethod, ABC
 import logging
 import math
 import os
 import pickle
 import random
-import socket
-import threading
 from enum import Enum
 from pathlib import Path
-from time import sleep, time
+from time import time
 from queue import Queue
 
 import numpy as np
 import torch
-
-from Pipeline import data_gather as dg, data_loader_sensor as dls
 
 
 class HDF5Iterator:
@@ -170,21 +166,25 @@ class LoopingDataGenerator:
                  ):
         loader_iterable = DataLoaderIterable(data_paths, gather_data, load_data,
                                              cache_path=cache_path, cache_mode=cache_mode)
-        self.iterator = iter(torch.utils.data.DataLoader(loader_iterable, batch_size=1, num_workers=num_workers))
+        self.iterator = iter(torch.utils.data.DataLoader(loader_iterable,
+                                                         batch_size=batch_size, num_workers=num_workers))
         self.remaining_epochs = epochs
         self.samples = []
         self.store_samples = True
         self.batch_size = batch_size
+        self.cache_path = cache_path
+        self.cache_mode = cache_mode
 
     def __iter__(self):
         return self
 
     def __next__(self):
         try:
-            samples = [next(self.iterator) for _ in range(self.batch_size)]
-            samples = [[e.clone() for e in sample] for sample in samples]
+            # samples = [next(self.iterator) for _ in range(self.batch_size)]
+            batch = next(self.iterator)
             if self.store_samples:
-                self.samples.extend(samples)
+                cloned_batch = [e.clone() for e in batch]
+                self.samples.append(cloned_batch)
         except StopIteration:
             self.remaining_epochs -= 1
             if self.remaining_epochs == 0:
@@ -192,9 +192,10 @@ class LoopingDataGenerator:
             self.store_samples = False
             random.shuffle(self.samples)
             self.iterator = iter(self.samples)
-            samples = [next(self.iterator) for _ in range(self.batch_size)]
-        data = [i[0] for i in samples]
-        labels = [i[1] for i in samples]
-        batch_data = torch.stack(data)
-        batch_labels = torch.stack(labels)
-        return batch_data, batch_labels
+            batch = next(self.iterator)
+        # data = [i[0] for i in samples]
+        # labels = [i[1] for i in samples]
+        # batch_data = torch.stack(data)
+        # batch_labels = torch.stack(labels)
+        return batch[0], batch[1]
+        # return batch_data, batch_labels
