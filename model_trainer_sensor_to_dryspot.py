@@ -9,7 +9,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_ConvModel import SensorToDryspotBoolModel
+from Models.erfh5_fullyConnected import SensorDryspotModelFC
 from Pipeline import erfh5_pipeline as pipeline, data_gather as dg, data_loader_dryspot
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
@@ -128,14 +128,15 @@ class DrySpotSensorTrainer:
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)
-        self.evaluator.save_path = save_path
+        if self.evaluator is not None:
+            self.evaluator.save_path = save_path
         logging_cfg.apply_logging_config(save_path)
 
         logger = logging.getLogger(__name__)
 
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(
-            save_path, data_loader_dryspot.get_sensor_bool_dryspot, max_queue_length=8192 * 16, test_mode=False
+            save_path, data_loader_dryspot.get_sensor_bool_dryspot, max_queue_length=8192 * 2, test_mode=False
         )
 
         logger.info("Generating Model")
@@ -207,19 +208,19 @@ if __name__ == "__main__":
     elif socket.gethostname() == "swthiwi158":
         _cache_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache")
         _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        _batch_size = 8
-        _eval_freq = 5
+        _batch_size = 512
+        _eval_freq = 100
         _save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56," r"share=share/cache/output_niklas")
-        _epochs = 5
-        _num_workers = 10
-        _num_validation_samples_frames = 1000
-        _num_test_samples_frames = 2000
+        _epochs = 1000
+        _num_workers = 4
+        _num_validation_samples_frames = 2000
+        _num_test_samples_frames = 1000
 
     if not run_eval:
         _data_source_paths = [
             # _data_root / "2019-07-23_15-38-08_5000p",
             _data_root / "2019-07-24_16-32-40_5000p",
-            # _data_root / "2019-07-29_10-45-18_5000p",
+            _data_root / "2019-07-29_10-45-18_5000p",
             # _data_root / "2019-08-23_15-10-02_5000p",
             # _data_root / "2019-08-24_11-51-48_5000p",
             # _data_root / "2019-08-25_09-16-40_5000p",
@@ -230,7 +231,7 @@ if __name__ == "__main__":
     else:
         _data_source_paths = []
 
-    #_data_source_paths = apply_blacklists(_data_source_paths)
+    # _data_source_paths = apply_blacklists(_data_source_paths)
 
     # Running with the same data sets
     if socket.gethostname() == "swtse130":
@@ -251,7 +252,7 @@ if __name__ == "__main__":
         num_workers=_num_workers,
         num_validation_samples=_num_validation_samples_frames,
         num_test_samples=_num_test_samples_frames,
-        model=SensorToDryspotBoolModel(),
+        model=SensorDryspotModelFC(),
         evaluator=BinaryClassificationEvaluator(),
     )
 

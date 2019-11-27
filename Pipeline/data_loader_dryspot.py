@@ -77,7 +77,7 @@ def get_sensor_bool_dryspot(filename):
             if (state_num in set_of_states):
                 label = 1
             try:
-                instances.append((pressure_array[state_num - 1], label))
+                instances.append((np.squeeze(pressure_array[state_num - 1]) / 100000, label))
             except IndexError:
                 continue
             
