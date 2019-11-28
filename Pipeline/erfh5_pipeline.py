@@ -7,12 +7,12 @@ import socket
 import threading
 from enum import Enum
 from pathlib import Path
-from time import sleep, time
+from time import sleep
 
-import numpy as np
 import torch
 
 from Pipeline import data_gather as dg, data_loader_sensor as dls
+from Utils.training_utils import transform_to_tensor_and_cache
 
 
 class ThreadSafeList:
@@ -116,25 +116,6 @@ def assert_instance_correctness(instance):
             '''The data loader seems to return instances in the wrong format. 
                 The required format is [(data_1, label1), ... , 
                 (data_n, label_n)] or None.'''
-
-
-def transform_to_tensor_and_cache(i, num, s_path, separate_set_list):
-    _data = torch.FloatTensor(i[0])
-    # The following if else is necessary to have 0, 1 Binary Labels in Tensors
-    # since FloatTensor(0) = FloatTensor([])
-    if type(i[1]) is np.ndarray and len(i[1]) > 1:
-        _label = torch.FloatTensor(i[1])
-    else:
-        if i[1] == 0:
-            _label = torch.FloatTensor([0.])
-        elif i[1] == 1:
-            _label = torch.FloatTensor([1.])
-
-    separate_set_list.append((_data, _label))
-    if s_path is not None:
-        s_path.mkdir(parents=True, exist_ok=True)
-        torch.save(_data, s_path.joinpath(str(num) + "-data" + ".pt"))
-        torch.save(_label, s_path.joinpath(str(num) + "-label" + ".pt"))
 
 
 def load_cached_data_and_label(instance_f, s_path):
@@ -282,8 +263,11 @@ class ERFH5DataGenerator:
             random.shuffle(self.paths)
         self.logger.info("Gathering Data... Done.")
         self.barrier = threading.Barrier(self.num_workers)
-        self.logger.info("Separating data sets ...")
-        if load_path is None:
+        if load_path is None \
+                or not (load_path / "training_set.p").exists() \
+                or not (load_path / "validation_set.p").exists() \
+                or not (load_path / "test_set.p").exists():
+            self.logger.info("Separating data sets ...")
             self.validation_list, self.validation_fnames = \
                 self.__fill_separate_set_list_from_all_paths(
                     self.num_validation_samples
@@ -319,22 +303,23 @@ class ERFH5DataGenerator:
         self.t_shuffle.start()
 
     def save_data_sets(self, save_path, to_json=False):
-        t0 = time()
+        _validation_fnames = [str(fn) for fn in self.validation_fnames]
+        _test_fnames = [str(fn) for fn in self.test_fnames]
+        _paths = [str(fn) for fn in self.paths]
         if to_json:
             with open(save_path / "validation_set.json", "w") as f:
-                json.dump(self.validation_fnames, f)
+                json.dump(_validation_fnames, f)
             with open(save_path / "test_set.json", "w") as f:
-                json.dump(self.test_fnames, f)
+                json.dump(_test_fnames, f)
             with open(save_path / "training_set.json", "w") as f:
-                json.dump(self.paths, f)
+                json.dump(_paths, f)
         else:
             with open(save_path / "validation_set.p", "wb") as f:
-                pickle.dump(self.validation_fnames, f)
+                pickle.dump(_validation_fnames, f)
             with open(save_path / "test_set.p", "wb") as f:
-                pickle.dump(self.test_fnames, f)
+                pickle.dump(_test_fnames, f)
             with open(save_path / "training_set.p", "wb") as f:
-                pickle.dump(self.paths, f)
-        print(f'Saving cost: {time() - t0}')
+                pickle.dump(_paths, f)
 
     def load_data_sets(self, load_path):
         with open(load_path / "validation_set.p", 'rb') as f:
@@ -376,9 +361,9 @@ class ERFH5DataGenerator:
     def __print_info(self):
         self.logger.info("###########################################")
         self.logger.info(">>> Generator INFO <<<")
-        self.logger.info(f"Used data folders:")
-        for e in self.data_paths:
-            self.logger.info(e)
+        # self.logger.info(f"Used data folders:")
+        # for e in self.data_paths:
+        #     self.logger.info(e)
         self.logger.info(f"Used data gather function: {self.data_gather}")
         self.logger.info(f"Used data processing function: {self.data_function}")
         self.logger.info(f"Number of epochs: {self.epochs}")
@@ -400,8 +385,7 @@ class ERFH5DataGenerator:
             else:
                 assert_instance_correctness(instance)
                 for num, i in enumerate(instance):
-                    transform_to_tensor_and_cache(i, num, None,
-                                                  separate_set_list)
+                    transform_to_tensor_and_cache(i, separate_set_list, num)
                     if len(separate_set_list) == wanted_len:
                         break
 
@@ -439,8 +423,7 @@ class ERFH5DataGenerator:
             else:
                 assert_instance_correctness(instance)
                 for num, i in enumerate(instance):
-                    transform_to_tensor_and_cache(i, num, s_path,
-                                                  separate_set_list)
+                    transform_to_tensor_and_cache(i, separate_set_list, num, s_path)
                     if len(separate_set_list) == wanted_len:
                         break
 
@@ -493,8 +476,7 @@ class ERFH5DataGenerator:
                     tensor_instances = list()
 
                     for num, i in enumerate(instance):
-                        transform_to_tensor_and_cache(i, num, s_path,
-                                                      tensor_instances)
+                        transform_to_tensor_and_cache(i, tensor_instances, num, s_path)
                     self.batch_queue.put_batch(tensor_instances)
                     self.data_dict[file] = tensor_instances
 

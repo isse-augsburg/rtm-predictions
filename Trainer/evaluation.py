@@ -80,10 +80,8 @@ def save_img(path, _str, x, index):
 
 
 class SensorToFlowfrontEvaluator(Evaluator):
-    def __init__(self,
-                 save_path=Path("/home/schroeter/Desktop/output"),
-                 halving_factor=0,
-                 skip_images=False):
+    def __init__(self, save_path=Path("/home/schroeter/Desktop/output"), halving_factor=0, skip_images=False):
+        super().__init__()
         self.num = 0
         self.save_path = save_path
         self.im_save_path = save_path / "images"
@@ -123,12 +121,19 @@ class BinaryClassificationEvaluator(Evaluator):
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
 
-    def __init__(self, save_path=None):
+    def __init__(self, save_path: Path = None, skip_images=True):
+        super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
         self.save_path = save_path
+        self.skip_images = skip_images
+        if save_path is not None:
+            self.im_save_path = save_path / "images"
+            if not self.skip_images:
+                self.im_save_path.mkdir(parents=True, exist_ok=True)
+        self.num = 0
 
-    def commit(self, net_output, label, *args):
+    def commit(self, net_output, label, inputs, *args):
         """Updates the confusion matrix and updates the metrics. 
 
         Args: 
@@ -141,8 +146,7 @@ class BinaryClassificationEvaluator(Evaluator):
 
         prediction = np.around(net_output)
 
-        self.confusion_matrix[int(label[0].cpu())][
-            int(prediction[0].cpu())] += 1
+        self.confusion_matrix[int(label[0].cpu())][int(prediction[0].cpu())] += 1
 
         if np.array_equal(prediction, label):
             if prediction[0] == 1:
@@ -155,12 +159,18 @@ class BinaryClassificationEvaluator(Evaluator):
             else:
                 self.fn += 1
 
+        if not self.skip_images:
+            c = inputs.numpy()
+            c = np.squeeze(c)
+            c = c.reshape(143, 111)
+            plt.imsave(self.im_save_path / f"{self.num}-pred_{prediction}_label_{label}.jpg", c)
+        self.num += 1
+
     def print_metrics(self):
         """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall,
         Specificity and the confusion matrix.
         """
         logger = logging.getLogger(__name__)
-
         logger.info(
             "True positives: %s, False positives: %s, True negatives: %s, False negatives: %s",
             str(self.tp),
@@ -188,7 +198,6 @@ class BinaryClassificationEvaluator(Evaluator):
                                         fn=self.fn)
             ),
         )
-
         logger.info("Confusion matrix:\n%s", str(self.confusion_matrix))
 
     def reset(self):
@@ -217,6 +226,7 @@ class BinaryClassificationEvaluator(Evaluator):
 
 class FlowFrontPredictionEvaluator(Evaluator):
     def __init__(self, name, save_path="/cfs/home/s/c/schroeni/Data/Eval/"):
+        super().__init__()
         self.name = name
         self.save_path = save_path
         self.im_save_path = save_path / "images"

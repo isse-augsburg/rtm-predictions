@@ -200,16 +200,19 @@ def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi,
 
 
 def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
+    curr_path = '2019-09-06_17-03-51_10000p'
+    date, time, _ = curr_path.split('_')
+    stamp = date + '_' + time
     if socket.gethostname() == "swtse130":
-        source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-11-08_15-40-44_5000p")
-        output = Path(r"Y:\cache\DrySpotDet4\2019-11-08_15-40-44_5000p") / str(i)
+        source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
+        output = Path(r"Y:\cache\DrySpotDet2")
     else:
-        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-08_15-40-44_5000p")
-        output = Path("/cfs/share/cache/DrySpotDet3/2019-11-08_15-40-44_5000p") / str(i)
+        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+        output = Path("/cfs/share/cache/DrySpotDet2")
 
     a, b, c = dry_spot_analysis(
-        source / str(i) / str("2019-11-08_15-40-44_%d_RESULT.erfh5" % i),
-        output,
+        source / curr_path / str(i) / f"{stamp}_{i}_RESULT.erfh5",
+        output / curr_path / str(i),
         triang,
         Xi,
         Yi,
@@ -226,11 +229,11 @@ def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
 
 def main():
     if socket.gethostname() == "swtse130":
-        file_path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-11-08_15-40-44_5000p\0"
-                         r"\2019-11-08_15-40-44_0_RESULT.erfh5")
+        file_path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-09-06_17-03-51_10000p\0"
+                         r"\2019-09-06_17-03-51_0_RESULT.erfh5")
     else:
-        file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-08_15-40-44_5000p/0"
-                         "/2019-11-08_15-40-44_0_RESULT.erfh5")
+        file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-09-06_17-03-51_10000p/0"
+                         "/2019-09-06_17-03-51_0_RESULT.erfh5")
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
 
     t00 = time()
