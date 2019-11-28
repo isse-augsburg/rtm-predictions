@@ -121,14 +121,16 @@ class BinaryClassificationEvaluator(Evaluator):
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
 
-    def __init__(self, save_path=None, skip_images=True):
+    def __init__(self, save_path: Path = None, skip_images=True):
         super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
         self.save_path = save_path
+        self.skip_images = skip_images
         if save_path is not None:
             self.im_save_path = save_path / "images"
-        self.skip_images = skip_images
+            if not self.skip_images:
+                self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.num = 0
 
     def commit(self, net_output, label, inputs, *args):

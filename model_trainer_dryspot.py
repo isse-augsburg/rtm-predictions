@@ -1,8 +1,10 @@
 import argparse
 import getpass
 import logging
+import os
 import pickle
 import socket
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -19,6 +21,7 @@ from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils import logging_cfg
+from Utils.eval_utils import eval_preparation
 from Utils.training_utils import transform_to_tensor_and_cache, apply_blacklists
 
 
@@ -135,12 +138,16 @@ class DrySpotTrainer:
         save_path.mkdir(parents=True, exist_ok=True)
         logging_cfg.apply_logging_config(save_path)
         logger = logging.getLogger(__name__)
+
+        logger.info("Saving code and generating SLURM script for later evaluation")
+        eval_preparation(save_path, os.path.abspath(__file__))
+
         evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=True)
 
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path,
                                                                  data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
-                                                                 max_queue_length=1024 * 8 * 128,
+                                                                 max_queue_length=1024 * 8 * 32,
                                                                  test_mode=False)
 
         logger.info("Generating Model")
@@ -170,14 +177,23 @@ class DrySpotTrainer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run training or test.')
     parser.add_argument('--eval', action='store_true', help='Run a test.')
+    parser.add_argument('--eval_path', type=str, default=None, help='Full directory path of trained model (to test).')
     args = parser.parse_args()
     run_eval = args.eval
+    eval_path = args.eval_path
 
-    num_samples_runs = 9080 * 188  # guestimate ~ 188 p. Sim.
+    if run_eval and eval_path is None:
+        logger = logging.getLogger(__name__)
+        logger.error("No eval_path given. You should specify the --eval_path argument if you would like to run a test.")
+        logger.error(parser.format_help())
+        logging.shutdown()
+        sys.exit()
+
+    num_samples_runs = 2000000  # 2.1 M - blacklist, still a guestimate # 9080 * 188  # guestimate ~ 188 p. Sim.
     _train_print_freq = 10
     if socket.gethostname() == "swt-dgx1":
+        _home = Path('/cfs/home')
         _cache_path = None
-        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
         _batch_size = 1024
         _eval_freq = int(num_samples_runs / _batch_size)
         # _eval_freq = 70
@@ -194,17 +210,17 @@ if __name__ == "__main__":
         _num_test_samples_frames = _batch_size * 8
 
     elif socket.gethostname() == "swtse130":
+        _home = Path('X:')
         # _cache_path = Path(r"C:\Users\stiebesi\CACHE")
         _cache_path = None
-        _data_root = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
         _batch_size = 128
         _eval_freq = 30
         # _save_path = Path(r"Y:\cache\output_simon")
         _save_path = Path(r"C:\Users\stiebesi\CACHE\train_out")
-        _epochs = 1000
+        _epochs = 2
         _num_workers = 10
-        _num_validation_samples_frames = 1000
-        _num_test_samples_frames = 1000
+        _num_validation_samples_frames = 100
+        _num_test_samples_frames = 100
 
     elif socket.gethostname() == "swthiwi158":
         _cache_path = \
@@ -221,6 +237,8 @@ if __name__ == "__main__":
         _num_validation_samples_frames = 1000
         _num_test_samples_frames = 2000
 
+    _data_root = _home / "/s/t/stiebesi/data/RTM/Leoben/output/with_shapes"
+
     if not run_eval:
         _data_source_paths = [
             # _data_root / "2019-07-23_15-38-08_5000p",
@@ -236,20 +254,18 @@ if __name__ == "__main__":
     else:
         _data_source_paths = []
 
+    # TODO Move to a data_gather func
     _data_source_paths = apply_blacklists(_data_source_paths)
 
     # Running with the same data sets
-    if socket.gethostname() == "swtse130":
-        _load_datasets_path = Path(r'X:\s\t\stiebesi\data\RTM\Leoben\reference_datasets\dryspot_detection')
-    else:
-        _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection')
+    _load_datasets_path = _home / '/s/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection'
     # _load_datasets_path = None
 
     st = DrySpotTrainer(cache_path=_cache_path,
                         data_source_paths=_data_source_paths,
                         batch_size=_batch_size,
                         eval_freq=_eval_freq,
-                        train_print_freq=_train_print_freq,
+                        train_print_freq=_eval_freq / 50,
                         save_datasets_path=_save_path,
                         load_datasets_path=_load_datasets_path,
                         epochs=_epochs,
@@ -263,11 +279,6 @@ if __name__ == "__main__":
         st.run_training()
     else:
         if socket.gethostname() != "swtse130":
-            path = Path("/cfs/home/s/t/stiebesi/output_simon/2019-11-22_17-40-11_blue_curacao")
-            st.inference_on_test_set(source_path=path,
-                                     output_path=path)
-        # else:
-        #     path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\Results\4_three_week_run\2019-09-25_16-42-53")
-        #     st.inference_on_test_set(source_path=path,
-        #                              output_path=path)
+            st.inference_on_test_set(source_path=eval_path,
+                                     output_path=eval_path)
     logging.shutdown()
