@@ -1,6 +1,7 @@
 import argparse
 import getpass
 import logging
+import math
 import os
 import pickle
 import socket
@@ -23,10 +24,6 @@ from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import transform_to_tensor_and_cache, apply_blacklists
-
-
-def get_comment():
-    return "Hallo"
 
 
 class DrySpotTrainer:
@@ -197,7 +194,6 @@ if __name__ == "__main__":
             _save_path = Path("/cfs/share/cache/output_simon")
         elif getpass.getuser() == "schroeni":
             _save_path = Path("/cfs/share/cache/output_niklas")
-            # cache_path = "/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache"
         else:
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 1000
@@ -206,12 +202,10 @@ if __name__ == "__main__":
         _num_test_samples_frames = _batch_size * 8
 
     elif socket.gethostname() == "swtse130":
-        _home = Path('X:')
-        # _cache_path = Path(r"C:\Users\stiebesi\CACHE")
+        _home = Path('X:/')
         _cache_path = None
         _batch_size = 128
         _eval_freq = 30
-        # _save_path = Path(r"Y:\cache\output_simon")
         _save_path = Path(r"C:\Users\stiebesi\CACHE\train_out")
         _epochs = 2
         _num_workers = 10
@@ -223,7 +217,6 @@ if __name__ == "__main__":
         _cache_path = None
         _batch_size = 128
         _eval_freq = 30
-        # _save_path = Path(r"Y:\cache\output_simon")
         _save_path = Path(r"/cfs/share/cache/output_johannes")
         _epochs = 2
         _num_workers = 10
@@ -251,14 +244,14 @@ if __name__ == "__main__":
     _data_source_paths = apply_blacklists(_data_source_paths)
 
     # Running with the same data sets
-    _load_datasets_path = _home / '/s/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection'
+    _load_datasets_path = _home / 's/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection'
     # _load_datasets_path = None
 
     st = DrySpotTrainer(cache_path=_cache_path,
                         data_source_paths=_data_source_paths,
                         batch_size=_batch_size,
                         eval_freq=_eval_freq,
-                        train_print_freq=_eval_freq / 50,
+                        train_print_freq=math.ceil(_eval_freq / 50),
                         save_datasets_path=_save_path,
                         load_datasets_path=_load_datasets_path,
                         epochs=_epochs,
