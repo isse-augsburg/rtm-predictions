@@ -1,5 +1,4 @@
 from pathlib import Path
-import logging
 
 from Pipeline import (
     torch_datagenerator as td,
@@ -8,11 +7,12 @@ from Pipeline import (
     data_loader_dryspot,
     data_loaders_IMG,
 )
+from Utils import logging_cfg
 
 import time
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging_cfg.apply_logging_config(None)
     _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
     data_paths = [
         # _data_root / "2019-07-23_15-38-08_5000p",
