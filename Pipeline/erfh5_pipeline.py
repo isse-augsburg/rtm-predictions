@@ -7,7 +7,7 @@ import socket
 import threading
 from enum import Enum
 from pathlib import Path
-from time import sleep, time
+from time import sleep
 
 import torch
 
@@ -263,7 +263,9 @@ class ERFH5DataGenerator:
             random.shuffle(self.paths)
         self.logger.info("Gathering Data... Done.")
         self.barrier = threading.Barrier(self.num_workers)
-        if load_path is None or not (load_path / "training_set.p").exists():
+        if load_path is None or not (load_path / "training_set.p").exists() \
+                or not (load_path / "validation_set.p").exists() \
+                or not (load_path / "test_set.p").exists():
             self.logger.info("Separating data sets ...")
             self.validation_list, self.validation_fnames = \
                 self.__fill_separate_set_list_from_all_paths(
@@ -300,7 +302,6 @@ class ERFH5DataGenerator:
         self.t_shuffle.start()
 
     def save_data_sets(self, save_path, to_json=False):
-        t0 = time()
         _validation_fnames = [str(fn) for fn in self.validation_fnames]
         _test_fnames = [str(fn) for fn in self.test_fnames]
         _paths = [str(fn) for fn in self.paths]
@@ -318,7 +319,6 @@ class ERFH5DataGenerator:
                 pickle.dump(_test_fnames, f)
             with open(save_path / "training_set.p", "wb") as f:
                 pickle.dump(_paths, f)
-        print(f'Saving cost: {time() - t0}')
 
     def load_data_sets(self, load_path):
         with open(load_path / "validation_set.p", 'rb') as f:
@@ -360,9 +360,9 @@ class ERFH5DataGenerator:
     def __print_info(self):
         self.logger.info("###########################################")
         self.logger.info(">>> Generator INFO <<<")
-        self.logger.info(f"Used data folders:")
-        for e in self.data_paths:
-            self.logger.info(e)
+        # self.logger.info(f"Used data folders:")
+        # for e in self.data_paths:
+        #     self.logger.info(e)
         self.logger.info(f"Used data gather function: {self.data_gather}")
         self.logger.info(f"Used data processing function: {self.data_function}")
         self.logger.info(f"Number of epochs: {self.epochs}")
