@@ -55,6 +55,7 @@ class DrySpotTrainer:
         self.training_data_generator = None
         self.test_data_generator = None
         self.model = model
+        self.evaluator = evaluator
 
     def create_datagenerator(self, save_path, data_processing_function, max_queue_length=8192 * 16, test_mode=False):
         try:
@@ -102,7 +103,7 @@ class DrySpotTrainer:
         eval_wrapper = MasterTrainer(
             self.model,
             self.test_data_generator,
-            classification_evaluator=evaluator,
+            classification_evaluator=self.evaluator,
         )
         eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
 
