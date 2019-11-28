@@ -55,7 +55,6 @@ class DrySpotTrainer:
         self.training_data_generator = None
         self.test_data_generator = None
         self.model = model
-        self.evaluator = evaluator
 
     def create_datagenerator(self, save_path, data_processing_function, max_queue_length=8192 * 16, test_mode=False):
         try:
@@ -103,7 +102,7 @@ class DrySpotTrainer:
         eval_wrapper = MasterTrainer(
             self.model,
             self.test_data_generator,
-            classification_evaluator=self.evaluator,
+            classification_evaluator=evaluator,
         )
         eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
 
@@ -141,7 +140,7 @@ class DrySpotTrainer:
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path,
                                                                  data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
-                                                                 max_queue_length=8192 * 16,
+                                                                 max_queue_length=1024 * 8 * 128,
                                                                  test_mode=False)
 
         logger.info("Generating Model")
@@ -164,8 +163,6 @@ class DrySpotTrainer:
             eval_frequency=self.eval_freq,
             classification_evaluator=evaluator
         )
-        logger.info("The Training Will Start Shortly")
-
         train_wrapper.start_training()
         logging.shutdown()
 
@@ -193,8 +190,8 @@ if __name__ == "__main__":
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 1000
         _num_workers = 18
-        _num_validation_samples_frames = 5000
-        _num_test_samples_frames = 5000
+        _num_validation_samples_frames = _batch_size * 8
+        _num_test_samples_frames = _batch_size * 8
 
     elif socket.gethostname() == "swtse130":
         # _cache_path = Path(r"C:\Users\stiebesi\CACHE")

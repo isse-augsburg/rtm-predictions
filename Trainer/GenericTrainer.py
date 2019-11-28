@@ -70,7 +70,6 @@ class MasterTrainer:
         training of the trainer's model
         """
         self.__print_info()
-        self.__print_comment()
         self.__train()
         self.logger.info("Test set missing. So no testing.")
         # self.__eval()
@@ -95,11 +94,6 @@ class MasterTrainer:
         self.logger.info(f"Evaluation frequency: {self.eval_frequency}")
         self.logger.info(f"Model: {self.model}")
         self.logger.info(f"Param count: {count_parameters(self.model)}")
-        self.logger.info("###########################################")
-
-    def __print_comment(self):
-        self.logger.info("###########################################")
-        self.logger.info(self.comment)
         self.logger.info("###########################################")
 
     def __train(self):
@@ -184,31 +178,6 @@ class MasterTrainer:
                         self.savepath / Path("checkpoint.pth"),
                     )
                     self.best_loss = loss
-
-    # deprecated?
-    def save_model(self):
-        """Saves the model.
-
-        Args:
-            savepath (string): Path and filename to the model, eg 'model.pt'
-        """
-        torch.save(self.model.state_dict(), self.savepath / Path("model.pth"))
-
-    # deprecated?
-    def load_model(self, modelpath):
-        """Loads the parameters of a previously saved model.
-        See the official PyTorch docs for more details.
-
-        ARgs: 
-            modelpath (string): Path to the stored model.
-        """
-        state_dict = torch.load(modelpath, map_location="cpu")
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            name = k[7:]  # remove `module.`
-            new_state_dict[name] = v
-        # load params
-        self.model.load_state_dict(new_state_dict)
 
     def load_checkpoint(self, path):
         """Loads the parameters of a previously saved model and optimizer,
