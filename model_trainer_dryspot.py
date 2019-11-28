@@ -13,7 +13,7 @@ from torch import nn
 
 from Models.erfh5_ConvModel import DrySpotModel
 from Pipeline import (
-    erfh5_pipeline as pipeline,
+    torch_datagenerator as td,
     data_gather as dg,
     data_loader_dryspot
 )
@@ -50,7 +50,7 @@ class DrySpotTrainer:
         self.batch_size = batch_size
         self.eval_freq = eval_freq
         self.save_datasets_path = save_datasets_path
-        self.load_datasets_path = load_datasets_path
+        self.load_datasets_path = save_datasets_path
         self.epochs = epochs
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
@@ -59,22 +59,20 @@ class DrySpotTrainer:
         self.test_data_generator = None
         self.model = model
 
-    def create_datagenerator(self, save_path, data_processing_function, max_queue_length=8192 * 16, test_mode=False):
+    def create_datagenerator(self, save_path, data_processing_function):
         try:
-            generator = pipeline.ERFH5DataGenerator(
-                data_paths=self.data_source_paths,
-                num_validation_samples=self.num_validation_samples,
-                num_test_samples=self.num_test_samples,
+            generator = td.LoopingDataGenerator(
+                self.data_source_paths,
+                dg.get_filelist_within_folder,
+                data_processing_function,
                 batch_size=self.batch_size,
                 epochs=self.epochs,
-                max_queue_length=max_queue_length,
-                data_processing_function=data_processing_function,
-                data_gather_function=dg.get_filelist_within_folder,
+                num_validation_samples=self.num_validation_samples,
+                num_test_samples=self.num_test_samples,
+                split_save_path=self.load_datasets_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
-                save_path=save_path,
-                load_datasets_path=self.load_datasets_path,
-                test_mode=test_mode,
+                looping_strategy=td.SimpleListLoopingStrategy()
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -99,8 +97,7 @@ class DrySpotTrainer:
         logger.info("Generating Test Generator")
         self.test_data_generator = self.create_datagenerator(save_path,
                                                              data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
-                                                             max_queue_length=8192 * 16,
-                                                             test_mode=True)
+                                                             )
         evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=False)
         eval_wrapper = MasterTrainer(
             self.model,
@@ -147,8 +144,7 @@ class DrySpotTrainer:
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path,
                                                                  data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
-                                                                 max_queue_length=1024 * 8 * 32,
-                                                                 test_mode=False)
+                                                                 )
 
         logger.info("Generating Model")
         if torch.cuda.is_available():
@@ -222,22 +218,19 @@ if __name__ == "__main__":
         _num_validation_samples_frames = 100
         _num_test_samples_frames = 100
 
-    elif socket.gethostname() == "swthiwi158":
-        _cache_path = \
-            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache")
-        _data_root = \
-            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
-                 r"share=share/data/RTM/Leoben/output/with_shapes")
-        _batch_size = 8
-        _eval_freq = 5
-        _save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
-                          r"share=share/cache/output_niklas")
-        _epochs = 5
+    else:
+        _home = Path("/cfs/home")
+        _cache_path = None
+        _batch_size = 128
+        _eval_freq = 30
+        # _save_path = Path(r"Y:\cache\output_simon")
+        _save_path = Path(r"/cfs/share/cache/output_johannes")
+        _epochs = 2
         _num_workers = 10
-        _num_validation_samples_frames = 1000
-        _num_test_samples_frames = 2000
+        _num_validation_samples_frames = 100
+        _num_test_samples_frames = 100
 
-    _data_root = _home / "/s/t/stiebesi/data/RTM/Leoben/output/with_shapes"
+    _data_root = _home / "s/t/stiebesi/data/RTM/Leoben/output/with_shapes"
 
     if not run_eval:
         _data_source_paths = [
