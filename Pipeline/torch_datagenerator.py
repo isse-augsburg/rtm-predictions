@@ -11,22 +11,22 @@ import numpy as np
 import torch
 
 
-class HDF5Iterator:
-    def __init__(self, files, dataloader, cache_path=None, worker_id=0):
+class FileSetIterator:
+    def __init__(self, files, load_data, cache_path=None, worker_id=0):
         self.files = files
-        self.data_function = dataloader
+        self.load_data = load_data
         self.cache_path = cache_path
         self.sample_queue = Queue()
         self.worker_id = worker_id
 
-    def get_cache_path_for_file(self, filename):
+    def _get_cache_path_for_file(self, filename):
         s_path = Path(filename)
         s_path = self.cache_path.joinpath(s_path.stem)
         return s_path
 
-    def load_cached_samples(self, filename):
+    def _load_cached_samples(self, filename):
         if self.cache_path is not None:
-            s_path = self.get_cache_path_for_file(filename)
+            s_path = self._get_cache_path_for_file(filename)
             if s_path.exists():
                 # Get all pickled sample files
                 instance_f = s_path.glob("*.pt")
@@ -38,7 +38,7 @@ class HDF5Iterator:
                 return True
         return False
 
-    def transform_to_tensor_and_cache(self, i, num, s_path):
+    def _transform_to_tensor_and_cache(self, i, num, s_path):
         _data = torch.FloatTensor(i[0])
         # The following if else is necessary to have 0, 1 Binary Labels in Tensors
         # since FloatTensor(0) = FloatTensor([])
@@ -55,25 +55,25 @@ class HDF5Iterator:
             torch.save(_data, s_path.joinpath(f"{num}-data.pt"))
             torch.save(_label, s_path.joinpath(f"{num}-label.pt"))
 
-    def load_file(self):
+    def _load_file(self):
         while True:
             if len(self.files) == 0:
                 return False
             fn = self.files.pop(0)
-            if self.load_cached_samples(fn):
+            if self._load_cached_samples(fn):
                 break  # This file was already cached; nothing to do here
 
-            instance = self.data_function(fn)
+            instance = self.load_data(fn)
             if instance is None:
                 continue
             else:
                 # TODO: assert_instance_correctness
                 s_path = None
                 if self.cache_path is not None:
-                    s_path = self.get_cache_path_for_file(fn)
+                    s_path = self._get_cache_path_for_file(fn)
                     s_path.mkdir(parents=True, exist_ok=True)
                 for num, i in enumerate(instance):
-                    self.transform_to_tensor_and_cache(i, num, s_path)
+                    self._transform_to_tensor_and_cache(i, num, s_path)
                 break
         return True
 
@@ -82,7 +82,7 @@ class HDF5Iterator:
 
     def __next__(self):
         if self.sample_queue.empty():
-            if not self.load_file():
+            if not self._load_file():
                 raise StopIteration
         return self.sample_queue.get()
 
@@ -121,12 +121,11 @@ class FileDiscovery:
         return paths
 
 
-class DataLoaderIterable(torch.utils.data.IterableDataset):
-    def __init__(self, h5paths, load_data, cache_path=None, cache_mode=CachingMode.Both):
+class FileSetIterable(torch.utils.data.IterableDataset):
+    def __init__(self, files, load_data, cache_path=None, cache_mode=CachingMode.Both):
         self.cache_path = cache_path
-        self.paths = []
         self.load_data = load_data
-        self.paths = h5paths
+        self.files = files
 
         self.sample_cache_path = None
         if cache_path is not None and cache_mode in [CachingMode.Both]:
@@ -137,16 +136,16 @@ class DataLoaderIterable(torch.utils.data.IterableDataset):
         worker_info = torch.utils.data.get_worker_info()
         worker_id = 0
         if worker_info is None:  # single-process data loading, return the full iterator
-            worker_paths = self.paths
+            worker_paths = self.files
         else:  # in a worker process
             # split workload
-            per_worker = int(math.ceil(len(self.paths) / float(worker_info.num_workers)))
+            per_worker = int(math.ceil(len(self.files) / float(worker_info.num_workers)))
             print(f"Each worker will process {per_worker} files!")
             worker_id = worker_info.id
             iter_start = worker_id * per_worker
             iter_end = iter_start + per_worker
-            worker_paths = self.paths[iter_start:iter_end]
-        return HDF5Iterator(worker_paths, self.load_data, cache_path=self.sample_cache_path, worker_id=worker_id)
+            worker_paths = self.files[iter_start:iter_end]
+        return FileSetIterator(worker_paths, self.load_data, cache_path=self.sample_cache_path, worker_id=worker_id)
 
 
 class LoopingStrategy(ABC):
@@ -222,23 +221,23 @@ class SubSetGenerator:
         bset = set(b)
         return [ai for ai in a if ai not in bset]
 
-    def _load_sub_set_from_files(self, h5paths):
-        sample_iterator = HDF5Iterator(h5paths, self.load_data)
+    def _load_sub_set_from_files(self, file_paths):
+        sample_iterator = FileSetIterator(file_paths, self.load_data)
         # TODO: Should we catch a StopIteration here?
         subset = [next(sample_iterator) for _ in range(self.num_samples)]
 
         return subset, sample_iterator.get_remaining_files()
 
-    def prepare_subset(self, h5paths):
+    def prepare_subset(self, file_paths):
         if self.subset_filenames_file is not None and self.subset_filenames_file.is_file():
             with open(self.subset_filenames_file, 'rb') as f:
                 self.used_filenames = pickle.load(f)
-                unused_files = self._list_difference(h5paths, self.used_filenames)
+                unused_files = self._list_difference(file_paths, self.used_filenames)
         else:
-            paths_copy = list(h5paths)
+            paths_copy = list(file_paths)
             random.shuffle(paths_copy)
             self.samples, unused_files = self._load_sub_set_from_files(paths_copy)
-            self.used_filenames = self._list_difference(h5paths, unused_files)
+            self.used_filenames = self._list_difference(file_paths, unused_files)
         if self.subset_filenames_file is not None and not self.subset_filenames_file.exists():
             with open(self.subset_filenames_file, 'wb') as f:
                 pickle.dump(self.used_filenames, f)
@@ -276,18 +275,18 @@ class LoopingDataGenerator:
             else:
                 looping_strategy = NoOpLoopingStrategy()
         self.looping_strategy = looping_strategy
-        h5files = self._discover_files(data_paths, gather_data)
+        all_files = self._discover_files(data_paths, gather_data)
 
         self.eval_set_generator = SubSetGenerator(load_data, "validation_set", num_validation_samples,
                                                   save_path=split_save_path)
         self.test_set_generator = SubSetGenerator(load_data, "test_set", num_test_samples,
                                                   save_path=split_save_path)
-        remaining_files = self.eval_set_generator.prepare_subset(h5files)
+        remaining_files = self.eval_set_generator.prepare_subset(all_files)
         remaining_files = self.test_set_generator.prepare_subset(remaining_files)
         print(f"{len(remaining_files)} files remain after splitting eval and test sets.")
 
-        loader_iterable = DataLoaderIterable(remaining_files, load_data,
-                                             cache_path=cache_path, cache_mode=cache_mode)
+        loader_iterable = FileSetIterable(remaining_files, load_data,
+                                          cache_path=cache_path, cache_mode=cache_mode)
         self.iterator = iter(torch.utils.data.DataLoader(loader_iterable,
                                                          batch_size=batch_size, num_workers=num_workers))
 
