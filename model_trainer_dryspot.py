@@ -179,9 +179,8 @@ if __name__ == "__main__":
     _train_print_freq = 10
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
-        _data_root = Path(
-            "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        _batch_size = 16384 / 2
+        _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+        _batch_size = 1024
         _eval_freq = int(num_samples_runs / _batch_size)
         # _eval_freq = 70
         if getpass.getuser() == "stiebesi":
@@ -200,14 +199,14 @@ if __name__ == "__main__":
         # _cache_path = Path(r"C:\Users\stiebesi\CACHE")
         _cache_path = None
         _data_root = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
-        _batch_size = 16
-        _eval_freq = 1
+        _batch_size = 128
+        _eval_freq = 30
         # _save_path = Path(r"Y:\cache\output_simon")
         _save_path = Path(r"C:\Users\stiebesi\CACHE\train_out")
-        _epochs = 1
+        _epochs = 1000
         _num_workers = 10
-        _num_validation_samples_frames = 5
-        _num_test_samples_frames = 5
+        _num_validation_samples_frames = 1000
+        _num_test_samples_frames = 1000
 
     elif socket.gethostname() == "swthiwi158":
         _cache_path = \

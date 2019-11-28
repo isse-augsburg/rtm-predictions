@@ -156,12 +156,20 @@ class DrySpotModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = Conv2d(1, 128, 13, stride=1, padding=0)
-        self.conv2 = Conv2d(128, 512, 7, stride=1, padding=0)
-        self.conv3 = Conv2d(512, 2048, 5, stride=1, padding=0)
-        self.conv4 = Conv2d(2048, 4096, 3, padding=0)
-        self.fc_f1 = nn.Linear(4096, 1028)
-        self.fc_f2 = nn.Linear(1028, 512)
-        self.fc_f3 = nn.Linear(512, 1)
+        self.conv2 = Conv2d(128, 256, 7, stride=1, padding=0)
+        self.conv3 = Conv2d(256, 512, 5, stride=1, padding=0)
+        self.conv4 = Conv2d(512, 1024, 3, padding=0)
+        self.fc_f1 = nn.Linear(1024, 512)
+        self.fc_f2 = nn.Linear(512, 256)
+        self.fc_f3 = nn.Linear(256, 1)
+
+        # self.conv1 = Conv2d(1, 128, 13, stride=1, padding=0)
+        # self.conv2 = Conv2d(128, 512, 7, stride=3, padding=0)
+        # self.conv3 = Conv2d(512, 2048, 5, stride=3, padding=0)
+        # self.conv4 = Conv2d(2048, 4096, 3, padding=0)
+        # self.fc_f1 = nn.Linear(4096, 1028)
+        # self.fc_f2 = nn.Linear(1028, 512)
+        # self.fc_f3 = nn.Linear(512, 1)
         self.dropout = nn.Dropout(0.2)
 
     def forward(self, x):
@@ -179,3 +187,9 @@ class DrySpotModel(nn.Module):
         i = torch.sigmoid(self.fc_f3(h))
 
         return i
+
+
+if __name__ == "__main__":
+    m = DrySpotModel()
+    from Utils.training_utils import count_parameters
+    print(count_parameters(m))

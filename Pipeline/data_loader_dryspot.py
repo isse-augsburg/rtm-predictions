@@ -49,7 +49,7 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
         return instances
     except KeyError:
         logger = logging.getLogger(__name__)
-        logger.error(f'KeyError: {filename}')
+        print(f'KeyError: {filename}')
         f.close()
         meta_file.close()
         return None
