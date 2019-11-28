@@ -78,14 +78,6 @@ class MasterTrainer:
         logging.shutdown()
         self.generator.end_threads()
 
-    def test(self, path):
-        self.generator.load_test_set(path)
-        test_list = self.generator.get_test_samples()
-        self.generator.paths = test_list
-        dataset, _ = self.generator.__fill_separate_set_list_from_all_paths(
-            len(self.generator.paths))
-        self.eval(dataset, test_mode=True)
-
     def __print_info(self):
         self.logger.info("###########################################")
         self.logger.info(">>> Model Trainer INFO <<<")

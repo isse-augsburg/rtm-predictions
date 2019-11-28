@@ -238,6 +238,8 @@ class SubSetGenerator:
         return [ai for ai in a if ai not in bset]
 
     def _load_sub_set_from_files(self, file_paths):
+        # TODO: Once we remove the old pipeline, we could refactor this to return batches instead of samples
+        # This would allow for a more streamlined usage and cleaner code in the GenericTrainer
         sample_iterator = FileSetIterator(file_paths, self.load_data)
         try:
             subset = [next(sample_iterator) for _ in range(self.num_samples)]
@@ -285,6 +287,8 @@ class LoopingDataGenerator:
                  cache_mode=CachingMode.Both,
                  looping_strategy: LoopingStrategy = None
                  ):
+        self.epochs = epochs  # For compatibility with the MasterTrainer
+        self.batch_size = batch_size  # For compatibility with the MasterTrainer
         self.remaining_epochs = epochs
         self.store_samples = True
         self.batch_size = batch_size
@@ -347,3 +351,13 @@ class LoopingDataGenerator:
 
     def get_test_samples(self):
         return self.test_set_generator.get_samples()
+
+    def end_threads(self):
+        # TODO: Dummy method for compatibility with the old pipeline. Remove this once the old pipeline
+        # is removed
+        pass
+
+    def get_current_queue_length(self):
+        # TODO: Dummy method for compatibility with the old pipeline. Remove this once the old pipeline
+        # is removed
+        return "unknown"
