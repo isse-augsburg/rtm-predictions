@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+import logging
 import math
 import os
 import pickle
@@ -18,6 +19,18 @@ class FileSetIterator:
         self.cache_path = cache_path
         self.sample_queue = Queue()
         self.worker_id = worker_id
+
+    def _assert_instance_correctness(self, instance):
+        assert isinstance(
+            instance, list
+        ), '''The data loader seems to return instances in the wrong format. 
+                The required format is [(data_1, label1), ... , 
+                (data_n, label_n)] or None.'''
+        for i in instance:
+            assert (isinstance(i, tuple) and len(i) == 2), \
+                '''The data loader seems to return instances in the wrong format. 
+                    The required format is [(data_1, label1), ... , 
+                    (data_n, label_n)] or None.'''
 
     def _get_cache_path_for_file(self, filename):
         s_path = Path(filename)
@@ -67,7 +80,7 @@ class FileSetIterator:
             if instance is None:
                 continue
             else:
-                # TODO: assert_instance_correctness
+                self._assert_instance_correctness(instance)
                 s_path = None
                 if self.cache_path is not None:
                     s_path = self._get_cache_path_for_file(fn)
@@ -140,8 +153,10 @@ class FileSetIterable(torch.utils.data.IterableDataset):
         else:  # in a worker process
             # split workload
             per_worker = int(math.ceil(len(self.files) / float(worker_info.num_workers)))
-            print(f"Each worker will process {per_worker} files!")
             worker_id = worker_info.id
+            if worker_id == 0:
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Each worker will process up to {per_worker} files.")
             iter_start = worker_id * per_worker
             iter_end = iter_start + per_worker
             worker_paths = self.files[iter_start:iter_end]
@@ -214,6 +229,7 @@ class SubSetGenerator:
         self.subset_filenames_file = None
         if save_path is not None:
             self.subset_filenames_file = Path(save_path) / f"{subset_name}.p"
+        self.subset_name = subset_name
         self.samples = None
         self.used_filenames = None
 
@@ -223,8 +239,10 @@ class SubSetGenerator:
 
     def _load_sub_set_from_files(self, file_paths):
         sample_iterator = FileSetIterator(file_paths, self.load_data)
-        # TODO: Should we catch a StopIteration here?
-        subset = [next(sample_iterator) for _ in range(self.num_samples)]
+        try:
+            subset = [next(sample_iterator) for _ in range(self.num_samples)]
+        except StopIteration:
+            raise ValueError(f"Not enough samples to create subset {self.subset_name}")
 
         return subset, sample_iterator.get_remaining_files()
 
@@ -244,6 +262,9 @@ class SubSetGenerator:
         return unused_files
 
     def get_samples(self):
+        if self.used_filenames is None:
+            raise RuntimeError(f"Cannot get subset samples without preparing files first! "
+                               f"Call {type(self).__name__}.prepare_subset first.")
         if self.samples is None:  # Use this as a sort of lazy property
             self.samples, _ = self._load_sub_set_from_files(self.used_filenames)
         return self.samples
@@ -256,8 +277,8 @@ class LoopingDataGenerator:
                  load_data,
                  batch_size=1,
                  epochs=1,
-                 num_validation_samples=100,
-                 num_test_samples=100,
+                 num_validation_samples=0,
+                 num_test_samples=0,
                  split_save_path=None,
                  num_workers=0,
                  cache_path=None,
@@ -269,32 +290,38 @@ class LoopingDataGenerator:
         self.batch_size = batch_size
         self.cache_path = cache_path
         self.cache_mode = cache_mode
+        self.logger = logging.getLogger(__name__)
+
         if looping_strategy is None:
             if epochs > 1:
                 looping_strategy = ComplexListLoopingStrategy(batch_size)
             else:
                 looping_strategy = NoOpLoopingStrategy()
         self.looping_strategy = looping_strategy
-        all_files = self._discover_files(data_paths, gather_data)
+        self.logger.debug(f"Using {type(self.looping_strategy).__name__} for looping samples across epochs.")
 
+        all_files = self._discover_files(data_paths, gather_data)
+        self.logger.info("Generating validation and test data splits.")
         self.eval_set_generator = SubSetGenerator(load_data, "validation_set", num_validation_samples,
                                                   save_path=split_save_path)
         self.test_set_generator = SubSetGenerator(load_data, "test_set", num_test_samples,
                                                   save_path=split_save_path)
         remaining_files = self.eval_set_generator.prepare_subset(all_files)
         remaining_files = self.test_set_generator.prepare_subset(remaining_files)
-        print(f"{len(remaining_files)} files remain after splitting eval and test sets.")
+        self.logger.info(f"{len(remaining_files)} files remain after splitting eval and test sets.")
 
         loader_iterable = FileSetIterable(remaining_files, load_data,
                                           cache_path=cache_path, cache_mode=cache_mode)
         self.iterator = iter(torch.utils.data.DataLoader(loader_iterable,
                                                          batch_size=batch_size, num_workers=num_workers))
+        self.logger.info("Data generator initialization is done.")
 
     def _discover_files(self, data_paths, gather_data):
+        self.logger.info(f"Gathering files from {len(data_paths)} paths...")
         data_paths = [str(x) for x in data_paths]
         discovery = FileDiscovery(gather_data, cache_path=self.cache_path, cache_mode=self.cache_mode)
         paths = discovery.discover(data_paths)
-        print(f"Gathered {len(paths)} files")
+        self.logger.debug(f"Gathered {len(paths)} files.")
         return paths
 
     def __iter__(self):
