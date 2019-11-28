@@ -92,7 +92,7 @@ class MasterTrainer:
         self.logger.info(f"Optimizer: {self.optimizer}")
         self.logger.info(f"Learning rate: {self.learning_rate}")
         self.logger.info(f"Evaluation frequency: {self.eval_frequency}")
-        self.logger.info(f"Model: {self.model}")
+        self.logger.info(f"Model:\n{self.model}")
         self.logger.info(f"Param count: {count_parameters(self.model)}")
         self.logger.info("###########################################")
 
@@ -168,16 +168,19 @@ class MasterTrainer:
             self.model.train()
             if not test_mode:
                 if loss < self.best_loss:
-                    torch.save(
-                        {
-                            "epoch": eval_step,
-                            "model_state_dict": self.model.state_dict(),
-                            "optimizer_state_dict": self.optimizer.state_dict(),
-                            "loss": loss,
-                        },
-                        self.savepath / Path("checkpoint.pth"),
-                    )
+                    self.save_checkpoint(eval_step, loss)
                     self.best_loss = loss
+
+    def save_checkpoint(self, eval_step, loss):
+        torch.save(
+            {
+                "epoch": eval_step,
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "loss": loss,
+            },
+            self.savepath / Path("checkpoint.pth"),
+        )
 
     def load_checkpoint(self, path):
         """Loads the parameters of a previously saved model and optimizer,

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 
 
@@ -37,5 +39,15 @@ def create_index():
     )
 
 
+def load_something():
+    hdf5db = HDF5DBToolbox()
+    hdf5db.load(
+        Path("Y:\cache\HDF5DB_Cache"),
+        "Unrestricted"
+    )
+    hdf5db.show_objects()
+
+
 if __name__ == "__main__":
-    create_index()
+    load_something()
+    # create_index()

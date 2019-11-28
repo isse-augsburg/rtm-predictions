@@ -263,7 +263,8 @@ class ERFH5DataGenerator:
             random.shuffle(self.paths)
         self.logger.info("Gathering Data... Done.")
         self.barrier = threading.Barrier(self.num_workers)
-        if load_path is None or not (load_path / "training_set.p").exists() \
+        if load_path is None \
+                or not (load_path / "training_set.p").exists() \
                 or not (load_path / "validation_set.p").exists() \
                 or not (load_path / "test_set.p").exists():
             self.logger.info("Separating data sets ...")
