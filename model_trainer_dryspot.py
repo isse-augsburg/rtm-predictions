@@ -19,6 +19,7 @@ from Pipeline import (
     data_loader_dryspot
 )
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
+from Resources import resources_for_training
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils import logging_cfg
@@ -226,17 +227,7 @@ if __name__ == "__main__":
     _data_root = _home / "s/t/stiebesi/data/RTM/Leoben/output/with_shapes"
 
     if not run_eval:
-        _data_source_paths = [
-            # _data_root / "2019-07-23_15-38-08_5000p",
-            _data_root / "2019-07-24_16-32-40_5000p",
-            # _data_root / "2019-07-29_10-45-18_5000p",
-            # _data_root / "2019-08-23_15-10-02_5000p",
-            # _data_root / "2019-08-24_11-51-48_5000p",
-            # _data_root / "2019-08-25_09-16-40_5000p",
-            # _data_root / "2019-08-26_16-59-08_6000p",
-            # _data_root / '2019-09-06_17-03-51_10000p',
-            _data_root / '2019-11-08_15-40-44_5000p'
-        ]
+        _data_source_paths = resources_for_training.get_data_paths(_data_root)
     else:
         _data_source_paths = []
 
