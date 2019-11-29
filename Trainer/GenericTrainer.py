@@ -22,8 +22,6 @@ class MasterTrainer:
         iterations.
         eval_frequency: Frequency of running a evaluation frequency on held out
         validation set, in iterations.
-        comment: Optional message that is printed to the command line, helps
-        understanding your experiments afterwards
         learning_rate: Optimizer's learning rate
         classification_evaluator: Optional object for evaluating
         classification, see evaluation.py for more details
@@ -38,7 +36,6 @@ class MasterTrainer:
             eval_frequency=100,
             savepath=Path("model.pth"),
             eval_func=None,
-            comment="No custom comment added.",
             learning_rate=0.00001,
             calc_metrics=False,
             classification_evaluator=None,
@@ -58,7 +55,6 @@ class MasterTrainer:
         )
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu")
-        self.comment = comment
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
         self.classification_evaluator = classification_evaluator

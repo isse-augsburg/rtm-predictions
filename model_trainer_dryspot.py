@@ -47,7 +47,7 @@ class DrySpotTrainer:
         self.batch_size = batch_size
         self.eval_freq = eval_freq
         self.save_datasets_path = save_datasets_path
-        self.load_datasets_path = save_datasets_path
+        self.load_datasets_path = load_datasets_path
         self.epochs = epochs
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
@@ -66,10 +66,10 @@ class DrySpotTrainer:
                 epochs=self.epochs,
                 num_validation_samples=self.num_validation_samples,
                 num_test_samples=self.num_test_samples,
-                split_save_path=self.load_datasets_path,
+                split_save_path=self.load_datasets_path or save_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
-                looping_strategy=td.SimpleListLoopingStrategy()
+                looping_strategy=td.ComplexListLoopingStrategy(self.batch_size)
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -154,7 +154,6 @@ class DrySpotTrainer:
         train_wrapper = MasterTrainer(
             self.model,
             self.training_data_generator,
-            comment=get_comment(),
             loss_criterion=torch.nn.MSELoss(),
             savepath=save_path,
             learning_rate=0.0001,
@@ -244,8 +243,8 @@ if __name__ == "__main__":
     _data_source_paths = apply_blacklists(_data_source_paths)
 
     # Running with the same data sets
-    _load_datasets_path = _home / 's/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection'
-    # _load_datasets_path = None
+    # _load_datasets_path = _home / 's/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection'
+    _load_datasets_path = None
 
     st = DrySpotTrainer(cache_path=_cache_path,
                         data_source_paths=_data_source_paths,
