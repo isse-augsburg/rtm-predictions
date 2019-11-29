@@ -225,9 +225,6 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         features, labels = batch
         self.features.extend(torch.split(features, 1))
         self.labels.extend(torch.split(labels, 1))
-        logging.getLogger(__name__).debug(f"Stored {len(self.features)} samples.")
-        if len(self.features) > 5000:
-            raise StopIteration
 
     def get_new_iterator(self):
         return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
@@ -323,7 +320,7 @@ class LoopingDataGenerator:
 
         if looping_strategy is None:
             if epochs > 1:
-                looping_strategy = ComplexListLoopingStrategy(batch_size)
+                looping_strategy = DataLoaderListLoopingStrategy(batch_size)
             else:
                 looping_strategy = NoOpLoopingStrategy()
         self.looping_strategy = looping_strategy
