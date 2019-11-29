@@ -365,6 +365,7 @@ class LoopingDataGenerator:
             self.remaining_epochs -= 1
             if self.remaining_epochs == 0:
                 raise StopIteration
+            self.logger.info(f"Starting epoch {self.epochs - self.remaining_epochs + 1}")
             self.store_samples = False
             self.iterator = self.looping_strategy.get_new_iterator()
             batch = next(self.iterator)
