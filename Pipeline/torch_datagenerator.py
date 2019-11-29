@@ -214,6 +214,28 @@ class ComplexListLoopingStrategy(LoopingStrategy):
             yield torch.stack(features), torch.stack(labels)
 
 
+class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
+    def __init__(self, batch_size):
+        super().__init__()
+        self.batch_size = batch_size
+        self.features = []
+        self.labels = []
+
+    def store(self, batch):
+        features, labels = batch
+        self.features.extend(torch.split(features, 1))
+        self.labels.extend(torch.split(labels, 1))
+
+    def get_new_iterator(self):
+        return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
+
+    def __len__(self):
+        return len(self.features)
+
+    def __getitem__(self, index):
+        return self.features[index], self.labels[index]
+
+
 class NoOpLoopingStrategy(LoopingStrategy):
     def __init__(self):
         super().__init__()
@@ -298,7 +320,7 @@ class LoopingDataGenerator:
 
         if looping_strategy is None:
             if epochs > 1:
-                looping_strategy = ComplexListLoopingStrategy(batch_size)
+                looping_strategy = DataLoaderListLoopingStrategy(batch_size)
             else:
                 looping_strategy = NoOpLoopingStrategy()
         self.looping_strategy = looping_strategy
