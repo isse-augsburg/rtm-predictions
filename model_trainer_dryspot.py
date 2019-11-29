@@ -133,15 +133,16 @@ class DrySpotTrainer:
         logging_cfg.apply_logging_config(save_path)
         logger = logging.getLogger(__name__)
 
+        logger.info(f"Generating Generator || Batch size: {self.batch_size}")
+        self.training_data_generator = self.create_datagenerator(save_path,
+                                                                 data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                                                                 )
+
         logger.info("Saving code and generating SLURM script for later evaluation")
         eval_preparation(save_path, os.path.abspath(__file__))
 
         evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=True)
 
-        logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(save_path,
-                                                                 data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
-                                                                 )
 
         logger.info("Generating Model")
         if torch.cuda.is_available():
@@ -154,7 +155,7 @@ class DrySpotTrainer:
         train_wrapper = MasterTrainer(
             self.model,
             self.training_data_generator,
-            loss_criterion=torch.nn.MSELoss(),
+            loss_criterion=torch.nn.BCELoss(),
             savepath=save_path,
             learning_rate=0.0001,
             calc_metrics=False,
@@ -186,7 +187,7 @@ if __name__ == "__main__":
     if socket.gethostname() == "swt-dgx1":
         _home = Path('/cfs/home')
         _cache_path = None
-        _batch_size = 1024
+        _batch_size = 4096
         _eval_freq = int(num_samples_runs / _batch_size)
         # _eval_freq = 70
         if getpass.getuser() == "stiebesi":
@@ -197,8 +198,8 @@ if __name__ == "__main__":
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 1000
         _num_workers = 20
-        _num_validation_samples_frames = _batch_size * 8
-        _num_test_samples_frames = _batch_size * 8
+        _num_validation_samples_frames = 8192
+        _num_test_samples_frames = 8192
 
     elif socket.gethostname() == "swtse130":
         _home = Path('X:/')
@@ -243,8 +244,8 @@ if __name__ == "__main__":
     _data_source_paths = apply_blacklists(_data_source_paths)
 
     # Running with the same data sets
-    # _load_datasets_path = _home / 's/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection'
-    _load_datasets_path = None
+    _load_datasets_path = _home / 's/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection'
+    # _load_datasets_path = None
 
     st = DrySpotTrainer(cache_path=_cache_path,
                         data_source_paths=_data_source_paths,
