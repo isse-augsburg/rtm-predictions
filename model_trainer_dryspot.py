@@ -186,7 +186,7 @@ if __name__ == "__main__":
     if socket.gethostname() == "swt-dgx1":
         _home = Path('/cfs/home')
         _cache_path = None
-        _batch_size = 2048
+        _batch_size = 1024
         _eval_freq = int(num_samples_runs / _batch_size)
         # _eval_freq = 70
         if getpass.getuser() == "stiebesi":

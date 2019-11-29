@@ -320,7 +320,9 @@ class LoopingDataGenerator:
 
         if looping_strategy is None:
             if epochs > 1:
-                looping_strategy = DataLoaderListLoopingStrategy(batch_size)
+                # FIXME: Default was DataLoaderListLoopingStrategy, but currently produces wrong at least in
+                #  validation set. Labels are all 1. Anyway, the ComplexListLoopingStrategy seems to work fine and fast
+                looping_strategy = ComplexListLoopingStrategy(batch_size)
             else:
                 looping_strategy = NoOpLoopingStrategy()
         self.looping_strategy = looping_strategy
