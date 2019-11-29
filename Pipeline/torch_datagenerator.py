@@ -1,9 +1,9 @@
-from abc import abstractmethod, ABC
 import logging
 import math
 import os
 import pickle
 import random
+from abc import abstractmethod, ABC
 from enum import Enum
 from pathlib import Path
 from queue import Queue
@@ -360,4 +360,4 @@ class LoopingDataGenerator:
     def get_current_queue_length(self):
         # TODO: Dummy method for compatibility with the old pipeline. Remove this once the old pipeline
         # is removed
-        return "unknown"
+        return "unk"
