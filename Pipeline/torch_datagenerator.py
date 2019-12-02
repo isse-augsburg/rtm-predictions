@@ -13,6 +13,18 @@ import torch
 
 
 class FileSetIterator:
+    """ An iterator for samples stored in a set of files.
+    The FileSetIterator provides an iterator over the samples stored in a set of files.
+    These files are usually HDF5-files.
+
+    Args:
+        files (list of str): A list of paths to the files to be loaded
+        load_data (function): A function that can load a list of samples given a filename 
+            MUST return the following format:
+            [(data_1, label_1), ... , (data_n, label_n)]
+        cache_path (Path): A path to cache loaded samples
+        worker_id (int): The id of this worker for multiprocessing environments
+    """
     def __init__(self, files, load_data, cache_path=None, worker_id=0):
         self.files = files
         self.load_data = load_data
@@ -91,9 +103,23 @@ class FileSetIterator:
         return True
 
     def get_remaining_files(self):
+        """ Get the list of remaining files
+
+        Returns:
+            A list of remaining files.
+        """
         return self.files
 
     def __next__(self):
+        """ Get the next sample.
+        This will either return a sample from the internal queue or load the next file
+        from the fileset.
+        When the queue is exhausted and no more files are available, it will raise a
+        StopIteration.
+
+        Raises:
+            StopIteration: If no more samples are available
+        """
         if self.sample_queue.empty():
             if not self._load_file():
                 raise StopIteration
@@ -106,7 +132,65 @@ class CachingMode(Enum):
     FileList = 3
 
 
+class FileSetIterable(torch.utils.data.IterableDataset):
+    """ An Iterable meant to be used with the torch DataLoader.
+
+    Args:
+        files: A list of (typically HDF5 files) to load
+        load_data (function): A function that can load a list of samples given a filename 
+            MUST return the following format:
+            [(data_1, label_1), ... , (data_n, label_n)]
+        cache_path (Path): A path to cache loaded samples
+        cache_mode (CachingMOde): A path to cache loaded samples
+    """
+    def __init__(self, files, load_data, cache_path=None, cache_mode=CachingMode.Both):
+        self.cache_path = cache_path
+        self.load_data = load_data
+        self.files = files
+
+        self.sample_cache_path = None
+        if cache_path is not None and cache_mode in [CachingMode.Both]:
+            self.sample_cache_path = Path(cache_path).joinpath(self.load_data.__name__)
+            self.sample_cache_path.mkdir(parents=True, exist_ok=True)
+
+    def __iter__(self):
+        """ Creates an iterator that loads a subset of the file set.
+        If torch indicates a multi-worker scenario, we split the files evenly along workers.
+        If some files contain significantly less samples than other files, this will lead
+        to an uneven split of workload.
+
+        If torch is not using multiprocessing, a single single Iterator will be used to
+        load all files.
+
+        Returns:
+            A FileSetIterator for a subset of files.
+        """
+        worker_info = torch.utils.data.get_worker_info()
+        worker_id = 0
+        if worker_info is None:  # single-process data loading, return the full iterator
+            worker_paths = self.files
+        else:  # in a worker process
+            # split workload
+            per_worker = int(math.ceil(len(self.files) / float(worker_info.num_workers)))
+            worker_id = worker_info.id
+            if worker_id == 0:
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Each worker will process up to {per_worker} files.")
+            iter_start = worker_id * per_worker
+            iter_end = iter_start + per_worker
+            worker_paths = self.files[iter_start:iter_end]
+        return FileSetIterator(worker_paths, self.load_data, cache_path=self.sample_cache_path, worker_id=worker_id)
+
+
 class FileDiscovery:
+    """ A helper class to gather files from a set of base paths
+    This class can be used to discover sample files in a set of directories.
+
+    Args:
+        gather_data (function): A callable that gathers files given a single root directory.
+            data_gather.get_filelist_within_folder is usually used for this.
+        cache_path (str): A directory to use for caching file lists, if required.
+    """
     def __init__(self, gather_data, cache_path=None, cache_mode=CachingMode.FileList):
         self.filelist_cache_path = None
         if cache_path is not None and cache_mode in [CachingMode.Both, CachingMode.FileList]:
@@ -115,6 +199,14 @@ class FileDiscovery:
         self.gather_data = gather_data
 
     def discover(self, data_paths):
+        """ Get a list of files for the given set of paths.
+
+        Args:
+            data_paths (list of str): The set of paths to load
+
+        Returns:
+            A list of files that were found
+        """
         paths = []
         for path in data_paths:
             if self.filelist_cache_path is not None:
@@ -134,48 +226,38 @@ class FileDiscovery:
         return paths
 
 
-class FileSetIterable(torch.utils.data.IterableDataset):
-    def __init__(self, files, load_data, cache_path=None, cache_mode=CachingMode.Both):
-        self.cache_path = cache_path
-        self.load_data = load_data
-        self.files = files
-
-        self.sample_cache_path = None
-        if cache_path is not None and cache_mode in [CachingMode.Both]:
-            self.sample_cache_path = Path(cache_path).joinpath(self.load_data.__name__)
-            self.sample_cache_path.mkdir(parents=True, exist_ok=True)
-
-    def __iter__(self):
-        worker_info = torch.utils.data.get_worker_info()
-        worker_id = 0
-        if worker_info is None:  # single-process data loading, return the full iterator
-            worker_paths = self.files
-        else:  # in a worker process
-            # split workload
-            per_worker = int(math.ceil(len(self.files) / float(worker_info.num_workers)))
-            worker_id = worker_info.id
-            if worker_id == 0:
-                logger = logging.getLogger(__name__)
-                logger.debug(f"Each worker will process up to {per_worker} files.")
-            iter_start = worker_id * per_worker
-            iter_end = iter_start + per_worker
-            worker_paths = self.files[iter_start:iter_end]
-        return FileSetIterator(worker_paths, self.load_data, cache_path=self.sample_cache_path, worker_id=worker_id)
-
-
 class LoopingStrategy(ABC):
+    """ LoopingStrategies are used to repeat samples after the first epoch.
+    The LoopingDataGenerator will pass every loaded batch into the store function.
+    Once a sample iterator is exhausted, a new one will be created using the
+    get_new_iterator function.
+    """
     def __init__(self):
         pass
 
     def store(self, batch):
+        """ Store a new sample into the strategies buffer
+
+        Args:
+            batch (tuple of feature-batch and label-batch)
+        """
         pass
 
     @abstractmethod
     def get_new_iterator(self):
+        """ This should return a new iterator.
+        The new iterator must yield all samples that were previously stored using store.
+        Yielded objects should be in the same batch form store expects.
+        Also, the strategy is responsible for shuffling samples.
+        """
         pass
 
 
 class SimpleListLoopingStrategy(LoopingStrategy):
+    """ This strategy just stores batches in a list and shuffles that list between epochs.
+    This strategy is really fast, but shuffling on a batch basis instead of samples
+    reduces training performance and overall training results.
+    """
     def __init__(self):
         super().__init__()
         self.batches = []
@@ -189,6 +271,10 @@ class SimpleListLoopingStrategy(LoopingStrategy):
 
 
 class ComplexListLoopingStrategy(LoopingStrategy):
+    """ This strategy stores individual samples and shuffles these between epochs.
+    This is pretty slow compared to the SimpleListLoopingStrategy, but it gives
+    better results in training.
+    """
     def __init__(self, batch_size):
         super().__init__()
         self.features = []
@@ -215,6 +301,10 @@ class ComplexListLoopingStrategy(LoopingStrategy):
 
 
 class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
+    """ This strategy shuffles on a sample basis like the ComplexListLoopingStrategy,
+    but it relies on the torch DataLoader for shuffling.
+    It seems to have slightly better performance than the ComplexList approach.
+    """
     def __init__(self, batch_size):
         super().__init__()
         self.batch_size = batch_size
@@ -237,6 +327,10 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
 
 
 class NoOpLoopingStrategy(LoopingStrategy):
+    """ A "do-nothing" strategy that will just forget everything stored in it.
+    This is automatically used if you only run a single epoch and will prevent
+    the huge memory requirements that the other strategies have.
+    """
     def __init__(self):
         super().__init__()
 
