@@ -463,7 +463,7 @@ class LoopingDataGenerator:
         return paths
 
     def _create_initial_dataloader(self):
-        self.iterator = iter(torch.utils.data.DataLoader(self.file_iterable,
+        self.iterator = iter(torch.utils.data.DataLoader(self.file_iterable, drop_last=True,
                                                          batch_size=self.batch_size, num_workers=self.num_workers))
 
     def __iter__(self):
