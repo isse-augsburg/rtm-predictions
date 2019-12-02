@@ -3,7 +3,6 @@ import getpass
 import logging
 import math
 import os
-import pickle
 import socket
 import sys
 from datetime import datetime
@@ -18,13 +17,12 @@ from Pipeline import (
     data_gather as dg,
     data_loader_dryspot
 )
-from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Resources import resources_for_training
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
-from Utils.training_utils import transform_to_tensor_and_cache, apply_blacklists
+from Utils.training_utils import apply_blacklists
 
 
 class DrySpotTrainer:
@@ -53,8 +51,6 @@ class DrySpotTrainer:
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
         self.num_test_samples = num_test_samples
-        self.training_data_generator = None
-        self.test_data_generator = None
         self.model = model
 
     def create_datagenerator(self, save_path, data_processing_function):
@@ -78,7 +74,7 @@ class DrySpotTrainer:
             exit()
         return generator
 
-    def inference_on_test_set(self, output_path, source_path):
+    def inference_on_test_set(self, output_path: Path, source_path: Path):
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
 
@@ -93,40 +89,21 @@ class DrySpotTrainer:
             self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         logger.info("Generating Test Generator")
-        self.test_data_generator = self.create_datagenerator(save_path,
-                                                             data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
-                                                             )
+        data_generator = self.create_datagenerator(save_path,
+                                                        data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                                                        )
         evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=False)
         eval_wrapper = MasterTrainer(
             self.model,
-            self.test_data_generator,
+            data_generator,
             classification_evaluator=evaluator,
         )
         eval_wrapper.load_checkpoint(source_path / "checkpoint.pth")
 
-        with open(source_path / "test_set.p", "rb") as f:
-            test_set = pickle.load(f)
-        data_list = self.create_data_set_from_paths(test_set)
+        data_list = data_generator.get_test_samples()
 
         eval_wrapper.eval(data_list, test_mode=True)
         logging.shutdown()
-
-    def create_data_set_from_paths(self, test_set):
-        test_set = transform_list_of_linux_paths_to_windows(test_set)
-        data_list = []
-        full = False
-        for p in test_set:
-            instance = self.test_data_generator.data_function(p)
-            if instance is None:
-                continue
-            for num, i in enumerate(instance):
-                transform_to_tensor_and_cache(i, data_list)
-                if len(data_list) >= self.num_test_samples:
-                    full = True
-            if full:
-                data_list = data_list[:self.num_test_samples]
-                break
-        return data_list
 
     def run_training(self):
         save_path = self.save_datasets_path / self.initial_timestamp
@@ -135,7 +112,7 @@ class DrySpotTrainer:
         logger = logging.getLogger(__name__)
 
         logger.info(f"Generating Generator || Batch size: {self.batch_size}")
-        self.training_data_generator = self.create_datagenerator(save_path,
+        training_data_generator = self.create_datagenerator(save_path,
                                                                  data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
                                                                  )
 
@@ -143,7 +120,6 @@ class DrySpotTrainer:
         eval_preparation(save_path, os.path.abspath(__file__))
 
         evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=True)
-
 
         logger.info("Generating Model")
         if torch.cuda.is_available():
@@ -155,7 +131,7 @@ class DrySpotTrainer:
 
         train_wrapper = MasterTrainer(
             self.model,
-            self.training_data_generator,
+            training_data_generator,
             loss_criterion=torch.nn.BCELoss(),
             savepath=save_path,
             learning_rate=0.0001,
@@ -256,6 +232,6 @@ if __name__ == "__main__":
         st.run_training()
     else:
         if socket.gethostname() != "swtse130":
-            st.inference_on_test_set(source_path=eval_path,
-                                     output_path=eval_path)
+            st.inference_on_test_set(source_path=Path(eval_path),
+                                     output_path=Path(eval_path))
     logging.shutdown()

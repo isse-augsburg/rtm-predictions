@@ -25,7 +25,7 @@ def eval_preparation(save_path, abs_file_path):
 #SBATCH --cpus-per-task=20
 
 export SINGULARITY_DOCKER_USERNAME=\\$oauthtoken
-export SINGULARITY_DOCKER_PASSWORD={os.getenv('SINGULARITY_DOCKER_PASSWORD')}ls
+export SINGULARITY_DOCKER_PASSWORD={os.getenv('SINGULARITY_DOCKER_PASSWORD')}
 
 singularity exec --nv -B /cfs:/cfs {docker_img} python3 -u {save_path}/code/{filename} --eval --eval_path {save_path} 
 """
