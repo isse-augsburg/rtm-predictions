@@ -308,22 +308,22 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
     def __init__(self, batch_size):
         super().__init__()
         self.batch_size = batch_size
-        self.batches = []
+        self.features = []
+        self.labels = []
 
     def store(self, batch):
-        self.batches.append(batch)
+        features, labels = batch
+        self.features.extend(f.squeeze(0) for f in torch.split(features, 1))
+        self.labels.extend(l.squeeze(0) for l in torch.split(labels, 1))
 
     def get_new_iterator(self):
         return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
 
     def __len__(self):
-        return len(self.batches) * self.batch_size
+        return len(self.features)
 
     def __getitem__(self, index):
-        batch_index = int(index / self.batch_size)
-        subindex = index - batch_index * self.batch_size
-        features, labels = self.batches[batch_index]
-        return features[subindex], labels[subindex]
+        return self.features[index], self.labels[index]
 
 
 class NoOpLoopingStrategy(LoopingStrategy):
