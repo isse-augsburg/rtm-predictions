@@ -339,12 +339,26 @@ class NoOpLoopingStrategy(LoopingStrategy):
 
 
 class SubSetGenerator:
-    def __init__(self, load_data, subset_name, num_samples, save_path=None):
+    def __init__(self, load_data, subset_name, num_samples, load_path=None, save_path=None):
+        self.logger = logging.getLogger(__name__)
         self.load_data = load_data
         self.num_samples = num_samples
-        self.subset_filenames_file = None
+
+        self.save_dir = save_path
+        self.load_dir = load_path
+
+        filename = f"{subset_name}.p"
+        self.load_file = None
+        if load_path is not None:
+            self.load_file = Path(load_path) / filename
+        self.save_file = None
         if save_path is not None:
-            self.subset_filenames_file = Path(save_path) / f"{subset_name}.p"
+            save_path = Path(save_path)
+            if save_path.is_dir():
+                self.save_file = save_path / filename
+            else:
+                self.logger.warning(f"save_path {save_path} is not a directory, the {subset_name} split wont be saved!")
+
         self.subset_name = subset_name
         self.samples = None
         self.used_filenames = None
@@ -356,6 +370,7 @@ class SubSetGenerator:
     def _load_sub_set_from_files(self, file_paths):
         # TODO: Once we remove the old pipeline, we could refactor this to return batches instead of samples
         # This would allow for a more streamlined usage and cleaner code in the GenericTrainer
+        self.logger.info(f"Loading samples for {self.subset_name}")
         sample_iterator = FileSetIterator(file_paths, self.load_data)
         try:
             subset = [next(sample_iterator) for _ in range(self.num_samples)]
@@ -365,18 +380,18 @@ class SubSetGenerator:
         return subset, sample_iterator.get_remaining_files()
 
     def prepare_subset(self, file_paths):
-        if self.subset_filenames_file is not None and self.subset_filenames_file.is_file():
-            with open(self.subset_filenames_file, 'rb') as f:
-                self.used_filenames = pickle.load(f)
+        if self.load_file is not None and self.load_file.is_file():
+            with open(self.load_file, 'rb') as f:
+                self.used_filenames = [Path(fn) for fn in pickle.load(f)]
                 unused_files = self._list_difference(file_paths, self.used_filenames)
         else:
             paths_copy = list(file_paths)
             random.shuffle(paths_copy)
             self.samples, unused_files = self._load_sub_set_from_files(paths_copy)
             self.used_filenames = self._list_difference(file_paths, unused_files)
-        if self.subset_filenames_file is not None and not self.subset_filenames_file.exists():
-            with open(self.subset_filenames_file, 'wb') as f:
-                pickle.dump(self.used_filenames, f)
+        if self.save_file is not None:
+            with open(self.save_file, 'wb') as f:
+                pickle.dump([str(fn) for fn in self.used_filenames], f)
         return unused_files
 
     def get_samples(self):
@@ -397,6 +412,7 @@ class LoopingDataGenerator:
                  epochs=1,
                  num_validation_samples=0,
                  num_test_samples=0,
+                 split_load_path=None,
                  split_save_path=None,
                  num_workers=0,
                  cache_path=None,
@@ -425,9 +441,9 @@ class LoopingDataGenerator:
         all_files = self._discover_files(data_paths, gather_data)
         self.logger.info("Generating validation and test data splits.")
         self.eval_set_generator = SubSetGenerator(load_data, "validation_set", num_validation_samples,
-                                                  save_path=split_save_path)
+                                                  load_path=split_load_path, save_path=split_save_path)
         self.test_set_generator = SubSetGenerator(load_data, "test_set", num_test_samples,
-                                                  save_path=split_save_path)
+                                                  load_path=split_load_path, save_path=split_save_path)
         remaining_files = self.eval_set_generator.prepare_subset(all_files)
         remaining_files = self.test_set_generator.prepare_subset(remaining_files)
         self.logger.info(f"{len(remaining_files)} files remain after splitting eval and test sets.")
