@@ -421,6 +421,7 @@ class LoopingDataGenerator:
                  ):
         self.epochs = epochs  # For compatibility with the MasterTrainer
         self.batch_size = batch_size  # For compatibility with the MasterTrainer
+        self.num_workers = num_workers
         self.remaining_epochs = epochs
         self.store_samples = True
         self.batch_size = batch_size
@@ -447,11 +448,10 @@ class LoopingDataGenerator:
         remaining_files = self.eval_set_generator.prepare_subset(all_files)
         remaining_files = self.test_set_generator.prepare_subset(remaining_files)
         self.logger.info(f"{len(remaining_files)} files remain after splitting eval and test sets.")
+        self.file_iterable = FileSetIterable(remaining_files, load_data,
+                                             cache_path=cache_path, cache_mode=cache_mode)
+        self.iterator = None
 
-        loader_iterable = FileSetIterable(remaining_files, load_data,
-                                          cache_path=cache_path, cache_mode=cache_mode)
-        self.iterator = iter(torch.utils.data.DataLoader(loader_iterable,
-                                                         batch_size=batch_size, num_workers=num_workers))
         self.logger.info("Data generator initialization is done.")
 
     def _discover_files(self, data_paths, gather_data):
@@ -462,10 +462,16 @@ class LoopingDataGenerator:
         self.logger.debug(f"Gathered {len(paths)} files.")
         return paths
 
+    def _create_initial_dataloader(self):
+        self.iterator = iter(torch.utils.data.DataLoader(self.file_iterable,
+                                                         batch_size=self.batch_size, num_workers=self.num_workers))
+
     def __iter__(self):
         return self
 
     def __next__(self):
+        if self.iterator is None:
+            self._create_initial_dataloader()
         try:
             batch = next(self.iterator)
             if self.store_samples:
