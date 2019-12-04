@@ -226,6 +226,18 @@ class FileDiscovery:
 
 
 class SubSetGenerator:
+    """ This class is responsible for creating and loading test and validation splits.
+    Given a set of filenames, it will load a subset of samples and return unused files.
+
+    Args:
+        load_data (function): A function that can load a list of samples given a filename 
+            MUST return the following format:
+            [(data_1, label_1), ... , (data_n, label_n)]
+        subset_name (str): The name of this subset
+        num_samples (int): The number of samples in this subset
+        load_path (Path): A path for loading existing splits
+        save_path (Path): A path for saving the used splits
+    """
     def __init__(self, load_data, subset_name, num_samples, load_path=None, save_path=None):
         self.logger = logging.getLogger(__name__)
         self.load_data = load_data
