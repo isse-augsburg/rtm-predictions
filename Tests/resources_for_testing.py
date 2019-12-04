@@ -23,9 +23,8 @@ elif getpass.getuser() == 'hartmade':
     test_out_dir = Path('/cfs/home/h/a/hartmade/test_output')
 
 elif getpass.getuser() == 'lodes':
-    test_out_dir = Path(r'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/l/o/lodesluk/code/tests')
-    test_src_dir = Path(r'/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=home/s/t/stiebesi/code/tests'
-                        '/test_data')
+    test_out_dir = Path('/cfs/home/l/o/lodesluk/code/tests')
+    test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
 
 elif getpass.getuser() == 'Lukas':
     test_out_dir = Path(r'X:\l\o\lodesluk\code\tests')
