@@ -33,7 +33,12 @@ elif getpass.getuser() == 'Lukas':
 elif running_in_docker():
     test_out_dir = Path('/cache')
     test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
+
+elif getpass.getuser() == 'schroeni':
+    test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
+    test_out_dir = Path('/cfs/home/s/c/schroeni/test_out') 
 else:
+    print("Invalid user")
     raise Exception("User not defined. Please define username.")
 
 test_training_src_dir = test_src_dir
