@@ -415,7 +415,7 @@ class HDF5DBToolbox:
         dir_path = Path(path)
         h5db_path = dir_path / Path(filename + str(".h5db"))
         if h5db_path.is_file():
-            infile = open(dir_path / Path(filename + ".hdf5db"), "rb")
+            infile = open(dir_path / Path(filename + ".h5db"), "rb")
             self.hdf5_object_list = pickle.load(infile)
             infile.close()
             print("HDF5DB loaded")

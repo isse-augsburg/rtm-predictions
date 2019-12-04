@@ -117,7 +117,7 @@ class DrySpotSensorTrainer:
             if instance is None:
                 continue
             for num, i in enumerate(instance):
-                transform_to_tensor_and_cache(i, data_list, 0, None)
+                transform_to_tensor_and_cache(i, data_list)
                 if len(data_list) >= self.num_test_samples:
                     full = True
             if full:
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     else:
         _data_source_paths = []
 
-    # _data_source_paths = apply_blacklists(_data_source_paths)
+    _data_source_paths = apply_blacklists(_data_source_paths)
 
     # Running with the same data sets
     if socket.gethostname() == "swtse130":
