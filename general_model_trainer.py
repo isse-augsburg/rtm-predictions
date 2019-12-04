@@ -9,25 +9,26 @@ from Utils import logging_cfg
 
 
 class ModelTrainer:
-    def __init__(self,
-                 data_source_paths,
-                 save_datasets_path,
-                 load_datasets_path=None,
-                 cache_path=None,
-                 batch_size=1,
-                 max_queue_length=4,
-                 eval_freq=2,
-                 train_print_freq=2,
-                 epochs=10,
-                 num_workers=10,
-                 num_validation_samples=10,
-                 num_test_samples=10,
-                 data_processing_function=None,
-                 data_gather_function=None,
-                 model=None):
+    def __init__(
+        self,
+        data_source_paths,
+        save_datasets_path,
+        load_datasets_path=None,
+        cache_path=None,
+        batch_size=1,
+        max_queue_length=4,
+        eval_freq=2,
+        train_print_freq=2,
+        epochs=10,
+        num_workers=10,
+        num_validation_samples=10,
+        num_test_samples=10,
+        data_processing_function=None,
+        data_gather_function=None,
+        model=None,
+    ):
         self.train_print_frequency = train_print_freq
-        self.initial_timestamp = str(
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
@@ -68,7 +69,14 @@ class ModelTrainer:
             logger.exception("Fatal Error:")
             exit()
 
-    def run_training(self, comment, loss_criterion, learning_rate, calc_metrics, classification_evaluator):
+    def run_training(
+        self,
+        comment,
+        loss_criterion,
+        learning_rate,
+        calc_metrics,
+        classification_evaluator,
+    ):
         save_path = self.save_datasets_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)
         logging_cfg.apply_logging_config(save_path)
@@ -76,7 +84,9 @@ class ModelTrainer:
         logger = logging.getLogger(__name__)
 
         logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
+        self.training_data_generator = self.create_datagenerator(
+            save_path, test_mode=False
+        )
 
         logger.info("Generating Model")
 
@@ -96,7 +106,7 @@ class ModelTrainer:
             calc_metrics=calc_metrics,
             train_print_frequency=self.train_print_frequency,
             eval_frequency=self.eval_freq,
-            classification_evaluator=classification_evaluator
+            classification_evaluator=classification_evaluator,
         )
         logger.info("The Training Will Start Shortly")
 
