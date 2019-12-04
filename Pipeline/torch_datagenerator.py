@@ -463,6 +463,10 @@ class LoopingDataGenerator:
         return paths
 
     def _create_initial_dataloader(self):
+        # TODO: drop_last=True applies to every individual worker,
+        # so we can loose up to (self.batch_size-1)*self.num_workers samples.
+        # We could wrap something around the DataLoader to combine short batches into full batches
+        # and loose at most self.batch_size-1 samples.
         self.iterator = iter(torch.utils.data.DataLoader(self.file_iterable, drop_last=True,
                                                          batch_size=self.batch_size, num_workers=self.num_workers))
 
