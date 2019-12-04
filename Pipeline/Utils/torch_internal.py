@@ -279,6 +279,15 @@ class SubSetGenerator:
         return subset, sample_iterator.get_remaining_files()
 
     def prepare_subset(self, file_paths):
+        """ Prepare the subset from the given file paths.
+        This will either load a subset of the files in file_path or load a stored split.
+
+        Args:
+            file_paths (list of Path): A list of paths to files to load.
+
+        Returns:
+            A list of file paths that can still be used
+        """
         if self.load_file is not None and self.load_file.is_file():
             with open(self.load_file, 'rb') as f:
                 self.used_filenames = [Path(fn) for fn in pickle.load(f)]
@@ -294,6 +303,12 @@ class SubSetGenerator:
         return unused_files
 
     def get_samples(self):
+        """ Get the list of samples for this subset.
+        If it was not yet loaded, this will do so.
+
+        Returns:
+            A list of samples
+        """
         if self.used_filenames is None:
             raise RuntimeError(f"Cannot get subset samples without preparing files first! "
                                f"Call {type(self).__name__}.prepare_subset first.")
