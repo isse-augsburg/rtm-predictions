@@ -1,4 +1,3 @@
-import os
 import shutil
 import unittest
 from datetime import datetime
@@ -166,7 +165,7 @@ class TestHDF5DB(unittest.TestCase):
             }
         }
 
-        os.mkdir(self.testfolder)
+        self.testfolder.mkdir(parents=True, exist_ok=True)
         self.test_object = HDF5Object()
         self.test_object.meta_path = self.testfolder / self.path_meta
         self.test_object.output_frequency_type = self.output_frequency_type

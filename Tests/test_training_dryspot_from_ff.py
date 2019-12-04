@@ -1,38 +1,37 @@
+import logging
 import re
 import shutil
 import unittest
-import logging
+
 import Tests.resources_for_testing as resources
-import model_trainer_ok_notok as mt
+from model_trainer_dryspot import DrySpotTrainer
 
 
-class TestOkNotOkTraining(unittest.TestCase):
+class TestTrainingDryspotFF(unittest.TestCase):
     def setUp(self):
         self.training_save_path = resources.test_training_out_dir
-        self.training_data_paths = [
-            resources.test_training_src_dir / "2019-07-11_15-14-48_100p"
-        ]
+        self.training_data_paths = [resources.test_training_src_dir / 'dry_spot_from_ff']
         self.expected_num_epochs_during_training = 1
-
-    def test_training_ok_notok(self):
-        self.model_trainer = mt.create_model_trainer(
+        self.dt = DrySpotTrainer(
             data_source_paths=self.training_data_paths,
-            save_path=self.training_save_path,
+            batch_size=10,
+            eval_freq=1,
+            save_datasets_path=self.training_save_path,
             epochs=self.expected_num_epochs_during_training,
             num_validation_samples=5,
-            num_test_samples=0,
+            num_test_samples=5,
         )
 
-        mt.run_training(self.model_trainer)
-
+    def test_training(self):
+        self.dt.run_training()
         dirs = [e for e in self.training_save_path.iterdir() if e.is_dir()]
         with open(dirs[0] / "output.log") as f:
             content = f.read()
-        epochs = re.findall("Mean Loss on Eval", content)
-        self.assertTrue(len(epochs) > 0)
+            epochs = re.findall("Mean Loss on Eval", content)
+            self.assertTrue(len(epochs) > 0)
 
     def tearDown(self) -> None:
-        self.model_trainer.training_data_generator.end_threads()
+        self.dt.training_data_generator.end_threads()
         logging.shutdown()
         r = logging.getLogger("")
         [r.removeHandler(x) for x in r.handlers]
