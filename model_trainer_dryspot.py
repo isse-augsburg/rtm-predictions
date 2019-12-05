@@ -17,6 +17,7 @@ from Pipeline import (
     data_gather as dg,
     data_loader_dryspot
 )
+from Pipeline.Utils.looping_strategies import ComplexListLoopingStrategy
 from Resources import resources_for_training
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
@@ -66,7 +67,7 @@ class DrySpotTrainer:
                 split_save_path=self.load_datasets_path or save_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
-                looping_strategy=td.ComplexListLoopingStrategy(self.batch_size)
+                looping_strategy=ComplexListLoopingStrategy(self.batch_size)
             )
         except Exception:
             logger = logging.getLogger(__name__)

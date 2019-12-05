@@ -9,7 +9,6 @@ from pathlib import Path
 import h5py
 import numpy as np
 from prettytable import PrettyTable
-from tqdm import tqdm
 
 from HDF5DB.hdf5db_object import HDF5Object
 
@@ -296,7 +295,7 @@ class HDF5DBToolbox:
         if dir_path.is_dir():
             # List all hdf5-files
             logger.info("Data is being retrieved...")
-            for i in tqdm([el for el in tqdm(dir_path.rglob("**/*.hdf5"))]):
+            for i in dir_path.rglob("**/*.hdf5"):
                 # Check that only *.hdf5 and *.erfh5 files will be opened
                 if h5py.is_hdf5(i.as_posix()):
                     erfh5_file = Path(str(i).replace("meta_data.hdf5", "RESULT.erfh5"))
