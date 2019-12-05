@@ -7,10 +7,6 @@ from Trainer.evaluation import BinaryClassificationEvaluator
 import resources_for_training as r
 
 
-def get_comment():
-    return "No comment"
-
-
 def create_model_trainer(
     data_source_paths,
     save_path,
@@ -59,7 +55,6 @@ def run_training(
 ):
 
     model_trainer.run_training(
-        get_comment(),
         loss_criterion,
         learning_rate,
         calc_metrics,
