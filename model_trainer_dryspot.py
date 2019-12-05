@@ -1,10 +1,7 @@
-import argparse
 import getpass
 import logging
 import math
-import os
 import socket
-import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -23,7 +20,7 @@ from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
-from Utils.training_utils import apply_blacklists
+from Utils.training_utils import apply_blacklists, read_cmd_params
 
 
 class DrySpotTrainer:
@@ -118,7 +115,7 @@ class DrySpotTrainer:
                                                             )
 
         logger.info("Saving code and generating SLURM script for later evaluation")
-        eval_preparation(save_path, os.path.abspath(__file__))
+        eval_preparation(save_path)
 
         evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=True)
 
@@ -146,19 +143,9 @@ class DrySpotTrainer:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run training or test.')
-    parser.add_argument('--eval', action='store_true', help='Run a test.')
-    parser.add_argument('--eval_path', type=str, default=None, help='Full directory path of trained model (to test).')
-    args = parser.parse_args()
+    args = read_cmd_params()
     run_eval = args.eval
     eval_path = args.eval_path
-
-    if run_eval and eval_path is None:
-        logger = logging.getLogger(__name__)
-        logger.error("No eval_path given. You should specify the --eval_path argument if you would like to run a test.")
-        logger.error(parser.format_help())
-        logging.shutdown()
-        sys.exit()
 
     num_samples_runs = 2000000  # 2.1 M - blacklist, still a guestimate # 9080 * 188  # guestimate ~ 188 p. Sim.
     _train_print_freq = 10

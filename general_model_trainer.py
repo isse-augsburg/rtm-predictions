@@ -1,22 +1,29 @@
 import logging
 import socket
 from datetime import datetime
+from pathlib import Path
+
 import torch
 from torch import nn
-from Pipeline import erfh5_pipeline as pipeline
+
+from Pipeline import (
+    torch_datagenerator as td,
+    data_gather as dg,
+)
 from Trainer.GenericTrainer import MasterTrainer
 from Utils import logging_cfg
+from Utils.eval_utils import eval_preparation
 
 
 class ModelTrainer:
     def __init__(
         self,
+        model,
         data_source_paths,
         save_datasets_path,
         load_datasets_path=None,
         cache_path=None,
         batch_size=1,
-        max_queue_length=4,
         eval_freq=2,
         train_print_freq=2,
         epochs=10,
@@ -25,14 +32,12 @@ class ModelTrainer:
         num_test_samples=10,
         data_processing_function=None,
         data_gather_function=None,
-        model=None,
     ):
         self.train_print_frequency = train_print_freq
         self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.cache_path = cache_path
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
-        self.max_queue_length = max_queue_length
         self.eval_freq = eval_freq
         self.save_datasets_path = save_datasets_path
         self.load_datasets_path = load_datasets_path
@@ -42,36 +47,32 @@ class ModelTrainer:
         self.num_test_samples = num_test_samples
         self.data_processing_function = data_processing_function
         self.data_gather_function = data_gather_function
-        self.training_data_generator = None
+        self.data_generator = None
         self.test_data_generator = None
         self.model = model
 
-    def create_datagenerator(self, save_path, test_mode=False):
+    def create_datagenerator(self, save_path):
         try:
-            generator = pipeline.ERFH5DataGenerator(
-                data_paths=self.data_source_paths,
-                num_validation_samples=self.num_validation_samples,
-                num_test_samples=self.num_test_samples,
+            generator = td.LoopingDataGenerator(
+                self.data_source_paths,
+                dg.get_filelist_within_folder,
+                self.data_processing_function,
                 batch_size=self.batch_size,
                 epochs=self.epochs,
-                max_queue_length=self.max_queue_length,
-                data_processing_function=self.data_processing_function,
-                data_gather_function=self.data_gather_function,
+                num_validation_samples=self.num_validation_samples,
+                num_test_samples=self.num_test_samples,
+                split_save_path=self.load_datasets_path or save_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
-                save_path=save_path,
-                load_datasets_path=self.load_datasets_path,
-                test_mode=test_mode,
             )
-            return generator
         except Exception:
             logger = logging.getLogger(__name__)
             logger.exception("Fatal Error:")
             exit()
+        return generator
 
     def run_training(
         self,
-        comment,
         loss_criterion,
         learning_rate,
         calc_metrics,
@@ -83,14 +84,15 @@ class ModelTrainer:
 
         logger = logging.getLogger(__name__)
 
-        logger.info("Generating Generator")
-        self.training_data_generator = self.create_datagenerator(
-            save_path, test_mode=False
-        )
+        logger.info(f"Generating Generator || Batch size: {self.batch_size}")
+        data_generator = self.create_datagenerator(save_path)
+
+        logger.info("Saving code and generating SLURM script for later evaluation")
+        eval_preparation(save_path)
 
         logger.info("Generating Model")
-
-        logger.info("Model to GPU")
+        if torch.cuda.is_available():
+            logger.info("Model to GPU")
         if socket.gethostname() == "swt-dgx1":
             self.model = nn.DataParallel(self.model).to("cuda:0")
         else:
@@ -98,8 +100,7 @@ class ModelTrainer:
 
         train_wrapper = MasterTrainer(
             self.model,
-            self.training_data_generator,
-            comment=comment,
+            data_generator,
             loss_criterion=loss_criterion,
             savepath=save_path,
             learning_rate=learning_rate,
@@ -111,4 +112,35 @@ class ModelTrainer:
         logger.info("The Training Will Start Shortly")
 
         train_wrapper.start_training()
+        logging.shutdown()
+
+    def inference_on_test_set(
+            self,
+            output_path: Path,
+            classification_evaluator):
+        save_path = output_path / "eval_on_test_set"
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        logging_cfg.apply_logging_config(save_path, eval=True)
+
+        logger = logging.getLogger(__name__)
+
+        if socket.gethostname() == "swt-dgx1":
+            logger.info('Invoking data parallel model.')
+            self.model = nn.DataParallel(self.model).to("cuda:0")
+        else:
+            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        logger.info("Generating Test Generator")
+        data_generator = self.create_datagenerator(save_path)
+        eval_wrapper = MasterTrainer(
+            self.model,
+            data_generator,
+            classification_evaluator=classification_evaluator,
+        )
+        eval_wrapper.load_checkpoint(output_path / "checkpoint.pth")
+
+        data_list = data_generator.get_test_samples()
+
+        eval_wrapper.eval(data_list, test_mode=True)
         logging.shutdown()

@@ -50,9 +50,7 @@ class MasterTrainer:
         self.loss_criterion = loss_criterion
         self.learning_rate = learning_rate
         self.loss_criterion = loss_criterion.cuda()
-        self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.learning_rate
-        )
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu")
         self.eval_func = eval_func

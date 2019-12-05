@@ -2,7 +2,6 @@ import argparse
 import getpass
 import logging
 import math
-import os
 import pickle
 import socket
 import sys
@@ -132,7 +131,7 @@ class SensorTrainer:
         logger = logging.getLogger(__name__)
 
         logger.info("Saving code and generating SLURM script for later evaluation")
-        eval_preparation(save_path, os.path.abspath(__file__))
+        eval_preparation(save_path)
 
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
