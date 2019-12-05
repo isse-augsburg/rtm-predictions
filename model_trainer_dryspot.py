@@ -90,8 +90,8 @@ class DrySpotTrainer:
 
         logger.info("Generating Test Generator")
         data_generator = self.create_datagenerator(save_path,
-                                                        data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
-                                                        )
+                                                   data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                                                   )
         evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=False)
         eval_wrapper = MasterTrainer(
             self.model,
@@ -113,8 +113,8 @@ class DrySpotTrainer:
 
         logger.info(f"Generating Generator || Batch size: {self.batch_size}")
         training_data_generator = self.create_datagenerator(save_path,
-                                                                 data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
-                                                                 )
+                                                            data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                                                            )
 
         logger.info("Saving code and generating SLURM script for later evaluation")
         eval_preparation(save_path, os.path.abspath(__file__))
