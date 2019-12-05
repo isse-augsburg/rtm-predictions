@@ -17,6 +17,7 @@ from Pipeline import (
     data_gather as dg,
     data_loader_dryspot
 )
+from Pipeline.Utils.looping_strategies import ComplexListLoopingStrategy
 from Resources import resources_for_training
 from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
@@ -66,7 +67,7 @@ class DrySpotTrainer:
                 split_save_path=self.load_datasets_path or save_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
-                looping_strategy=td.ComplexListLoopingStrategy(self.batch_size)
+                looping_strategy=ComplexListLoopingStrategy(self.batch_size)
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -90,9 +91,9 @@ class DrySpotTrainer:
 
         logger.info("Generating Test Generator")
         data_generator = self.create_datagenerator(save_path,
-                                                   data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                                                   data_loader_dryspot.get_flowfront_bool_dryspot_143x111
                                                    )
-        evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=False)
+        evaluator = BinaryClassificationEvaluator(save_path=save_path, skip_images=False, with_text_overlay=True)
         eval_wrapper = MasterTrainer(
             self.model,
             data_generator,
@@ -113,7 +114,7 @@ class DrySpotTrainer:
 
         logger.info(f"Generating Generator || Batch size: {self.batch_size}")
         training_data_generator = self.create_datagenerator(save_path,
-                                                            data_loader_dryspot.get_flowfront_bool_dryspot_143x111,
+                                                            data_loader_dryspot.get_flowfront_bool_dryspot_143x111
                                                             )
 
         logger.info("Saving code and generating SLURM script for later evaluation")

@@ -14,6 +14,7 @@ from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils import logging_cfg
 
 
+# TODO Delete plz
 def get_comment():
     return "Trying 38x30 sensor grid as input for a conventional CNN. Using subsampled version of sequence."
 
@@ -81,7 +82,6 @@ class SuccessTrainer:
         train_wrapper = MasterTrainer(
             model,
             self.training_data_generator,
-            comment=get_comment(),
             loss_criterion=torch.nn.BCELoss(),
             savepath=save_path,
             learning_rate=0.0005,

@@ -100,10 +100,6 @@ def create_datagenerator_pressure_flowfront(paths, save_path=None,
     return generator
 
 
-def get_comment():
-    return "Hallo"
-
-
 def inference_on_test_set(path):
     save_path = path / "eval_on_test_set"
     save_path.mkdir(parents=True, exist_ok=True)
@@ -165,7 +161,6 @@ def run_training(save_path):
     train_wrapper = MasterTrainer(
         model,
         generator,
-        comment=get_comment(),
         loss_criterion=torch.nn.MSELoss(),
         # loss_criterion=pixel_wise_loss_multi_input_single_label,
         savepath=save_path,

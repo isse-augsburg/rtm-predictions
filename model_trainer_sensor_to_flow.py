@@ -25,10 +25,6 @@ from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
 
 
-def get_comment():
-    return "Hallo"
-
-
 class SensorTrainer:
     def __init__(self,
                  data_source_paths,
@@ -152,7 +148,6 @@ class SensorTrainer:
         train_wrapper = MasterTrainer(
             model,
             self.training_data_generator,
-            comment=get_comment(),
             loss_criterion=torch.nn.MSELoss(),
             savepath=save_path,
             learning_rate=0.0001,

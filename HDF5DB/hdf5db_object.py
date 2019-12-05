@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import datetime
 
@@ -330,5 +331,6 @@ class HDF5Object:
             y.add_row(["Age of file", str(self.age)])
         if hasattr(self, "number_of_sensors"):
             y.add_row(["Number_sensors", str(self.number_of_sensors)])
-        print(x)
-        print(y)
+        logger = logging.getLogger(__name__)
+        logger.info(x)
+        logger.info(y)
