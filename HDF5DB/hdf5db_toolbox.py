@@ -1,3 +1,4 @@
+import logging
 import operator
 import pickle
 import re
@@ -8,7 +9,6 @@ from pathlib import Path
 import h5py
 import numpy as np
 from prettytable import PrettyTable
-from tqdm import tqdm
 
 from HDF5DB.hdf5db_object import HDF5Object
 
@@ -50,7 +50,8 @@ def show_selection_options():
     options.add_row(["single_states"])
     options.add_row(["age"])
     options.add_row(["number_of_sensors"])
-    print(options)
+    logger = logging.getLogger(__name__)
+    logger.info(options)
 
 
 def select_per_object(obj, variable, comparison_operator, value):
@@ -290,10 +291,11 @@ class HDF5DBToolbox:
         erfh5_path = []
         hdf5_path = []
         dir_path = Path(path)
+        logger = logging.getLogger(__name__)
         if dir_path.is_dir():
             # List all hdf5-files
-            print("Data is being retrieved...")
-            for i in tqdm([el for el in tqdm(dir_path.rglob("**/*.hdf5"))]):
+            logger.info("Data is being retrieved...")
+            for i in dir_path.rglob("**/*.hdf5"):
                 # Check that only *.hdf5 and *.erfh5 files will be opened
                 if h5py.is_hdf5(i.as_posix()):
                     erfh5_file = Path(str(i).replace("meta_data.hdf5", "RESULT.erfh5"))
@@ -301,29 +303,30 @@ class HDF5DBToolbox:
                         hdf5_path.append(i.as_posix())
                         erfh5_path.append(erfh5_file.as_posix())
                 else:
-                    print(f"{str(i)} does not exist. The folder was skipped.")
-            print("H5-files are currently being scanned...")
+                    logger.warning(f"{str(i)} does not exist. The folder was skipped.")
+            logger.info("H5-files are currently being scanned...")
             with Pool(20) as p:
                 new_objects = p.starmap(
                     HDF5Object, zip(hdf5_path, erfh5_path)
                 )
-            print("Objects are currently being added...")
+            logger.info("Objects are currently being added...")
             for i in new_objects:
                 if i.path_meta not in self.get_meta_path_list():
                     self.hdf5_object_list.append(i)
-            print(
+            logger.info(
                 f"{str(abs(temp - len(self.hdf5_object_list)))} Objects have been added."
             )
         else:
-            print(f"The path {path} does not exist! No objects were added!")
+            logger.info(f"The path {path} does not exist! No objects were added!")
 
     def select(self, variable, comparison_operator, value):
         my_variable = []
         my_value = []
         my_comparison_operator = []
         selected = []
+        logger = logging.getLogger(__name__)
         if comparison_operator not in ["=", ">", "<"]:
-            print("The operator is unfortunately not available. Nothing was selected!")
+            logger.warning("The operator is not available. Nothing was selected!")
             return -1
         for i in range(len(self.hdf5_object_list)):
             my_variable.append(variable)
@@ -337,7 +340,7 @@ class HDF5DBToolbox:
         selected = [a for a in selected if a is not None]
 
         if len(selected) == 0:
-            print(
+            logger.warning(
                 f"No matches were found for {variable} {comparison_operator} {value}. No filter was applied!"
                 + " Maybe the operator is not available for this parameter."
             )
@@ -345,11 +348,11 @@ class HDF5DBToolbox:
         else:
             self.hdf5_object_list = selected
             if len(selected) > 1:
-                print(
+                logger.info(
                     f"The filter {variable} {operator} {value} was applied. {len(selected)} objects were found."
                 )
             else:
-                print(
+                logger.info(
                     f"The filter {variable} {operator} {value} was applied. {len(selected)} object was found."
                 )
             return 1
@@ -358,9 +361,9 @@ class HDF5DBToolbox:
         if not (len(self.hdf5_object_list) == 0):
             for val in self.hdf5_object_list:
                 val.show_object_content()
-                print("\n")
         else:
-            print("No objects were found.")
+            logger = logging.getLogger(__name__)
+            logger.warning("No objects were found.")
 
     def get_meta_path_list(self):
         meta = [obj.path_meta for obj in self.hdf5_object_list]
@@ -371,32 +374,34 @@ class HDF5DBToolbox:
         return result
 
     def save(self, path, filename="HDF5DB"):
+        logger = logging.getLogger(__name__)
         dir_path = Path(path)
         if dir_path.is_dir():
             if not (len(self.hdf5_object_list) == 0):
                 file = Path(filename + r".hdf5db")
                 h5db_path = dir_path / file
                 if h5db_path.is_file():
-                    print(
+                    logger.info(
                         f"A file with the given name already exists. {filename} will be overwritten. "
                         "Do you want to continue?\nPlease type in yes to continue."
                     )
                     userinput = input("")
                     if not (userinput == "yes"):
-                        print("Nothing has been saved.")
+                        logger.warning("Nothing has been saved.")
                         return
                     else:
-                        print(f"{filename} will be overwritten.")
+                        logger.info(f"{filename} will be overwritten.")
                 outfile = open(dir_path / file, "wb")
                 pickle.dump(self.hdf5_object_list, outfile)
                 outfile.close()
-                print("HDF5DB saved")
+                logger.info("HDF5DB saved")
             else:
-                print("No objects were found. Nothing was saved!")
+                logger.warning("No objects were found. Nothing was saved!")
         else:
-            print(f"{path} does not exist! Nothing was saved!")
+            logger.warning(f"{path} does not exist! Nothing was saved!")
 
     def force_save(self, path, filename="HDF5DB"):
+        logger = logging.getLogger(__name__)
         dir_path = Path(path)
         if dir_path.is_dir():
             if not (len(self.hdf5_object_list) == 0):
@@ -405,19 +410,20 @@ class HDF5DBToolbox:
                 outfile = open(h5db_path, "wb")
                 pickle.dump(self.hdf5_object_list, outfile)
                 outfile.close()
-                print("HDF5DB saved")
+                logger.info("HDF5DB saved")
             else:
-                print("No objects were found. Nothing was saved!")
+                logger.warning("No objects were found. Nothing was saved!")
         else:
-            print(f"{path} does not exist! Nothing was saved!")
+            logger.warning(f"{path} does not exist! Nothing was saved!")
 
     def load(self, path, filename="HDF5DB"):
+        logger = logging.getLogger(__name__)
         dir_path = Path(path)
         h5db_path = dir_path / Path(filename + str(".h5db"))
         if h5db_path.is_file():
             infile = open(dir_path / Path(filename + ".h5db"), "rb")
             self.hdf5_object_list = pickle.load(infile)
             infile.close()
-            print("HDF5DB loaded")
+            logger.info("HDF5DB loaded")
         else:
-            print("There is no h5db-file at the given path with the given name!")
+            logger.warning("There is no h5db-file at the given path with the given name!")

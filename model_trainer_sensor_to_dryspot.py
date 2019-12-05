@@ -18,10 +18,6 @@ from Utils import logging_cfg
 from Utils.training_utils import transform_to_tensor_and_cache, apply_blacklists
 
 
-def get_comment():
-    return "Hallo"
-
-
 class DrySpotSensorTrainer:
     def __init__(
         self,
@@ -150,7 +146,6 @@ class DrySpotSensorTrainer:
         train_wrapper = MasterTrainer(
             self.model,
             self.training_data_generator,
-            comment=get_comment(),
             loss_criterion=torch.nn.MSELoss(),
             savepath=save_path,
             learning_rate=0.0001,

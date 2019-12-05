@@ -473,9 +473,7 @@ class TestHDF5DB(unittest.TestCase):
         # Position lower left x of runner
         # <
         applied = test_db.select("pos_lower_leftx_runner", "<", 30)
-        self.assertLess(
-            np.amax(test_db.hdf5_object_list[0].pos_lower_leftx_runner), 30
-        )
+        self.assertLess(np.amax(test_db.hdf5_object_list[0].pos_lower_leftx_runner), 30)
         self.assertEqual(applied, 1)
         # >
         applied = test_db.select("pos_lower_leftx_runner", ">", 10)
@@ -495,9 +493,7 @@ class TestHDF5DB(unittest.TestCase):
         # Position lower left y of runner
         # <
         applied = test_db.select("pos_lower_lefty_runner", "<", 40)
-        self.assertLess(
-            np.amax(test_db.hdf5_object_list[0].pos_lower_lefty_runner), 40
-        )
+        self.assertLess(np.amax(test_db.hdf5_object_list[0].pos_lower_lefty_runner), 40)
         self.assertEqual(applied, 1)
         # >
         applied = test_db.select("pos_lower_lefty_runner", ">", 20)

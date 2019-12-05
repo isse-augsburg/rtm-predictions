@@ -22,8 +22,6 @@ class MasterTrainer:
         iterations.
         eval_frequency: Frequency of running a evaluation frequency on held out
         validation set, in iterations.
-        comment: Optional message that is printed to the command line, helps
-        understanding your experiments afterwards
         learning_rate: Optimizer's learning rate
         classification_evaluator: Optional object for evaluating
         classification, see evaluation.py for more details
@@ -38,7 +36,6 @@ class MasterTrainer:
             eval_frequency=100,
             savepath=Path("model.pth"),
             eval_func=None,
-            comment="No custom comment added.",
             learning_rate=0.00001,
             calc_metrics=False,
             classification_evaluator=None,
@@ -58,7 +55,6 @@ class MasterTrainer:
         )
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu")
-        self.comment = comment
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
         self.classification_evaluator = classification_evaluator
@@ -76,14 +72,6 @@ class MasterTrainer:
         self.logger.info("TRAINING COMPLETE.")
         logging.shutdown()
         self.generator.end_threads()
-
-    def test(self, path):
-        self.generator.load_test_set(path)
-        test_list = self.generator.get_test_samples()
-        self.generator.paths = test_list
-        dataset, _ = self.generator.__fill_separate_set_list_from_all_paths(
-            len(self.generator.paths))
-        self.eval(dataset, test_mode=True)
 
     def __print_info(self):
         self.logger.info("###########################################")
@@ -117,7 +105,8 @@ class MasterTrainer:
                 time_sum += time_delta
                 self.logger.info(
                     f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s; "
-                    f"|| Q: {self.generator.get_current_queue_length()}"
+                    f"|| Q: {self.generator.get_current_queue_length()}, "
+                    f"|| {((i % self.eval_frequency) / self.eval_frequency)*100:.2f} % of B"
                 )
                 start_time = time.time()
 
