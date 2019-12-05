@@ -218,7 +218,7 @@ def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
         Yi,
         xi,
         yi,
-        change_meta_file=False,
+        change_meta_file=True,
         save_flowfront_img=True
     )
     del a
