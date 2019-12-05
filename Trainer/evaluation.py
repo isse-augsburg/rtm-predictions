@@ -121,7 +121,7 @@ class BinaryClassificationEvaluator(Evaluator):
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
 
-    def __init__(self, save_path: Path = None, skip_images=True):
+    def __init__(self, save_path: Path = None, skip_images=True, with_text_overlay=False):
         super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
@@ -132,6 +132,7 @@ class BinaryClassificationEvaluator(Evaluator):
             if not self.skip_images:
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.num = 0
+        self.with_text_overlay = with_text_overlay
 
     def commit(self, net_output, label, inputs, *args):
         """Updates the confusion matrix and updates the metrics. 
@@ -163,7 +164,19 @@ class BinaryClassificationEvaluator(Evaluator):
             c = inputs.numpy()
             c = np.squeeze(c)
             c = c.reshape(143, 111)
-            plt.imsave(self.im_save_path / f"{self.num}-pred_{prediction}_label_{label}.jpg", c)
+            ipred = int(prediction)
+            ilabel = int(label)
+            if self.with_text_overlay:
+                fig = plt.figure(figsize=(2, 1.55))
+                ax = fig.add_subplot(111)
+                ax.text(45., 75., f'Label={ilabel}\nPred={ipred}', c='red' if ipred != ilabel else 'green')
+                ax.imshow(c)
+                extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+                plt.axis("off")
+                plt.tight_layout()
+                plt.savefig(self.im_save_path / f"{self.num}-pred_{ipred}_label_{ilabel}.jpg", bbox_inches=extent)
+            else:
+                plt.imsave(self.im_save_path / f"{self.num}-pred_{prediction}_label_{label}.jpg", c)
         self.num += 1
 
     def print_metrics(self):
