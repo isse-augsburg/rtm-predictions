@@ -8,7 +8,6 @@ from torch import nn
 
 from Pipeline import (
     torch_datagenerator as td,
-    data_gather as dg,
 )
 from Trainer.GenericTrainer import MasterTrainer
 from Utils import logging_cfg
@@ -32,6 +31,7 @@ class ModelTrainer:
         num_test_samples=10,
         data_processing_function=None,
         data_gather_function=None,
+        looping_strategy=None,
     ):
         self.train_print_frequency = train_print_freq
         self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
@@ -50,12 +50,13 @@ class ModelTrainer:
         self.data_generator = None
         self.test_data_generator = None
         self.model = model
+        self.looping_strategy = looping_strategy
 
     def create_datagenerator(self, save_path):
         try:
             generator = td.LoopingDataGenerator(
                 self.data_source_paths,
-                dg.get_filelist_within_folder,
+                self.data_gather_function,
                 self.data_processing_function,
                 batch_size=self.batch_size,
                 epochs=self.epochs,
@@ -64,6 +65,7 @@ class ModelTrainer:
                 split_save_path=self.load_datasets_path or save_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
+                looping_strategy=self.looping_strategy
             )
         except Exception:
             logger = logging.getLogger(__name__)

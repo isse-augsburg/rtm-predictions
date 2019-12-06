@@ -104,7 +104,7 @@ class MasterTrainer:
                 self.logger.info(
                     f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s; "
                     f"|| Q: {self.generator.get_current_queue_length()}, "
-                    f"|| {((i % self.eval_frequency) / self.eval_frequency)*100:.2f} % of B"
+                    f"|| {((i % self.eval_frequency) / self.eval_frequency)*100:.2f} % of Epoch"
                 )
                 start_time = time.time()
 

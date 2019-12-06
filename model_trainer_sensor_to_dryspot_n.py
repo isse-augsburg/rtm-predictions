@@ -2,7 +2,8 @@ import torch
 
 import Resources.resources_for_training as r
 from Models.erfh5_ConvModel import SensorDeconvToDryspot
-from Pipeline.data_gather import get_filelist_within_folder
+from Pipeline.Utils.looping_strategies import ComplexListLoopingStrategy
+from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_dryspot import get_sensor_bool_dryspot
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.training_utils import read_cmd_params
@@ -26,7 +27,8 @@ if __name__ == "__main__":
                      num_validation_samples=8192,
                      num_test_samples=8192,
                      data_processing_function=get_sensor_bool_dryspot,
-                     data_gather_function=get_filelist_within_folder,
+                     data_gather_function=get_filelist_within_folder_blacklisted,
+                     looping_strategy=ComplexListLoopingStrategy(batch_size)
                      )
 
     if not args.eval:

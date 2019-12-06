@@ -230,7 +230,7 @@ class SensorDeconvToDryspot(nn.Module):
         t3 = F.relu(self.details(t2))
         t3 = self.maxpool(t3)
         t4 = torch.sigmoid(self.details2(t3))
-        v = t4.view((t4.shape[0], 1024,-1)).contiguous()
+        v = t4.view((t4.shape[0], 1024, -1)).contiguous()
         out = v.mean(-1).contiguous()
         out = F.relu(self.linear2(out))
         out = F.relu(self.linear3(out))

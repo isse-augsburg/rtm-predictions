@@ -147,7 +147,7 @@ class BinaryClassificationEvaluator(Evaluator):
 
         prediction = np.around(net_output)
 
-        self.confusion_matrix[int(label[0].cpu())][int(prediction[0].cpu())] += 1
+        self.confusion_matrix[int(prediction[0].cpu())][int(label[0].cpu())] += 1
 
         if np.array_equal(prediction, label):
             if prediction[0] == 1:
@@ -211,7 +211,7 @@ class BinaryClassificationEvaluator(Evaluator):
                                         fn=self.fn)
             ),
         )
-        logger.info("Confusion matrix:\n%s", str(self.confusion_matrix))
+        logger.info("Confusion matrix:\nPred\tTrue%s", str(self.confusion_matrix))
 
     def reset(self):
         """Resets the internal counters for the next evaluation loop. 
