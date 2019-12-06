@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import torch
 
 import Resources.resources_for_training as r
-from Models.erfh5_ConvModel import SensorDeconvToDryspot
+from Models.erfh5_ConvModel import SensorDeconvToDryspot2
 from Pipeline.Utils.looping_strategies import ComplexListLoopingStrategy
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_dryspot import get_sensor_bool_dryspot
@@ -13,8 +15,9 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     num_samples_runs = 2000000
-    batch_size = 512
-    m = ModelTrainer(SensorDeconvToDryspot(),
+    batch_size = 128
+    m = ModelTrainer(SensorDeconvToDryspot2(pretrained=True,
+                                            checkpoint_path=r.checkpoint_1140_sensors_deconv),
                      r.get_data_paths(),
                      r.save_path,
                      load_datasets_path=r.datasets_dryspots,
@@ -39,6 +42,9 @@ if __name__ == "__main__":
             classification_evaluator=BinaryClassificationEvaluator()
         )
     else:
-        m.inference_on_test_set(args.eval_path, BinaryClassificationEvaluator(args.eval_path / "eval_on_test_set",
-                                                                              skip_images=False,
-                                                                              with_text_overlay=True))
+        m.inference_on_test_set(Path(args.eval_path),
+                                BinaryClassificationEvaluator(Path(args.eval_path) / "eval_on_test_set",
+                                                              # TODO fix Image creation when handling sensor input
+                                                              #  reshape etc.
+                                                              skip_images=True,
+                                                              with_text_overlay=True))

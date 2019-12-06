@@ -16,9 +16,10 @@ elif getpass.getuser() == 'lodes':
     save_path = Path('/cfs/share/cache/output_lukas/Local')
     cache_path = Path('/cfs/share/cache')
 
-
-data_root = _home / 's/t/stiebesi/data/RTM/Leoben/output/with_shapes'
-datasets_dryspots = _home / 's/t/stiebesi/data/RTM/Leoben/reference_datasets/dryspot_detection'
+_stiebesi_home = _home / 's/t/stiebesi'
+data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'
+datasets_dryspots = _stiebesi_home / 'data/RTM/Leoben/reference_datasets/dryspot_detection'
+checkpoint_1140_sensors_deconv = _stiebesi_home / 'results_leoben/4_three_week_run/2019-09-25_16-42-53/checkpoint.pth'
 
 
 def get_all_data_paths():

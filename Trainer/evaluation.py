@@ -7,6 +7,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas
 from PIL import Image
 
 """ 
@@ -211,7 +212,9 @@ class BinaryClassificationEvaluator(Evaluator):
                                         fn=self.fn)
             ),
         )
-        logger.info("Confusion matrix:\nPred\tTrue%s", str(self.confusion_matrix))
+        df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
+        df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)
+        logger.info(f'Confusion matrix:\n{df}')
 
     def reset(self):
         """Resets the internal counters for the next evaluation loop. 
