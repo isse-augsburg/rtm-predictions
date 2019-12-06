@@ -241,10 +241,8 @@ class SensorDeconvToDryspot(nn.Module):
 
 
 class SensorDeconvToDryspot2(nn.Module):
-    def __init__(self, input_dim=1140, pretrained=False, checkpoint_path=None):
+    def __init__(self, pretrained=False, checkpoint_path=None, freeze_nlayers=0):
         super(SensorDeconvToDryspot2, self).__init__()
-        self.fc = Linear(input_dim, 1140)
-
         self.ct1 = ConvTranspose2d(1, 16, 3, stride=2, padding=0)
         self.ct2 = ConvTranspose2d(16, 32, 7, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(32, 64, 15, stride=2, padding=0)
@@ -259,6 +257,18 @@ class SensorDeconvToDryspot2(nn.Module):
         self.linear4 = Linear(256, 1)
         if pretrained:
             self.load_model(checkpoint_path)
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            print(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
 
     def forward(self, inputs):
         f = inputs
@@ -293,7 +303,7 @@ class SensorDeconvToDryspot2(nn.Module):
 
         new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
-        names = {'ct1', 'ct2', 'ct3', 'ct3', 'ct4', 'shaper0'}
+        names = {'ct1', 'ct2', 'ct3', 'ct4', 'shaper0'}
         for k, v in model_state_dict.items():
             splitted = k.split('.')
             name = splitted[1]  # remove `module.`

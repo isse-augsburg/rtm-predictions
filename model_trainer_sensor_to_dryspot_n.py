@@ -15,9 +15,10 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     num_samples_runs = 2000000
-    batch_size = 128
+    batch_size = 256
     m = ModelTrainer(SensorDeconvToDryspot2(pretrained=True,
-                                            checkpoint_path=r.checkpoint_1140_sensors_deconv),
+                                            checkpoint_path=r.checkpoint_1140_sensors_deconv,
+                                            freeze_nlayers=5),
                      r.get_data_paths(),
                      r.save_path,
                      load_datasets_path=r.datasets_dryspots,
