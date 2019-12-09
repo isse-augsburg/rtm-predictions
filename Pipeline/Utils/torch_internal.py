@@ -25,7 +25,7 @@ class FileSetIterator:
         worker_id (int): The id of this worker for multiprocessing environments
     """
     def __init__(self, files, load_data, cache_path=None, worker_id=0):
-        self.files = files
+        self.files = list(files) # Copy the file list because we remove the items in this list
         self.load_data = load_data
         self.cache_path = cache_path
         self.sample_queue = Queue()
@@ -108,6 +108,9 @@ class FileSetIterator:
             A list of remaining files.
         """
         return self.files
+
+    def __iter__(self):
+        return self
 
     def __next__(self):
         """ Get the next sample.
