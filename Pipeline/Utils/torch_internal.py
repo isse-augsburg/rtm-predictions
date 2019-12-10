@@ -10,6 +10,8 @@ import random
 import numpy as np
 import torch
 
+from Utils.natural_sorting import natural_sort_key
+
 
 class FileSetIterator:
     """ An iterator for samples stored in a set of files.
@@ -54,7 +56,7 @@ class FileSetIterator:
             if s_path.exists():
                 # Get all pickled sample files
                 instance_f = s_path.glob("*.pt")
-                instance_f = sorted(instance_f)
+                instance_f = sorted(instance_f, key=natural_sort_key)
                 for i in range(len(instance_f) // 2):
                     _data = torch.load(s_path.joinpath(instance_f[i * 2]))
                     _label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
