@@ -2,7 +2,6 @@ import argparse
 import getpass
 import logging
 import math
-import os
 import pickle
 import socket
 import sys
@@ -23,10 +22,6 @@ from Trainer.GenericTrainer import MasterTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
-
-
-def get_comment():
-    return "Hallo"
 
 
 class SensorTrainer:
@@ -136,7 +131,7 @@ class SensorTrainer:
         logger = logging.getLogger(__name__)
 
         logger.info("Saving code and generating SLURM script for later evaluation")
-        eval_preparation(save_path, os.path.abspath(__file__))
+        eval_preparation(save_path)
 
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
@@ -152,7 +147,6 @@ class SensorTrainer:
         train_wrapper = MasterTrainer(
             model,
             self.training_data_generator,
-            comment=get_comment(),
             loss_criterion=torch.nn.MSELoss(),
             savepath=save_path,
             learning_rate=0.0001,

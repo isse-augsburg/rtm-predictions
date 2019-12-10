@@ -42,7 +42,7 @@ def create_index():
 def load_something():
     hdf5db = HDF5DBToolbox()
     hdf5db.load(
-        Path("Y:\cache\HDF5DB_Cache"),
+        Path(r"Y:\cache\HDF5DB_Cache"),
         "Unrestricted"
     )
     hdf5db.show_objects()

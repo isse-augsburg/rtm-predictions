@@ -51,8 +51,8 @@ def __analyze_image(img, perm_map=None):
     return spots, dryspots, probs
 
 
-def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi,
-                      change_meta_file=False, save_flowfront_img=False):
+def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi, change_meta_file=False,
+                      save_flowfront_img=False, silent=False):
     try:
         f = h5py.File(file_path, "r")
     except OSError:
@@ -190,11 +190,12 @@ def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi,
 
     f.close()
     del f
-    print(
-        f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one. "
-        f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}, '
-        f'num of states {len(keys)}'
-    )
+    if not silent:
+        print(
+            f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one. "
+            f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}, '
+            f'num of states {len(keys)}'
+        )
     del keys
     return spot_list_s, spot_list_e, deltas_prob
 
@@ -210,17 +211,8 @@ def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
         source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
         output = Path("/cfs/share/cache/DrySpotDet2")
 
-    a, b, c = dry_spot_analysis(
-        source / curr_path / str(i) / f"{stamp}_{i}_RESULT.erfh5",
-        output / curr_path / str(i),
-        triang,
-        Xi,
-        Yi,
-        xi,
-        yi,
-        change_meta_file=False,
-        save_flowfront_img=True
-    )
+    a, b, c = dry_spot_analysis(source / curr_path / str(i) / f"{stamp}_{i}_RESULT.erfh5", output / curr_path / str(i),
+                                triang, Xi, Yi, xi, yi, change_meta_file=True, save_flowfront_img=True)
     del a
     del b
     del c

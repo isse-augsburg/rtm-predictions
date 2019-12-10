@@ -1,3 +1,7 @@
+import argparse
+import logging
+import sys
+
 import numpy as np
 import torch
 
@@ -47,3 +51,20 @@ def apply_blacklists(_data_source_paths):
                 _cleaned.append(subdir)
 
     return _cleaned
+
+def read_cmd_params():
+    parser = argparse.ArgumentParser(description='Run training or test.')
+    parser.add_argument('--eval', action='store_true', help='Run a test.')
+    parser.add_argument('--eval_path', type=str, default=None, help='Full directory path of trained model (to test).')
+    args = parser.parse_args()
+    run_eval = args.eval
+    eval_path = args.eval_path
+
+    if run_eval and eval_path is None:
+        logger = logging.getLogger(__name__)
+        logger.error("No eval_path given. You should specify the --eval_path argument if you would like to run a test.")
+        logger.error(parser.format_help())
+        logging.shutdown()
+        sys.exit()
+
+    return args

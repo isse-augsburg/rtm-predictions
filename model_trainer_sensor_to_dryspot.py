@@ -8,8 +8,8 @@ from pathlib import Path
 
 import torch
 from torch import nn
+
 from Models.erfh5_ConvModel import SensorDeconvToDryspot
-from Models.erfh5_fullyConnected import SensorDryspotModelFC
 from Pipeline import erfh5_pipeline as pipeline, data_gather as dg, data_loader_dryspot
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
 from Trainer.GenericTrainer import MasterTrainer
