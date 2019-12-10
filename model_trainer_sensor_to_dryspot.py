@@ -8,7 +8,7 @@ from pathlib import Path
 
 import torch
 from torch import nn
-
+from Models.erfh5_ConvModel import SensorDeconvToDryspot
 from Models.erfh5_fullyConnected import SensorDryspotModelFC
 from Pipeline import erfh5_pipeline as pipeline, data_gather as dg, data_loader_dryspot
 from Pipeline.erfh5_pipeline import transform_list_of_linux_paths_to_windows
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        _batch_size = 8192
+        _batch_size = 128
         # _eval_freq = int(num_samples_runs / _batch_size)
         _eval_freq = 70
         if getpass.getuser() == "stiebesi":
@@ -206,11 +206,11 @@ if __name__ == "__main__":
         _num_test_samples_frames = 200
 
     elif socket.gethostname() == "swthiwi158":
-        _cache_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache")
+        _cache_path = Path(r"cfs/share/cache")
         _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        _batch_size = 512
+        _batch_size = 16
         _eval_freq = 100
-        _save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56," r"share=share/cache/output_niklas")
+        _save_path = Path(r"/cfs/share/cache/output_niklas")
         _epochs = 1000
         _num_workers = 4
         _num_validation_samples_frames = 2000
@@ -252,7 +252,7 @@ if __name__ == "__main__":
         num_workers=_num_workers,
         num_validation_samples=_num_validation_samples_frames,
         num_test_samples=_num_test_samples_frames,
-        model=SensorDryspotModelFC(),
+        model=SensorDeconvToDryspot(),
         evaluator=BinaryClassificationEvaluator(),
     )
 
