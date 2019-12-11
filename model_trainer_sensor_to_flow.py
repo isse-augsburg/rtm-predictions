@@ -178,7 +178,7 @@ if __name__ == "__main__":
         sys.exit()
 
     num_samples_runs = 40827  # or 7.713.044 frames ~ 188 p. Sim.
-    _train_print_freq = 2
+    _train_print_freq = 20
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path(
@@ -193,8 +193,8 @@ if __name__ == "__main__":
         else:
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 100
-        _num_workers = 18
-        _num_validation_samples_frames = 350000  # 5 %
+        _num_workers = 10
+        _num_validation_samples_frames = 35000  # 5 %
         _num_test_samples_frames = 40000  # 5 %
 
     elif socket.gethostname() == "swtse130":
@@ -223,13 +223,13 @@ if __name__ == "__main__":
     if not run_eval:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",
-            #_data_root / "2019-07-24_16-32-40_5000p",
-            #_data_root / "2019-07-29_10-45-18_5000p",
-            #_data_root / "2019-08-23_15-10-02_5000p",
-            #_data_root / "2019-08-24_11-51-48_5000p",
-            #_data_root / "2019-08-25_09-16-40_5000p",
-            #_data_root / "2019-08-26_16-59-08_6000p",
-            #_data_root / '2019-09-06_17-03-51_10000p'
+            _data_root / "2019-07-24_16-32-40_5000p",
+            _data_root / "2019-07-29_10-45-18_5000p",
+            _data_root / "2019-08-23_15-10-02_5000p",
+            _data_root / "2019-08-24_11-51-48_5000p",
+            _data_root / "2019-08-25_09-16-40_5000p",
+            _data_root / "2019-08-26_16-59-08_6000p",
+            _data_root / '2019-09-06_17-03-51_10000p'
         ]
     else:
         _data_source_paths = []
