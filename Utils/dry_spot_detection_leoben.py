@@ -201,7 +201,8 @@ def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi, change
 
 
 def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
-    curr_path = '2019-09-06_17-03-51_10000p'
+    # '/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-11-29_16-56-17_10000p'
+    curr_path = '2019-11-29_16-56-17_10000p'
     date, time, _ = curr_path.split('_')
     stamp = date + '_' + time
     if socket.gethostname() == "swtse130":

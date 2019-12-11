@@ -15,11 +15,11 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     num_samples_runs = 2000000
-    batch_size = 256
+    batch_size = 2
     m = ModelTrainer(SensorDeconvToDryspot2(pretrained=True,
                                             checkpoint_path=r.checkpoint_1140_sensors_deconv,
                                             freeze_nlayers=5),
-                     r.get_data_paths(),
+                     r.get_all_data_paths(),
                      r.save_path,
                      load_datasets_path=r.datasets_dryspots,
                      cache_path=r.cache_path,
@@ -28,8 +28,8 @@ if __name__ == "__main__":
                      train_print_freq=10,
                      epochs=1000,
                      num_workers=20,
-                     num_validation_samples=8192,
-                     num_test_samples=8192,
+                     num_validation_samples=0,
+                     num_test_samples=0,
                      data_processing_function=get_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      looping_strategy=ComplexListLoopingStrategy(batch_size)
