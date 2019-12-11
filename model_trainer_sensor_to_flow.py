@@ -11,7 +11,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel
+from Models.erfh5_DeconvModel import DeconvModel_efficient
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
@@ -83,7 +83,7 @@ class SensorTrainer:
 
         logger = logging.getLogger(__name__)
 
-        model = DeconvModel()
+        model = DeconvModel_efficient()
         if socket.gethostname() == "swt-dgx1":
             logger.info('Invoking data parallel model.')
             model = nn.DataParallel(model).to("cuda:0")
@@ -137,7 +137,7 @@ class SensorTrainer:
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
         logger.info("Generating Model")
-        model = DeconvModel()
+        model = DeconvModel_efficient()
         logger.info("Model to GPU")
         if socket.gethostname() == "swt-dgx1":
             model = nn.DataParallel(model).to("cuda:0")
@@ -178,7 +178,7 @@ if __name__ == "__main__":
         sys.exit()
 
     num_samples_runs = 40827  # or 7.713.044 frames ~ 188 p. Sim.
-    _train_print_freq = 20
+    _train_print_freq = 2
     if socket.gethostname() == "swt-dgx1":
         _cache_path = None
         _data_root = Path(
@@ -209,37 +209,34 @@ if __name__ == "__main__":
         _num_test_samples_frames = 2000
 
     elif socket.gethostname() == "swthiwi158":
-        _cache_path = \
-            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache")
+        _cache_path = None
         _data_root = \
-            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
-                 r"share=share/data/RTM/Leoben/output/with_shapes")
+            Path("/cfs/share/data/RTM/Leoben/output/with_shapes")
         _batch_size = 8
-        _eval_freq = 5
-        _save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
-                          r"share=share/cache/output_niklas")
+        _eval_freq = 50
+        _save_path = Path("/cfs/share/cache/output_niklas")
         _epochs = 5
-        _num_workers = 10
-        _num_validation_samples_frames = 1000
-        _num_test_samples_frames = 2000
+        _num_workers = 4
+        _num_validation_samples_frames = 500
+        _num_test_samples_frames = 500
 
     if not run_eval:
         _data_source_paths = [
             _data_root / "2019-07-23_15-38-08_5000p",
-            _data_root / "2019-07-24_16-32-40_5000p",
-            _data_root / "2019-07-29_10-45-18_5000p",
-            _data_root / "2019-08-23_15-10-02_5000p",
-            _data_root / "2019-08-24_11-51-48_5000p",
-            _data_root / "2019-08-25_09-16-40_5000p",
-            _data_root / "2019-08-26_16-59-08_6000p",
-            _data_root / '2019-09-06_17-03-51_10000p'
+            #_data_root / "2019-07-24_16-32-40_5000p",
+            #_data_root / "2019-07-29_10-45-18_5000p",
+            #_data_root / "2019-08-23_15-10-02_5000p",
+            #_data_root / "2019-08-24_11-51-48_5000p",
+            #_data_root / "2019-08-25_09-16-40_5000p",
+            #_data_root / "2019-08-26_16-59-08_6000p",
+            #_data_root / '2019-09-06_17-03-51_10000p'
         ]
     else:
         _data_source_paths = []
 
     # Running with the same data sets
-    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets')
-    # _load_datasets_path = None
+    # _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets')
+    _load_datasets_path = None
 
     st = SensorTrainer(cache_path=_cache_path,
                        data_source_paths=_data_source_paths,

@@ -9,6 +9,41 @@ inputs = torch.randn(1, 360)
 # inputs = torch.randn(1,1,20,20)
 
 
+class DeconvModel_efficient(nn.Module):
+    def __init__(self, input_dim=1140):
+        super(DeconvModel_efficient, self).__init__()
+        self.fc = Linear(input_dim, 1140)
+
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.ct2 = ConvTranspose2d(128,64, 7, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.ct4 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
+
+        self.shaper0 = Conv2d(8, 16, 17, stride=2, padding=0)
+        self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
+        self.med = Conv2d(32, 32, 7, padding=0)
+        self.details = Conv2d(32, 32, 3)
+        self.details2 = Conv2d(32, 1, 3, padding=0)
+
+    def forward(self, inputs):
+        f = inputs
+        # f = F.relu(self.fc(inputs))
+
+        fr = f.reshape((-1, 1, 38, 30))
+
+        k = F.relu(self.ct1(fr))
+        k2 = F.relu(self.ct2(k))
+        k3 = F.relu(self.ct3(k2))
+        k3 = F.relu(self.ct4(k3))
+
+        t1 = F.relu(self.shaper0(k3))
+        t1 = F.relu(self.shaper(t1))
+        t2 = F.relu(self.med(t1))
+        t3 = F.relu(self.details(t2))
+        t4 = torch.sigmoid(self.details2(t3))
+        return torch.squeeze(t4, dim=1)
+
+
 class DeconvModel(nn.Module):
     def __init__(self, input_dim=1140):
         super(DeconvModel, self).__init__()
