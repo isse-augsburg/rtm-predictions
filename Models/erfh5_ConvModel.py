@@ -3,7 +3,7 @@ import logging
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn import Conv2d, Linear, ConvTranspose2d
+from torch.nn import Conv2d, ConvTranspose2d, Linear
 
 
 class erfh5_Conv3d(nn.Module):
@@ -41,17 +41,17 @@ class erfh5_Conv3d(nn.Module):
 class SensorToDryspotBoolModel(nn.Module):
     def __init__(self):
         super(SensorToDryspotBoolModel, self).__init__()
-        self.dropout = nn.Dropout(0.1)
-        self.maxpool = nn.MaxPool2d(2, 2)
-        self.conv1 = nn.Conv2d(1, 32, (7, 7))
-        self.conv2 = nn.Conv2d(32, 64, (5, 5))
-        self.conv3 = nn.Conv2d(64, 128, (3, 3))
-        self.conv4 = nn.Conv2d(128, 256, (3, 3))
+        self.dropout = nn.dropout(0.1)
+        self.maxpool = nn.maxpool2d(2, 2)
+        self.conv1 = nn.conv2d(1, 32, (7, 7))
+        self.conv2 = nn.conv2d(32, 64, (5, 5))
+        self.conv3 = nn.conv2d(64, 128, (3, 3))
+        self.conv4 = nn.conv2d(128, 256, (3, 3))
 
-        self.fc1 = nn.Linear(256, 1024)
-        self.fc2 = nn.Linear(1024, 512)
-        self.fc3 = nn.Linear(512, 128)
-        self.fc_f = nn.Linear(128, 1)
+        self.fc1 = nn.linear(256, 1024)
+        self.fc2 = nn.linear(1024, 512)
+        self.fc3 = nn.linear(512, 128)
+        self.fc_f = nn.linear(128, 1)
 
     def forward(self, x):
         out = x.reshape((-1, 1, 38, 30))
@@ -238,6 +238,7 @@ class SensorDeconvToDryspot(nn.Module):
         out = F.relu(self.linear3(out))
         out = F.relu(self.linear4(out))
         return out
+
 
 
 class SensorDeconvToDryspot2(nn.Module):
