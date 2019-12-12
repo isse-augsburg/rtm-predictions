@@ -1,5 +1,3 @@
-import pickle
-import shutil
 import unittest
 from pathlib import Path
 import tempfile
@@ -35,11 +33,60 @@ class _TestSetInfo:
         return self._num_samples
 
 
+def _dummy_dataloader_fn(filename):
+    """ This is a dummy data loader that returns a fake sample for every singlestate in the given file.
+    The data will always be the filename while the label is the index of the sample
+    """
+    with h5py.File(filename, "r") as f:
+        return [(list(str(filename).encode("utf-8")), np.array([i, 0]))
+                for i in range(len(f["post"]["singlestate"].keys()))]
+
+
+class SampleWrapper:
+    """ A wrapper around samples returned using the _dummy_dataloader_fn
+    Provides a by-value hash function and a nice __repr__ method
+    """
+    def __init__(self, sample):
+        self.data, self.label = sample
+
+    def __eq__(self, other):
+        od, ol = other.data, other.label
+        if od.shape != self.data.shape or ol.shape != self.label.shape:
+            return False
+        return od.allclose(self.data) and ol.allclose(self.label)
+
+    def to_list(self, tensor):
+        return tuple(x.item() for x in tensor)
+
+    def __hash__(self):
+        return hash((self.to_list(self.data), self.to_list(self.label)))
+
+    def __repr__(self):
+        fn = bytes(list(int(t.item()) for t in self.data)).decode("utf-8")
+        idx = int(self.label[0].item())
+        return f"Sample {fn} - {idx}"
+
+
 class TorchTestCase(unittest.TestCase):
     def assertListOfSamplesEqual(self, l1, l2):
         for s1, s2 in zip(l1, l2):
             self.assertTrue(s1[0].equal(s2[0]))
             self.assertTrue(s1[1].equal(s2[1]))
+
+    def assertUnordereSequenceOfSamplesEqual(self, l1, l2):
+        # self.assertEqual(len(l1), len(l2))
+
+        def cmp(s1, s2):
+            for a in s1:
+                for b in s2:
+                    if not all(ae.shape == be.shape for ae, be in zip(a, b)):
+                        continue
+                    if all(ae.allclose(be) for ae, be in zip(a, b)):
+                        break
+                else:
+                    self.assertTrue(False, msg=f"Matching element for {a} in s2")
+        cmp(l1, l2)
+        cmp(l2, l1)
 
 
 class TestFileDiscovery(unittest.TestCase):
@@ -59,12 +106,6 @@ class TestFileDiscovery(unittest.TestCase):
             discovery = ti.FileDiscovery(None, cache_path=cache_path)
             cached_files = discovery.discover(self.test_set.paths)
             self.assertEqual(sorted(cached_files), sorted(original_files))
-
-
-def _dummy_dataloader_fn(filename):
-    with h5py.File(filename, "r") as f:
-        return [(list(str(filename).encode("utf-8")), np.array([i, 0]))
-                for i in range(len(f["post"]["singlestate"].keys()))]
 
 
 class TestFileSetIterator(TorchTestCase):
@@ -139,6 +180,7 @@ class TestSubsetGenerator(TorchTestCase):
             load_samples = subset_gen.get_samples()
 
             self.assertCountEqual(save_unused_files, load_unused_files)
+            # TODO: Proper file sorting will result in correct ordering of samples here
             self.assertListOfSamplesEqual(save_samples, load_samples)
 
 
@@ -153,10 +195,10 @@ class TestLoopingStrategies(TorchTestCase):
     def test_strategies(self):
         for strategyfn in self.looping_strategies:
             strategy = strategyfn()
-            with self.subTest(msg=f"Checking stragety {type(strategy).__name__}"):
+            with self.subTest(msg=f"Checking strategy {type(strategy).__name__}"):
                 dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
                                                      _dummy_dataloader_fn, looping_strategy=strategy, epochs=2)
-                first_epoch = set((b[0][0], b[1][0]) for b, _ in zip(dataloader, range(self.test_set.num_samples)))
-                second_epoch = set((b[0][0], b[1][0]) for b in dataloader)
-                # TODO: This will probably not work 
+                first_epoch = set(SampleWrapper((b[0][0], b[1][0]))
+                                  for b, _ in zip(dataloader, range(self.test_set.num_samples)))
+                second_epoch = set(SampleWrapper((b[0][0], b[1][0])) for b in dataloader)
                 self.assertSetEqual(first_epoch, second_epoch)
