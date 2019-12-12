@@ -10,9 +10,8 @@ inputs = torch.randn(1, 360)
 
 
 class DeconvModel_efficient(nn.Module):
-    def __init__(self, input_dim=1140):
+    def __init__(self):
         super(DeconvModel_efficient, self).__init__()
-        self.fc = Linear(input_dim, 1140)
 
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct2 = ConvTranspose2d(128,64, 7, stride=2, padding=0)
@@ -27,8 +26,6 @@ class DeconvModel_efficient(nn.Module):
 
     def forward(self, inputs):
         f = inputs
-        # f = F.relu(self.fc(inputs))
-
         fr = f.reshape((-1, 1, 38, 30))
 
         k = F.relu(self.ct1(fr))

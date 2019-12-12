@@ -1,12 +1,9 @@
-import gc
 import io
 import socket
 from functools import partial
 from multiprocessing import Pool
-import multiprocessing as mp
 from pathlib import Path
 from time import time
-import tqdm
 
 import cv2
 import h5py
@@ -191,6 +188,7 @@ def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi, change
         try:
             useless_states = meta_file.require_group('useless_states')
             useless_states.create_dataset('singlestates', data=np.array(ignore_list))
+            # -> Moved to useless_frame_detection.py
             # dry_group = meta_file.require_group('dryspot_states')
             # dry_group.create_dataset('singlestates', data=np.array(states))
             meta_file.close()
@@ -256,38 +254,6 @@ def create_triangle_mesh(file_path):
     return Xi, Yi, triang, xi, yi
 
 
-def mark_useless_frames_in_file(file):
-    try:
-        result_file = h5py.File(str(file))
-        meta_file = h5py.File(str(file).replace("RESULT.erfh5", "meta_data.hdf5"), "r+")
-    except OSError as e:
-        print(e)
-        return
-    ignore_list = []
-    keys = list(result_file["/post/singlestate"].keys())
-
-    for i, k in enumerate(keys):
-        try:
-            z = result_file[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()].flatten()
-        except KeyError:
-            continue
-        ones = np.ones_like(z)
-        filling_perc = np.sum(z) / np.sum(ones)
-        if filling_perc >= 1.0:
-            ignore_list.append(int(str(k).replace("state", "0")))
-    #print(ignore_list)
-    try:
-        useless_states = meta_file.require_group('useless_states')
-        useless_states.create_dataset('singlestates', data=np.array(ignore_list))
-        meta_file.close()
-    except RuntimeError:
-        print(f"Group or dataset could not be created with file: {str(file)}")
-
-def mark_useless_frames(root_dir):
-    files = list(root_dir.rglob("*RESULT.erfh5"))
-
-    with Pool() as p:
-        l = list(tqdm.tqdm(p.imap_unordered(mark_useless_frames_in_file,files), total=len(files)))
 
 
 
@@ -306,4 +272,4 @@ def main_for_end():
 
 
 if __name__ == "__main__":
-    mark_useless_frames(Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p"))
+    main_for_end()

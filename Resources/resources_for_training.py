@@ -25,24 +25,24 @@ checkpoint_1140_sensors_deconv = _stiebesi_home / 'results_leoben/4_three_week_r
 def get_all_data_paths():
     data_paths = [
         # data_root / "2019-07-23_15-38-08_5000p",     # Folder to play with, CAUTION, has invalid data
-        # 1379230                                    # Dryspot Data  # Has blacklist # FVC       # Dry Spot Prob
-        data_root / "2019-07-24_16-32-40_5000p",     # X             # X             # .2 - .8   # High
+        # 1379230                                    # Dryspot  # Has blacklist # FVC       # Dry Spot Prob # Useless
+        data_root / "2019-07-24_16-32-40_5000p",     # X        # X             # .2 - .8   # High          # X
         # 1391145
-        data_root / "2019-07-29_10-45-18_5000p",     # -             #               #
+        data_root / "2019-07-29_10-45-18_5000p",     # -        #               #
         # 496161
-        data_root / "2019-08-23_15-10-02_5000p",     # -             #               #
+        data_root / "2019-08-23_15-10-02_5000p",     # -        #               #
         # 497478
-        data_root / "2019-08-24_11-51-48_5000p",     # -             #               #
+        data_root / "2019-08-24_11-51-48_5000p",     # -        #               #
         # 499598
-        data_root / "2019-08-25_09-16-40_5000p",     # -             #               #
+        data_root / "2019-08-25_09-16-40_5000p",     # -        #               #
         # 1729106
-        data_root / "2019-08-26_16-59-08_6000p",     # -             #               #
+        data_root / "2019-08-26_16-59-08_6000p",     # -        #               #
         # 1606405
-        data_root / '2019-09-06_17-03-51_10000p',    # X             # X             # .3 - .8   # Very High
+        data_root / '2019-09-06_17-03-51_10000p',    # X        # X             # .3 - .8   # Very High
         # 816891
-        data_root / '2019-11-08_15-40-44_5000p',     # X             # X             # .3 - .5   # Low
+        data_root / '2019-11-08_15-40-44_5000p',     # X        # X             # .3 - .5   # Low           # X
         # 1406003
-        data_root / '2019-11-29_16-56-17_10000p'     # -             # -             #
+        data_root / '2019-11-29_16-56-17_10000p'     # -        # -             #
         # Overall count: 9822017
     ]
     return data_paths
@@ -55,3 +55,7 @@ def get_data_paths():
         data_root / '2019-11-08_15-40-44_5000p'        # X             # X             # .3 - .5   # Low
     ]
     return data_paths
+
+
+def get_example_erfh5():
+    return data_root / "2019-07-24_16-32-40_5000p" / '0' / '2019-07-24_16-32-40_0_RESULT.erfh5'
