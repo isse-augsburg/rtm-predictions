@@ -1,4 +1,5 @@
 import logging
+from collections import OrderedDict
 
 import torch
 import torch.nn.functional as F
@@ -315,24 +316,25 @@ class SensorDeconvToDryspot2(nn.Module):
 
 
 class SensorDeconvToDryspotEfficient(nn.Module):
-    def __init__(self, pretrained=False, checkpoint_path=None, freeze_nlayers=0):
+    def __init__(self, pretrained=False, checkpoint_path=None, freeze_nlayers=8):
         super(SensorDeconvToDryspotEfficient, self).__init__()
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct2 = ConvTranspose2d(128,64, 7, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
         self.ct4 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
 
-        self.shaper0 = Conv2d(8, 16, 17, stride=2, padding=0)
-        self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
-        self.med = Conv2d(32, 32, 7, padding=0)
-        self.details = Conv2d(32, 32, 3)
-        self.details2 = Conv2d(32, 16, 3, padding=0)
-        self.details3 = Conv2d(16, 1, 3, padding=0)
+        self.shaper0    = Conv2d(8, 16, 17, stride=2, padding=0)
+        self.shaper     = Conv2d(16, 32, 15, stride=2, padding=0)
+        self.med        = Conv2d(32, 32, 7, padding=0)
+        self.details    = Conv2d(32, 32, 3)
+        self.details2   = Conv2d(32, 16, 3, padding=0)
+        self.details3   = Conv2d(16, 1, 3, padding=0)
 
         self.maxpool = nn.MaxPool2d(2, 2)
-        # self.linear2 = Linear(1024, 512)
-        # self.linear3 = Linear(512, 256)
-        # self.linear4 = Linear(256, 1)
+        self.linear2 = Linear(884, 512)
+        self.linear3 = Linear(512, 256)
+        self.linear4 = Linear(256, 1)
+
         if pretrained:
             self.load_model(checkpoint_path)
 
@@ -365,25 +367,13 @@ class SensorDeconvToDryspotEfficient(nn.Module):
         x = self.maxpool(x)
         x = F.relu(self.details3(x))
         x = x.view((x.shape[0], 884, -1)).contiguous()
-
-
-
-
-        # x = F.relu(self.shaper0(x))
-        # x = self.maxpool(x)
-        # x = F.relu(self.shaper(x))
-        # x = self.maxpool(x)
-        # x = F.relu(self.med(x))
-        # x = self.maxpool(x)
-        # x = x.view((x.shape[0], 1024, -1)).contiguous()
-        # x = x.mean(-1).contiguous()
-        # x = F.relu(self.linear2(x))
-        # x = F.relu(self.linear3(x))
-        # x = torch.sigmoid(self.linear4(x))
+        x = x.mean(-1).contiguous()
+        x = F.relu(self.linear2(x))
+        x = F.relu(self.linear3(x))
+        x = torch.sigmoid(self.linear4(x))
         return x
 
     def load_model(self, path):
-        from collections import OrderedDict
         logger = logging.getLogger(__name__)
         logger.info(f'Loading model from {path}')
         if torch.cuda.is_available():
@@ -393,7 +383,7 @@ class SensorDeconvToDryspotEfficient(nn.Module):
 
         new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
-        names = {'ct1', 'ct2', 'ct3', 'ct4', 'shaper0'}
+        names = {'ct1', 'ct2', 'ct3', 'ct4', 'shaper0', 'shaper', 'med', 'details'}
         for k, v in model_state_dict.items():
             splitted = k.split('.')
             name = splitted[1]  # remove `module.`
@@ -405,8 +395,8 @@ class SensorDeconvToDryspotEfficient(nn.Module):
 
 
 if __name__ == "__main__":
-    # model = SensorDeconvToDryspot()
-    model = SensorDeconvToDryspotEfficient()
+    model = SensorDeconvToDryspot()
+    # model = SensorDeconvToDryspotEfficient()
     m = model.cuda()
     em = torch.empty((1, 1140)).cuda()
     out = m(em)

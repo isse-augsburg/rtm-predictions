@@ -145,7 +145,7 @@ class SensorTrainer:
             model,
             self.training_data_generator,
             loss_criterion=torch.nn.MSELoss(),
-            savepath=save_path,
+            save_path=save_path,
             learning_rate=0.0001,
             calc_metrics=False,
             train_print_frequency=self.train_print_frequency,

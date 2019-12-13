@@ -104,7 +104,7 @@ class ModelTrainer:
             self.model,
             data_generator,
             loss_criterion=loss_criterion,
-            savepath=save_path,
+            save_path=save_path,
             learning_rate=learning_rate,
             calc_metrics=calc_metrics,
             train_print_frequency=self.train_print_frequency,

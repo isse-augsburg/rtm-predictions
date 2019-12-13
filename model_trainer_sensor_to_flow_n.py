@@ -22,7 +22,7 @@ if __name__ == "__main__":
                      load_datasets_path=r.datasets_dryspots,
                      cache_path=r.cache_path,
                      batch_size=batch_size,
-                     eval_freq=int(num_samples_runs / batch_size) / 10,
+                     eval_freq=int(num_samples_runs / batch_size),
                      train_print_freq=10,
                      epochs=1000,
                      num_workers=75,
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     if not args.eval:
         m.run_training(
             loss_criterion=torch.nn.MSELoss(),
-            learning_rate=0.0005,
+            learning_rate=0.0001,
             calc_metrics=False,
             classification_evaluator=SensorToFlowfrontEvaluator()
         )
