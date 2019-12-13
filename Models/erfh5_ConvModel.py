@@ -240,7 +240,6 @@ class SensorDeconvToDryspot(nn.Module):
         return out
 
 
-
 class SensorDeconvToDryspot2(nn.Module):
     def __init__(self, pretrained=False, checkpoint_path=None, freeze_nlayers=0):
         super(SensorDeconvToDryspot2, self).__init__()
@@ -315,14 +314,101 @@ class SensorDeconvToDryspot2(nn.Module):
         self.load_state_dict(new_model_state_dict, strict=False)
 
 
+class SensorDeconvToDryspotEfficient(nn.Module):
+    def __init__(self, pretrained=False, checkpoint_path=None, freeze_nlayers=0):
+        super(SensorDeconvToDryspotEfficient, self).__init__()
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.ct2 = ConvTranspose2d(128,64, 7, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.ct4 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
+
+        self.shaper0 = Conv2d(8, 16, 17, stride=2, padding=0)
+        self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
+        self.med = Conv2d(32, 32, 7, padding=0)
+        self.details = Conv2d(32, 32, 3)
+        self.details2 = Conv2d(32, 16, 3, padding=0)
+        self.details3 = Conv2d(16, 1, 3, padding=0)
+
+        self.maxpool = nn.MaxPool2d(2, 2)
+        # self.linear2 = Linear(1024, 512)
+        # self.linear3 = Linear(512, 256)
+        # self.linear4 = Linear(256, 1)
+        if pretrained:
+            self.load_model(checkpoint_path)
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            print(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
+    def forward(self, inputs):
+        fr = inputs.reshape((-1, 1, 38, 30))
+
+        k = F.relu(self.ct1(fr))
+        k2 = F.relu(self.ct2(k))
+        k3 = F.relu(self.ct3(k2))
+        k3 = F.relu(self.ct4(k3))
+
+        t1 = F.relu(self.shaper0(k3))
+        t1 = F.relu(self.shaper(t1))
+        t2 = F.relu(self.med(t1))
+        t3 = F.relu(self.details(t2))
+
+        x = self.maxpool(t3)
+        x = F.relu(self.details2(x))
+        x = self.maxpool(x)
+        x = F.relu(self.details3(x))
+        x = x.view((x.shape[0], 884, -1)).contiguous()
+
+
+
+
+        # x = F.relu(self.shaper0(x))
+        # x = self.maxpool(x)
+        # x = F.relu(self.shaper(x))
+        # x = self.maxpool(x)
+        # x = F.relu(self.med(x))
+        # x = self.maxpool(x)
+        # x = x.view((x.shape[0], 1024, -1)).contiguous()
+        # x = x.mean(-1).contiguous()
+        # x = F.relu(self.linear2(x))
+        # x = F.relu(self.linear3(x))
+        # x = torch.sigmoid(self.linear4(x))
+        return x
+
+    def load_model(self, path):
+        from collections import OrderedDict
+        logger = logging.getLogger(__name__)
+        logger.info(f'Loading model from {path}')
+        if torch.cuda.is_available():
+            checkpoint = torch.load(path)
+        else:
+            checkpoint = torch.load(path, map_location='cpu')
+
+        new_model_state_dict = OrderedDict()
+        model_state_dict = checkpoint["model_state_dict"]
+        names = {'ct1', 'ct2', 'ct3', 'ct4', 'shaper0'}
+        for k, v in model_state_dict.items():
+            splitted = k.split('.')
+            name = splitted[1]  # remove `module.`
+            if name in names:
+                new_model_state_dict[f'{name}.{splitted[2]}'] = v
+            else:
+                continue
+        self.load_state_dict(new_model_state_dict, strict=False)
+
+
 if __name__ == "__main__":
-    model = SensorDeconvToDryspot()
-    model2 = SensorDeconvToDryspot2()
+    # model = SensorDeconvToDryspot()
+    model = SensorDeconvToDryspotEfficient()
     m = model.cuda()
-    m2 = model2.cuda()
     em = torch.empty((1, 1140)).cuda()
     out = m(em)
-    out2 = m2(em)
 
     print(out.shape)
-    print(out2.shape)

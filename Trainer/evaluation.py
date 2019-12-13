@@ -81,7 +81,7 @@ def save_img(path, _str, x, index):
 
 
 class SensorToFlowfrontEvaluator(Evaluator):
-    def __init__(self, save_path: Path = None, halving_factor=0, skip_images=False):
+    def __init__(self, save_path: Path = None, halving_factor=0, skip_images=True):
         super().__init__()
         self.num = 0
         self.save_path = save_path

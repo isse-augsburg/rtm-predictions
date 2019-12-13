@@ -137,7 +137,7 @@ def get_sensordata_and_flowfront_154x122(file, target_shape=(154, 122)):
     return get_sensordata_and_flowfront(file, target_shape)
 
 
-def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
+def get_sensordata_and_flowfront(filename, target_shape=(38, 30), ignore_useless_states=False):
     try:
         f = h5py.File(filename, "r")
 

@@ -20,11 +20,11 @@ def eval_preparation(save_path):
     docker_img = 'docker://nvcr.io/isse/pytorch_extended:19.11'
     slurm_txt = f"""#!/bin/sh
 #SBATCH --gres=gpu:8
-#SBATCH --job-name  rtm_predictions_eval
+#SBATCH --job-name  eval_rtm_predictions
 #SBATCH --ntasks=1
 #SBATCH -p gpu
-#SBATCH --mem=150000
-#SBATCH --cpus-per-task=20
+#SBATCH --mem=495000
+#SBATCH --cpus-per-task=75
 
 export SINGULARITY_DOCKER_USERNAME=\\$oauthtoken
 export SINGULARITY_DOCKER_PASSWORD={os.getenv('SINGULARITY_DOCKER_PASSWORD')}

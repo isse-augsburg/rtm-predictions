@@ -3,10 +3,45 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import ConvTranspose2d, Conv2d, Linear
 
-inputs = torch.randn(1, 360)
 
+class DeconvModelEfficientBn(nn.Module):
+    def __init__(self):
+        super(DeconvModelEfficientBn, self).__init__()
 
-# inputs = torch.randn(1,1,20,20)
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.bn1 = nn.BatchNorm2d(128)
+        self.ct2 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.ct3 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.ct4 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
+        self.bn4 = nn.BatchNorm2d(8)
+
+        self.shaper0 = Conv2d(8, 16, 17, stride=2, padding=0)
+        self.bn5 = nn.BatchNorm2d(16)
+        self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
+        self.bn6 = nn.BatchNorm2d(32)
+        self.med = Conv2d(32, 32, 7, padding=0)
+        self.bn7 = nn.BatchNorm2d(32)
+        self.details = Conv2d(32, 32, 3)
+        self.bn8 = nn.BatchNorm2d(32)
+        self.details2 = Conv2d(32, 1, 3, padding=0)
+        # self.bn9 = nn.BatchNorm2d(1)
+
+    def forward(self, inputs):
+        fr = inputs.reshape((-1, 1, 38, 30))
+
+        k = F.relu(self.bn1(self.ct1(fr)))
+        k2 = F.relu(self.bn2(self.ct2(k)))
+        k3 = F.relu(self.bn3(self.ct3(k2)))
+        k3 = F.relu(self.bn4(self.ct4(k3)))
+
+        t1 = F.relu(self.bn5(self.shaper0(k3)))
+        t1 = F.relu(self.bn6(self.shaper(t1)))
+        t2 = F.relu(self.bn7(self.med(t1)))
+        t3 = F.relu(self.bn8(self.details(t2)))
+        t4 = torch.sigmoid(self.details2(t3))
+        return torch.squeeze(t4, dim=1)
 
 
 class DeconvModel_efficient(nn.Module):
@@ -189,3 +224,13 @@ class DeconvModel8x(nn.Module):
         t3 = F.relu(self.details(t2))
         t4 = torch.sigmoid(self.details2(t3))
         return torch.squeeze(t4, dim=1)
+
+
+if __name__ == "__main__":
+    # model = SensorDeconvToDryspot()
+    model = DeconvModelEfficientBn()
+    m = model.cuda()
+    em = torch.empty((1, 1140)).cuda()
+    out = m(em)
+
+    print(out.shape)
