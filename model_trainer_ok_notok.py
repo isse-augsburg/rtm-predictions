@@ -25,8 +25,7 @@ def create_model_trainer(
         num_test_samples=10,
         data_processing_function=dls.sensorgrid_simulationsuccess,
         data_gather_function=dg.get_filelist_within_folder,
-        ):
-
+):
     mt = ModelTrainer(
         ERFH5_PressureSequence_Model(),
         data_source_paths,
@@ -53,7 +52,7 @@ def run_training(
         learning_rate=0.0001,
         calc_metrics=False,
         classification_evaluator=BinaryClassificationEvaluator()
-        ):
+):
     trainer.run_training(
         loss_criterion,
         learning_rate,
@@ -70,7 +69,7 @@ def run_eval(trainer,
 
 if __name__ == "__main__":
     args = read_cmd_params()
-    run_eval = args.eval
+    do_eval = args.eval
     eval_path = args.eval_path
 
     data_source_paths = [r.data_root]
@@ -91,7 +90,7 @@ if __name__ == "__main__":
         num_test_samples=0
     )
 
-    if not run_eval:
+    if not do_eval:
         run_training(model_trainer)
     else:
         run_eval(model_trainer, eval_path)

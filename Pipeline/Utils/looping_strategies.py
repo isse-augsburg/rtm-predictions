@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 import random
+from abc import ABC, abstractmethod
 
 import torch
 
@@ -10,6 +10,7 @@ class LoopingStrategy(ABC):
     Once a sample iterator is exhausted, a new one will be created using the
     get_new_iterator function.
     """
+
     def __init__(self):
         pass
 
@@ -36,6 +37,7 @@ class SimpleListLoopingStrategy(LoopingStrategy):
     This strategy is really fast, but shuffling on a batch basis instead of samples
     reduces training performance and overall training results.
     """
+
     def __init__(self):
         super().__init__()
         self.batches = []
@@ -53,6 +55,7 @@ class ComplexListLoopingStrategy(LoopingStrategy):
     This is pretty slow compared to the SimpleListLoopingStrategy, but it gives
     better results in training.
     """
+
     def __init__(self, batch_size):
         super().__init__()
         self.features = []
@@ -83,6 +86,7 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
     but it relies on the torch DataLoader for shuffling.
     It seems to have slightly better performance than the ComplexList approach.
     """
+
     def __init__(self, batch_size):
         super().__init__()
         self.batch_size = batch_size
@@ -109,6 +113,7 @@ class NoOpLoopingStrategy(LoopingStrategy):
     This is automatically used if you only run a single epoch and will prevent
     the huge memory requirements that the other strategies have.
     """
+
     def __init__(self):
         super().__init__()
 

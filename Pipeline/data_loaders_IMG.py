@@ -121,6 +121,7 @@ def create_local_properties_map(data, scaled_coords, triangle_coords, _type="FIB
 def get_sensordata_and_flowfront_149x117(file, target_shape=(149, 117)):
     return get_sensordata_and_flowfront(file, target_shape)
 
+
 def get_sensordata_and_flowfront_149x117_ignore_useless(file, target_shape=(149, 117)):
     return get_sensordata_and_flowfront(file, target_shape, ignore_useless_states=True)
 
@@ -174,10 +175,12 @@ def get_sensordata_and_flowfront(filename, target_shape=(38, 30), ignore_useless
             if ignore_useless_states and len(useless_states) > 0 and state == f'state{useless_states[0]:012d}':
                 break
             else:
-                filling_factors_at_certain_times.append(f["post"]["singlestate"][state]["entityresults"]["NODE"]["FILLING_FACTOR"]["ZONE1_set1"]["erfblock"][
-                    "res"][
-                    ()
-                ])
+                filling_factors_at_certain_times.append(
+                    f["post"]["singlestate"][state]["entityresults"]["NODE"]["FILLING_FACTOR"]["ZONE1_set1"][
+                        "erfblock"][
+                        "res"][
+                        ()
+                    ])
         flat_fillings = np.squeeze(filling_factors_at_certain_times)
     except KeyError:
         return None

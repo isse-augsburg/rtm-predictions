@@ -49,7 +49,7 @@ class DeconvModel_efficient(nn.Module):
         super(DeconvModel_efficient, self).__init__()
 
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
-        self.ct2 = ConvTranspose2d(128,64, 7, stride=2, padding=0)
+        self.ct2 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
         self.ct4 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
 

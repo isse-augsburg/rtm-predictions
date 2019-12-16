@@ -16,22 +16,22 @@ from Utils.eval_utils import eval_preparation
 
 class ModelTrainer:
     def __init__(
-        self,
-        model,
-        data_source_paths,
-        save_datasets_path,
-        load_datasets_path=None,
-        cache_path=None,
-        batch_size=1,
-        eval_freq=2,
-        train_print_freq=2,
-        epochs=10,
-        num_workers=10,
-        num_validation_samples=10,
-        num_test_samples=10,
-        data_processing_function=None,
-        data_gather_function=None,
-        looping_strategy=None,
+            self,
+            model,
+            data_source_paths,
+            save_datasets_path,
+            load_datasets_path=None,
+            cache_path=None,
+            batch_size=1,
+            eval_freq=2,
+            train_print_freq=2,
+            epochs=10,
+            num_workers=10,
+            num_validation_samples=10,
+            num_test_samples=10,
+            data_processing_function=None,
+            data_gather_function=None,
+            looping_strategy=None,
     ):
         self.train_print_frequency = train_print_freq
         self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
@@ -74,11 +74,11 @@ class ModelTrainer:
         return generator
 
     def run_training(
-        self,
-        loss_criterion,
-        learning_rate,
-        calc_metrics,
-        classification_evaluator,
+            self,
+            loss_criterion,
+            learning_rate,
+            calc_metrics,
+            classification_evaluator,
     ):
         save_path = self.save_datasets_path / self.initial_timestamp
         save_path.mkdir(parents=True, exist_ok=True)

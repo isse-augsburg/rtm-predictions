@@ -19,7 +19,8 @@ def mark_useless_frames_in_file(file):
 
     for i, k in enumerate(keys):
         try:
-            z = result_file[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()].flatten()
+            z = result_file[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][
+                ()].flatten()
         except KeyError:
             continue
         ones = np.ones_like(z)
@@ -27,7 +28,7 @@ def mark_useless_frames_in_file(file):
         if filling_perc >= 1.0:
             ignore_list.append(int(str(k).replace("state", "0")))
         result_file.close()
-    #print(ignore_list)
+    # print(ignore_list)
     try:
         useless_states = meta_file.require_group('useless_states')
         useless_states.create_dataset('singlestates', data=np.array(ignore_list))
@@ -40,11 +41,10 @@ def mark_useless_frames(root_dir):
     files = list(root_dir.rglob("*RESULT.erfh5"))
 
     with Pool() as p:
-        l = list(tqdm.tqdm(p.imap_unordered(mark_useless_frames_in_file,files), total=len(files)))
+        _ = list(tqdm.tqdm(p.imap_unordered(mark_useless_frames_in_file, files), total=len(files)))
 
 
 if __name__ == "__main__":
     # data_root / "2019-07-24_16-32-40_5000p",  # X             # X             # .2 - .8   # High
     # data_root / '2019-11-08_15-40-44_5000p'  # X             # X             # .3 - .5   # Low
     mark_useless_frames(Path(sys.argv[1]))
-

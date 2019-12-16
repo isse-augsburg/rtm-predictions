@@ -254,9 +254,6 @@ def create_triangle_mesh(file_path):
     return Xi, Yi, triang, xi, yi
 
 
-
-
-
 def main_for_end():
     file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/0/"
                      "2019-07-23_15-38-08_0_RESULT.erfh5")

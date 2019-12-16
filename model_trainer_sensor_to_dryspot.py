@@ -24,20 +24,20 @@ def get_comment():
 
 class DrySpotSensorTrainer:
     def __init__(
-        self,
-        data_source_paths,
-        save_datasets_path,
-        load_datasets_path=None,
-        cache_path=None,
-        batch_size=1,
-        eval_freq=2,
-        train_print_freq=2,
-        epochs=10,
-        num_workers=10,
-        num_validation_samples=10,
-        num_test_samples=10,
-        model=None,
-        evaluator=None,
+            self,
+            data_source_paths,
+            save_datasets_path,
+            load_datasets_path=None,
+            cache_path=None,
+            batch_size=1,
+            eval_freq=2,
+            train_print_freq=2,
+            epochs=10,
+            num_workers=10,
+            num_validation_samples=10,
+            num_test_samples=10,
+            model=None,
+            evaluator=None,
     ):
         self.train_print_frequency = train_print_freq
         self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))

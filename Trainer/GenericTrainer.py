@@ -100,20 +100,20 @@ class MasterTrainer:
             loss = self.loss_criterion(outputs, label)
             loss.backward()
             self.optimizer.step()
-            self.writer.add_scalar("Training", loss.item(), i)
+            self.writer.add_scalar("Training/Loss", loss.item(), i)
             if i % self.train_print_frequency == 0 and i != 0:
                 time_delta = time.time() - start_time
                 time_sum += time_delta
                 self.logger.info(
                     f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s; "
                     f"|| Q: {self.generator.get_current_queue_length()}, "
-                    f"|| {((i % self.eval_frequency) / self.eval_frequency)*100:.2f} % of Epoch"
+                    f"|| {((i % self.eval_frequency) / self.eval_frequency) * 100:.2f} % of Epoch"
                 )
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
                 validation_loss = self.eval(self.validation_list, eval_step)
-                self.writer.add_scalar("Validation", validation_loss, i)
+                self.writer.add_scalar("Validation/Loss", validation_loss, i)
                 time_sum = 0
                 eval_step += 1
                 i_of_epoch = 0
@@ -135,8 +135,6 @@ class MasterTrainer:
             for i, (data, label) in enumerate(self.__batched(data_set, self.generator.batch_size)):
                 data = data.to(self.device, non_blocking=True)
                 label = label.to(self.device, non_blocking=True)
-                # data = torch.unsqueeze(data, 0)
-                # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
@@ -161,7 +159,7 @@ class MasterTrainer:
                 if loss < self.best_loss:
                     self.save_checkpoint(eval_step, loss)
                     self.best_loss = loss
-        return current_loss
+        return loss
 
     def save_checkpoint(self, eval_step, loss):
         torch.save(

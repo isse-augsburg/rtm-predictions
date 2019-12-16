@@ -208,9 +208,9 @@ class SensorDeconvToDryspot(nn.Module):
         self.details = Conv2d(128, 256, 3)
         self.details2 = Conv2d(256, 1024, 3, padding=0)
 
-        self.linear2 = Linear(1024,512)
-        self.linear3 = Linear(512,256)
-        self.linear4 = Linear(256,1)
+        self.linear2 = Linear(1024, 512)
+        self.linear3 = Linear(512, 256)
+        self.linear4 = Linear(256, 1)
 
     def forward(self, inputs):
         f = inputs
@@ -264,7 +264,7 @@ class SensorDeconvToDryspot2(nn.Module):
 
         for i, c in enumerate(self.children()):
             logger = logging.getLogger(__name__)
-            print(f'Freezing: {c}')
+            logger.info(f'Freezing: {c}')
 
             for param in c.parameters():
                 param.requires_grad = False
@@ -319,16 +319,16 @@ class SensorDeconvToDryspotEfficient(nn.Module):
     def __init__(self, pretrained=False, checkpoint_path=None, freeze_nlayers=8):
         super(SensorDeconvToDryspotEfficient, self).__init__()
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
-        self.ct2 = ConvTranspose2d(128,64, 7, stride=2, padding=0)
+        self.ct2 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
         self.ct4 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
 
-        self.shaper0    = Conv2d(8, 16, 17, stride=2, padding=0)
-        self.shaper     = Conv2d(16, 32, 15, stride=2, padding=0)
-        self.med        = Conv2d(32, 32, 7, padding=0)
-        self.details    = Conv2d(32, 32, 3)
-        self.details2   = Conv2d(32, 16, 3, padding=0)
-        self.details3   = Conv2d(16, 1, 3, padding=0)
+        self.shaper0 = Conv2d(8, 16, 17, stride=2, padding=0)
+        self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
+        self.med = Conv2d(32, 32, 7, padding=0)
+        self.details = Conv2d(32, 32, 3)
+        self.details2 = Conv2d(32, 16, 3, padding=0)
+        self.details3 = Conv2d(16, 1, 3, padding=0)
 
         self.maxpool = nn.MaxPool2d(2, 2)
         self.linear2 = Linear(884, 512)
@@ -342,7 +342,8 @@ class SensorDeconvToDryspotEfficient(nn.Module):
             return
 
         for i, c in enumerate(self.children()):
-            print(f'Freezing: {c}')
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
 
             for param in c.parameters():
                 param.requires_grad = False

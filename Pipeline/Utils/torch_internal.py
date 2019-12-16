@@ -2,10 +2,10 @@ import logging
 import math
 import os
 import pickle
+import random
 from enum import Enum
 from pathlib import Path
 from queue import Queue
-import random
 
 import numpy as np
 import torch
@@ -24,6 +24,7 @@ class FileSetIterator:
         cache_path (Path): A path to cache loaded samples
         worker_id (int): The id of this worker for multiprocessing environments
     """
+
     def __init__(self, files, load_data, cache_path=None, worker_id=0):
         self.files = files
         self.load_data = load_data
@@ -142,6 +143,7 @@ class FileSetIterable(torch.utils.data.IterableDataset):
         cache_path (Path): A path to cache loaded samples
         cache_mode (CachingMOde): A path to cache loaded samples
     """
+
     def __init__(self, files, load_data, cache_path=None, cache_mode=CachingMode.Both):
         self.cache_path = cache_path
         self.load_data = load_data
@@ -190,6 +192,7 @@ class FileDiscovery:
             data_gather.get_filelist_within_folder is usually used for this.
         cache_path (str): A directory to use for caching file lists, if required.
     """
+
     def __init__(self, gather_data, cache_path=None, cache_mode=CachingMode.FileList):
         self.filelist_cache_path = None
         if cache_path is not None and cache_mode in [CachingMode.Both, CachingMode.FileList]:
@@ -238,6 +241,7 @@ class SubSetGenerator:
         load_path (Path): A path for loading existing splits
         save_path (Path): A path for saving the used splits
     """
+
     def __init__(self, load_data, subset_name, num_samples, load_path=None, save_path=None):
         self.logger = logging.getLogger(__name__)
         self.load_data = load_data

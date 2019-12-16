@@ -29,7 +29,9 @@ def eval_preparation(save_path):
 export SINGULARITY_DOCKER_USERNAME=\\$oauthtoken
 export SINGULARITY_DOCKER_PASSWORD={os.getenv('SINGULARITY_DOCKER_PASSWORD')}
 
-singularity exec --nv -B /cfs:/cfs {docker_img} python3 -u {save_path}/rtm-predictions/{calling_script} --eval --eval_path {save_path} 
-"""
+""" \
+                f'singularity exec --nv -B /cfs:/cfs {docker_img} ' \
+                f'python3 -u {save_path}/rtm-predictions/{calling_script} --eval ' \
+                f'--eval_path {save_path}'
     with open(save_path / Path("run_model_eval.sh"), "w") as slurm_script:
         slurm_script.write(slurm_txt)

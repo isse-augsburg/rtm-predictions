@@ -20,7 +20,7 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None, ignore_usele
         array_of_states = meta_file["dryspot_states/singlestates"][()]
         set_of_states = set(array_of_states.flatten())
         coord_as_np_array = f[
-            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/" 
+            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
             "erfblock/res"
         ][()]
         # Cut off last column (z), since it is filled with 1s anyway

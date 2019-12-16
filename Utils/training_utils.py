@@ -52,6 +52,7 @@ def apply_blacklists(_data_source_paths):
 
     return _cleaned
 
+
 def read_cmd_params():
     parser = argparse.ArgumentParser(description='Run training or test.')
     parser.add_argument('--eval', action='store_true', help='Run a test.')
