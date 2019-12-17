@@ -6,12 +6,12 @@ import random
 import h5py
 import numpy as np
 import torch
-
 import Tests.resources_for_testing as resources
 import Pipeline.Utils.torch_internal as ti
 import Pipeline.Utils.looping_strategies as ls
 import Pipeline.torch_datagenerator as td
 import Pipeline.data_gather as dg
+from itertools import islice
 
 
 class _TestSetInfo:
@@ -37,8 +37,11 @@ def _dummy_dataloader_fn(filename):
     """ This is a dummy data loader that returns a fake sample for every singlestate in the given file.
     The data will always be the filename while the label is the index of the sample
     """
+    def fn_to_list(fn):
+        lst = list(str(filename).encode("utf-8"))
+        return lst + (200 - len(lst)) * [0]
     with h5py.File(filename, "r") as f:
-        return [(list(str(filename).encode("utf-8")), np.array([i, 0]))
+        return [(fn_to_list(f), np.array([i, 0]))
                 for i in range(len(f["post"]["singlestate"].keys()))]
 
 
@@ -67,28 +70,6 @@ class SampleWrapper:
         return f"Sample {fn} - {idx}"
 
 
-class TorchTestCase(unittest.TestCase):
-    def assertListOfSamplesEqual(self, l1, l2):
-        for s1, s2 in zip(l1, l2):
-            self.assertTrue(s1[0].equal(s2[0]))
-            self.assertTrue(s1[1].equal(s2[1]))
-
-    def assertUnordereSequenceOfSamplesEqual(self, l1, l2):
-        # self.assertEqual(len(l1), len(l2))
-
-        def cmp(s1, s2):
-            for a in s1:
-                for b in s2:
-                    if not all(ae.shape == be.shape for ae, be in zip(a, b)):
-                        continue
-                    if all(ae.allclose(be) for ae, be in zip(a, b)):
-                        break
-                else:
-                    self.assertTrue(False, msg=f"Matching element for {a} in s2")
-        cmp(l1, l2)
-        cmp(l2, l1)
-
-
 class TestFileDiscovery(unittest.TestCase):
     def setUp(self):
         self.test_set = _TestSetInfo()
@@ -108,7 +89,7 @@ class TestFileDiscovery(unittest.TestCase):
             self.assertEqual(sorted(cached_files), sorted(original_files))
 
 
-class TestFileSetIterator(TorchTestCase):
+class TestFileSetIterator(unittest.TestCase):
     def setUp(self):
         self.test_set = _TestSetInfo()
 
@@ -121,10 +102,10 @@ class TestFileSetIterator(TorchTestCase):
         with tempfile.TemporaryDirectory(prefix="FileSetIterator_Cache") as cache_path:
             cache_path = Path(cache_path)
             iterator = ti.FileSetIterator(list(self.test_set.erf_files), _dummy_dataloader_fn, cache_path=cache_path)
-            orig_samples = list(iterator)
+            orig_samples = list(SampleWrapper(sample) for sample in iterator)
             iterator = ti.FileSetIterator(list(self.test_set.erf_files), None, cache_path=cache_path)
-            cached_samples = list(iterator) 
-            self.assertListOfSamplesEqual(orig_samples, cached_samples)
+            cached_samples = list(SampleWrapper(sample) for sample in iterator) 
+            self.assertListEqual(orig_samples, cached_samples)
 
     def test_get_remaining_files(self):
         iterator = ti.FileSetIterator(list(self.test_set.erf_files), _dummy_dataloader_fn)
@@ -152,7 +133,7 @@ class TestFileSetIterable(unittest.TestCase):
         self.assertEqual(len(samples), self.test_set.num_samples)
 
 
-class TestSubsetGenerator(TorchTestCase):
+class TestSubsetGenerator(unittest.TestCase):
     def setUp(self):
         self.test_set = _TestSetInfo()
         self.num_split_samples = 400
@@ -181,24 +162,28 @@ class TestSubsetGenerator(TorchTestCase):
 
             self.assertCountEqual(save_unused_files, load_unused_files)
             # TODO: Proper file sorting will result in correct ordering of samples here
-            self.assertListOfSamplesEqual(save_samples, load_samples)
+            save_samples = list(SampleWrapper(sample) for sample in save_samples) 
+            load_samples = list(SampleWrapper(sample) for sample in load_samples) 
+            self.assertListEqual(save_samples, load_samples)
 
 
-class TestLoopingStrategies(TorchTestCase):
+class TestLoopingStrategies(unittest.TestCase):
     def setUp(self):
         self.test_set = _TestSetInfo()
         self.batch_size = 1
         self.looping_strategies = [lambda: ls.SimpleListLoopingStrategy(),
                                    lambda: ls.ComplexListLoopingStrategy(self.batch_size),
-                                   lambda: ls.DataLoaderListLoopingStrategy(self.batch_size)]
+                                   lambda: ls.DataLoaderListLoopingStrategy(self.batch_size),
+                                   ]
 
     def test_strategies(self):
         for strategyfn in self.looping_strategies:
             strategy = strategyfn()
             with self.subTest(msg=f"Checking strategy {type(strategy).__name__}"):
                 dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
-                                                     _dummy_dataloader_fn, looping_strategy=strategy, epochs=2)
-                first_epoch = set(SampleWrapper((b[0][0], b[1][0]))
-                                  for b, _ in zip(dataloader, range(self.test_set.num_samples)))
-                second_epoch = set(SampleWrapper((b[0][0], b[1][0])) for b in dataloader)
+                                                     _dummy_dataloader_fn, looping_strategy=strategy, epochs=2, batch_size=6)
+                first_epoch = set(SampleWrapper((b[0][i], b[1][i]))
+                                  for _, b in zip(range(int(self.test_set.num_samples / 6)), dataloader)
+                                  for i in range(len(b[0])))
+                second_epoch = set(SampleWrapper((b[0][i], b[1][i])) for b in dataloader for i in range(len(b[0])))
                 self.assertSetEqual(first_epoch, second_epoch)
