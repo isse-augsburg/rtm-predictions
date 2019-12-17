@@ -181,9 +181,9 @@ class TestLoopingStrategies(unittest.TestCase):
             strategy = strategyfn()
             with self.subTest(msg=f"Checking strategy {type(strategy).__name__}"):
                 dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
-                                                     _dummy_dataloader_fn, looping_strategy=strategy, epochs=2, batch_size=6)
+                                                     _dummy_dataloader_fn, looping_strategy=strategy, epochs=2)
                 first_epoch = set(SampleWrapper((b[0][i], b[1][i]))
-                                  for _, b in zip(range(int(self.test_set.num_samples / 6)), dataloader)
+                                  for _, b in zip(range(int(self.test_set.num_samples)), dataloader)
                                   for i in range(len(b[0])))
                 second_epoch = set(SampleWrapper((b[0][i], b[1][i])) for b in dataloader for i in range(len(b[0])))
                 self.assertSetEqual(first_epoch, second_epoch)
