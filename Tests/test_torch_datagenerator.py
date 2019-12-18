@@ -2,6 +2,8 @@ import unittest
 from pathlib import Path
 import tempfile
 import random
+import logging
+import sys
 
 import h5py
 import numpy as np
@@ -11,7 +13,12 @@ import Pipeline.Utils.torch_internal as ti
 import Pipeline.Utils.looping_strategies as ls
 import Pipeline.torch_datagenerator as td
 import Pipeline.data_gather as dg
-from itertools import islice
+from Utils.natural_sorting import natural_sort_key
+
+logger = logging.getLogger()
+logger.level = logging.DEBUG
+stream_handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(stream_handler)
 
 
 class _TestSetInfo:
@@ -150,20 +157,25 @@ class TestSubsetGenerator(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="SubsetGenerator_Splits") as splitpath:
             subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
                                             save_path=splitpath)
+            files = list(self.test_set.erf_files)
             save_unused_files = subset_gen.prepare_subset(self.test_set.erf_files)
             save_samples = subset_gen.get_samples()
+            self.assertListEqual(save_unused_files, sorted(save_unused_files, key=natural_sort_key))
 
             subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
                                             load_path=splitpath)
             shuffled_files = list(self.test_set.erf_files)
             random.shuffle(shuffled_files)
             load_unused_files = subset_gen.prepare_subset(shuffled_files)
+            self.assertListEqual(files, self.test_set.erf_files, "Splitting should not affect the given file list")
             load_samples = subset_gen.get_samples()
 
             self.assertCountEqual(save_unused_files, load_unused_files)
             # TODO: Proper file sorting will result in correct ordering of samples here
             save_samples = list(SampleWrapper(sample) for sample in save_samples) 
             load_samples = list(SampleWrapper(sample) for sample in load_samples) 
+
+            self.assertSetEqual(set(save_samples), set(load_samples))
             self.assertListEqual(save_samples, load_samples)
 
 
