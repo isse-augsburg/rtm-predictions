@@ -40,6 +40,7 @@ class MasterTrainer:
             learning_rate=0.00001,
             calc_metrics=False,
             classification_evaluator=None,
+            optimizer_path=None,
     ):
         self.generator = generator
         self.epochs = self.generator.epochs
@@ -51,14 +52,20 @@ class MasterTrainer:
         self.loss_criterion = loss_criterion
         self.learning_rate = learning_rate
         self.loss_criterion = loss_criterion.cuda()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.logger = logging.getLogger(__name__)
+        if optimizer_path is None:
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        else:
+            self.logger.info(f'Loading optimizer state from {optimizer_path}')
+            self.optimizer = torch.optim.Adam(self.model.parameters())
+            checkpoint = torch.load(optimizer_path)
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu")
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
         self.classification_evaluator = classification_evaluator
         self.best_loss = np.finfo(float).max
-        self.logger = logging.getLogger(__name__)
         self.writer = SummaryWriter(self.save_path)
 
     def start_training(self):

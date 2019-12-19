@@ -32,6 +32,7 @@ class ModelTrainer:
             data_processing_function=None,
             data_gather_function=None,
             looping_strategy=None,
+            optimizer_path=None,
     ):
         self.train_print_frequency = train_print_freq
         self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
@@ -51,6 +52,7 @@ class ModelTrainer:
         self.test_data_generator = None
         self.model = model
         self.looping_strategy = looping_strategy
+        self.optimizer_path = optimizer_path
 
     def create_datagenerator(self, save_path):
         try:
@@ -110,6 +112,7 @@ class ModelTrainer:
             train_print_frequency=self.train_print_frequency,
             eval_frequency=self.eval_freq,
             classification_evaluator=classification_evaluator,
+            optimizer_path=self.optimizer_path
         )
         logger.info("The Training Will Start Shortly")
 

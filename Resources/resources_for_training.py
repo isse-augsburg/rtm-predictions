@@ -17,11 +17,12 @@ elif getpass.getuser() == 'lodes':
     cache_path = Path('/cfs/share/cache')
 
 _stiebesi_home = _home / 's/t/stiebesi'
+_res_leoben = _stiebesi_home / 'results_leoben'
 data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'
 datasets_dryspots = _stiebesi_home / 'data/RTM/Leoben/reference_datasets/dryspot_detection'
-checkpoint_1140_sensors_deconv = _stiebesi_home / 'results_leoben/4_three_week_run/2019-09-25_16-42-53/checkpoint.pth'
-checkpoint_1140_sensors_deconv_eff = _stiebesi_home / \
-    'results_leoben/2019-12-12_20-27-20_eff_net_cleaned_data/checkpoint.pth'
+checkpoint_1140_sensors_deconv = _res_leoben / '4_three_week_run/2019-09-25_16-42-53/checkpoint.pth'
+checkpoint_1140_sensors_deconv_eff = _res_leoben / '2019-12-12_20-27-20_eff_net_cleaned_data/checkpoint.pth'
+chkp_1140_transfered_dry_spot = _res_leoben / '2019-12-13_17-15-26_transfer_eff_net_dryspot/checkpoint.pth'
 
 
 def get_all_data_paths():

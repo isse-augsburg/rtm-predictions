@@ -17,7 +17,8 @@ if __name__ == "__main__":
     num_samples_runs = 1860000
     batch_size = 2048
     m = ModelTrainer(SensorDeconvToDryspotEfficient(pretrained=True,
-                                                    checkpoint_path=r.checkpoint_1140_sensors_deconv_eff),
+                                                    checkpoint_path=r.chkp_1140_transfered_dry_spot,
+                                                    freeze_nlayers=0),
                      r.get_data_paths(),
                      r.save_path,
                      load_datasets_path=r.datasets_dryspots,
@@ -31,7 +32,8 @@ if __name__ == "__main__":
                      num_test_samples=8192,
                      data_processing_function=get_sensor_bool_dryspot_ignore_useless,
                      data_gather_function=get_filelist_within_folder_blacklisted,
-                     looping_strategy=ComplexListLoopingStrategy(batch_size)
+                     looping_strategy=ComplexListLoopingStrategy(batch_size),
+                     optimizer_path=r.chkp_1140_transfered_dry_spot
                      )
 
     if not args.eval:
