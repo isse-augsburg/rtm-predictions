@@ -10,6 +10,8 @@ import random
 import numpy as np
 import torch
 
+from Utils.natural_sorting import natural_sort_key
+
 
 class FileSetIterator:
     """ An iterator for samples stored in a set of files.
@@ -25,7 +27,7 @@ class FileSetIterator:
         worker_id (int): The id of this worker for multiprocessing environments
     """
     def __init__(self, files, load_data, cache_path=None, worker_id=0):
-        self.files = files
+        self.files = list(files)  # Copy the file list because we remove the items in this list
         self.load_data = load_data
         self.cache_path = cache_path
         self.sample_queue = Queue()
@@ -54,7 +56,7 @@ class FileSetIterator:
             if s_path.exists():
                 # Get all pickled sample files
                 instance_f = s_path.glob("*.pt")
-                instance_f = sorted(instance_f)
+                instance_f = sorted(instance_f, key=natural_sort_key)
                 for i in range(len(instance_f) // 2):
                     _data = torch.load(s_path.joinpath(instance_f[i * 2]))
                     _label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
@@ -108,6 +110,9 @@ class FileSetIterator:
             A list of remaining files.
         """
         return self.files
+
+    def __iter__(self):
+        return self
 
     def __next__(self):
         """ Get the next sample.
@@ -290,13 +295,16 @@ class SubSetGenerator:
         """
         if self.load_file is not None and self.load_file.is_file():
             with open(self.load_file, 'rb') as f:
+                self.logger.debug(f"Loading {self.subset_name} from stored file {self.load_file}")
                 self.used_filenames = [Path(fn) for fn in pickle.load(f)]
                 unused_files = self._list_difference(file_paths, self.used_filenames)
         else:
             paths_copy = list(file_paths)
             random.shuffle(paths_copy)
             self.samples, unused_files = self._load_sub_set_from_files(paths_copy)
-            self.used_filenames = self._list_difference(file_paths, unused_files)
+            self.used_filenames = self._list_difference(paths_copy, unused_files)
+            # Recalculate unused_files to restore the original order
+            unused_files = self._list_difference(file_paths, self.used_filenames)  
         if self.save_file is not None:
             with open(self.save_file, 'wb') as f:
                 pickle.dump([str(fn) for fn in self.used_filenames], f)
