@@ -51,7 +51,7 @@ def __analyze_image(img, perm_map=None):
 
 
 def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi, change_meta_file=False,
-                      save_flowfront_img=False, silent=False):
+                      save_flowfront_img=False, silent=False, detect_useless=False):
     try:
         f = h5py.File(file_path, "r")
     except OSError:
@@ -185,15 +185,16 @@ def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi, change
                 if int(start) <= i < int(stop):
                     states.append(int(key.replace("state", "0")))
 
-        try:
-            useless_states = meta_file.require_group('useless_states')
-            useless_states.create_dataset('singlestates', data=np.array(ignore_list))
-            # -> Moved to useless_frame_detection.py
-            # dry_group = meta_file.require_group('dryspot_states')
-            # dry_group.create_dataset('singlestates', data=np.array(states))
-            meta_file.close()
-        except RuntimeError:
-            pass
+        # -> Moved to useless_frame_detection.py
+        if detect_useless:
+            try:
+                useless_states = meta_file.require_group('useless_states')
+                useless_states.create_dataset('singlestates', data=np.array(ignore_list))
+                dry_group = meta_file.require_group('dryspot_states')
+                dry_group.create_dataset('singlestates', data=np.array(states))
+                meta_file.close()
+            except RuntimeError:
+                pass
 
     f.close()
     del f
@@ -207,8 +208,7 @@ def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi, change
     return spot_list_s, spot_list_e, deltas_prob
 
 
-def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
-    curr_path = '2019-07-11_15-14-48_100p'
+def multiprocess_wrapper(triang, Xi, Yi, xi, yi, curr_path, i):
     date, time, _ = curr_path.split('_')
     stamp = date + '_' + time
     if socket.gethostname() == "swtse130":
@@ -216,25 +216,10 @@ def multiprocess_wrapper(triang, Xi, Yi, xi, yi, i):
         output = Path(r"Y:\cache\DrySpotDet2")
     else:
         source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        output = Path("/cfs/share/cache/DrySpotDet_emptyframes")
+        output = Path("/cfs/share/cache/DrySpotDet2")
 
     a, b, c = dry_spot_analysis(source / curr_path / str(i) / f"{stamp}_{i}_RESULT.erfh5", output / curr_path / str(i),
-                                triang, Xi, Yi, xi, yi, change_meta_file=True, save_flowfront_img=False)
-
-
-def main():
-    if socket.gethostname() == "swtse130":
-        file_path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-09-06_17-03-51_10000p\0"
-                         r"\2019-09-06_17-03-51_0_RESULT.erfh5")
-    else:
-        file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-11_15-14-48_100p/0"
-                         "/2019-07-11_15-14-48_0_RESULT.erfh5")
-    Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
-
-    t00 = time()
-    with Pool() as p:
-        p.map(partial(multiprocess_wrapper, triang, Xi, Yi, xi, yi), range(0, 5000))
-    print(f'Took {time() - t00} s.')
+                                triang, Xi, Yi, xi, yi, change_meta_file=True, save_flowfront_img=True, detect_useless=True)
 
 
 def create_triangle_mesh(file_path):
@@ -258,15 +243,31 @@ def main_for_end():
     file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/0/"
                      "2019-07-23_15-38-08_0_RESULT.erfh5")
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
-    curr_path = '2019-07-23_15-38-08_5000p'
+    curr_path = '2019-08-24_11-51-48_5000p'
     date, time, _ = curr_path.split('_')
     stamp = date + '_' + time
     source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-    output = Path("/home/schroeni/Dokumente/DryspotOut")
+    output = Path("/cfs/share/cache/DrySpotDet2")
 
     a, b, c = dry_spot_analysis(source / curr_path / str(0) / f"{stamp}_{0}_RESULT.erfh5", output / curr_path / str(0),
                                 triang, Xi, Yi, xi, yi, change_meta_file=False, save_flowfront_img=True)
 
 
+def main():
+    if socket.gethostname() == "swtse130":
+        file_path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-09-06_17-03-51_10000p\0"
+                         r"\2019-09-06_17-03-51_0_RESULT.erfh5")
+    else:
+        file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-11_15-14-48_100p/0"
+                         "/2019-07-11_15-14-48_0_RESULT.erfh5")
+    Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
+
+    curr_path = '2019-11-29_16-56-17_10000p'
+    num_runs = int(curr_path.split('_')[-1][:-1])
+
+    with Pool() as p:
+        p.map(partial(multiprocess_wrapper, triang, Xi, Yi, xi, yi, curr_path), range(0, num_runs))
+
+
 if __name__ == "__main__":
-    main_for_end()
+    main()

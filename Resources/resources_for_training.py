@@ -31,21 +31,21 @@ def get_all_data_paths():
         # 1.379.230                                    # Dryspot  # Has blacklist # FVC       # Dry Spot Prob # Useless
         data_root / "2019-07-24_16-32-40_5000p",  # X        # X             # .2 - .8   # High          # X
         # 1.391.145
-        data_root / "2019-07-29_10-45-18_5000p",  # -        #               #
+        data_root / "2019-07-29_10-45-18_5000p",  # started        #               #
         # 496.161
-        data_root / "2019-08-23_15-10-02_5000p",  # -        #               #
+        data_root / "2019-08-23_15-10-02_5000p",  # started        #               #
         # 497.478
-        data_root / "2019-08-24_11-51-48_5000p",  # -        #               #
+        data_root / "2019-08-24_11-51-48_5000p",  # started        #               #
         # 499.598
-        data_root / "2019-08-25_09-16-40_5000p",  # -        #               #
+        data_root / "2019-08-25_09-16-40_5000p",  # started        #               #
         # 1.729.106
-        data_root / "2019-08-26_16-59-08_6000p",  # -        #               #
+        data_root / "2019-08-26_16-59-08_6000p",  # started        #               #
         # 1.606.405
         data_root / '2019-09-06_17-03-51_10000p',  # X        # X             # .3 - .8   # Very High
         # 816.891
         data_root / '2019-11-08_15-40-44_5000p',  # X        # X             # .3 - .5   # Low           # X
         # 1.406.003
-        data_root / '2019-11-29_16-56-17_10000p'  # -        # -             #
+        data_root / '2019-11-29_16-56-17_10000p'  # started        # -             #
         # Overall count: 9822017
     ]
     return data_paths

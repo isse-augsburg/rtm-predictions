@@ -66,7 +66,7 @@ class MasterTrainer:
         self.calc_metrics = calc_metrics
         self.classification_evaluator = classification_evaluator
         self.best_loss = np.finfo(float).max
-        self.writer = SummaryWriter(self.save_path)
+        self.writer = SummaryWriter(log_dir=self.save_path)
 
     def start_training(self):
         """ Prints information about the used train config and starts the
