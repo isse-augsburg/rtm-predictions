@@ -80,7 +80,7 @@ class DrySpotTrainer:
 
         logger = logging.getLogger(__name__)
 
-        if socket.gethostname() == "swt-dgx1":
+        if "swt-dgx" in socket.gethostname():
             logger.info('Invoking data parallel model.')
             self.model = nn.DataParallel(self.model).to("cuda:0")
         else:
@@ -122,7 +122,7 @@ class DrySpotTrainer:
         logger.info("Generating Model")
         if torch.cuda.is_available():
             logger.info("Model to GPU")
-        if socket.gethostname() == "swt-dgx1":
+        if "swt-dgx" in socket.gethostname():
             self.model = nn.DataParallel(self.model).to("cuda:0")
         else:
             self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
     num_samples_runs = 2000000  # 2.1 M - blacklist, still a guestimate # 9080 * 188  # guestimate ~ 188 p. Sim.
     _train_print_freq = 10
-    if socket.gethostname() == "swt-dgx1":
+    if "swt-dgx" in socket.gethostname():
         _home = Path('/cfs/home')
         _cache_path = None
         _batch_size = 4096

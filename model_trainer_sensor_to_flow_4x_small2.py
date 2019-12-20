@@ -82,7 +82,7 @@ class SensorTrainer:
         logger = logging.getLogger(__name__)
 
         model = DeconvModel4x()
-        if socket.gethostname() == "swt-dgx1":
+        if "swt-dgx" in socket.gethostname():
             logger.info('Invoking data parallel model.')
             model = nn.DataParallel(model).to("cuda:0")
         else:
@@ -136,7 +136,7 @@ class SensorTrainer:
         logger.info("Generating Model")
         model = DeconvModel4x()
         logger.info("Model to GPU")
-        if socket.gethostname() == "swt-dgx1":
+        if "swt-dgx" in socket.gethostname():
             model = nn.DataParallel(model).to("cuda:0")
         else:
             model = model.to("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
     num_samples_runs = 40827  # or 7.713.044 frames ~ 188 p. Sim.
     _train_print_freq = 20
-    if socket.gethostname() == "swt-dgx1":
+    if "swt-dgx" in socket.gethostname():
         _cache_path = None
         _data_root = Path(
             "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")

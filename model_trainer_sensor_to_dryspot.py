@@ -87,7 +87,7 @@ class DrySpotSensorTrainer:
 
         logger = logging.getLogger(__name__)
 
-        if socket.gethostname() == "swt-dgx1":
+        if "swt-dgx" in socket.gethostname():
             logger.info("Invoking data parallel model.")
             self.model = nn.DataParallel(self.model).to("cuda:0")
         else:
@@ -142,7 +142,7 @@ class DrySpotSensorTrainer:
         logger.info("Generating Model")
         if torch.cuda.is_available():
             logger.info("Model to GPU")
-        if socket.gethostname() == "swt-dgx1":
+        if "swt-dgx" in socket.gethostname():
             self.model = nn.DataParallel(self.model).to("cuda:0")
         else:
             self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     num_samples_runs = 10000 * 188  # guestimate ~ 188 p. Sim.
     _train_print_freq = 10
-    if socket.gethostname() == "swt-dgx1":
+    if "swt-dgx" in socket.gethostname():
         _cache_path = None
         _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
         _batch_size = 128

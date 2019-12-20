@@ -98,7 +98,7 @@ class SuccessTrainer:
 
 if __name__ == "__main__":
 
-    if socket.gethostname() == "swt-dgx1":
+    if "swt-dgx" in socket.gethostname():
         print("On DGX.")
         _cache_path = None
         _data_root = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")

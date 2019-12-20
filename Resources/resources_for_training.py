@@ -3,7 +3,7 @@ import socket
 from pathlib import Path
 
 _home = Path('/cfs/home')
-if socket.gethostname() == "swt-dgx1":
+if "swt-dgx" in socket.gethostname():
     cache_path = None
     save_path = Path(f"/cfs/share/cache/output_{getpass.getuser()}")
 

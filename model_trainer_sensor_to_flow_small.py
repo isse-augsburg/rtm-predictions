@@ -22,7 +22,7 @@ from Utils import logging_cfg
 num_data_points = 31376
 initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
-if socket.gethostname() == "swt-dgx1":
+if "swt-dgx" in socket.gethostname():
     data_root = Path(
         "/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
     batch_size = 256
@@ -106,7 +106,7 @@ def inference_on_test_set(path):
     logging_cfg.apply_logging_config(save_path, eval=True)
 
     model = DeconvModel2x()
-    if socket.gethostname() == "swt-dgx1":
+    if "swt-dgx" in socket.gethostname():
         model = nn.DataParallel(model).to("cuda:0")
     else:
         model = model.to("cuda:0")
