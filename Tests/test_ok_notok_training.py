@@ -33,7 +33,7 @@ class TestOkNotOkTraining(unittest.TestCase):
         self.assertTrue(len(epochs) > 0)
 
     def tearDown(self) -> None:
-        self.model_trainer.data_generator.end_threads()
+        # self.model_trainer.data_generator.end_threads()
         logging.shutdown()
         r = logging.getLogger("")
         [r.removeHandler(x) for x in r.handlers]

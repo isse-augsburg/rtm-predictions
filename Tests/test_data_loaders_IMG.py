@@ -18,7 +18,7 @@ class TestDataLoaderIMG(unittest.TestCase):
 
     def create_list_and_test(self, list_length, n_elements):
         logger = logging.getLogger(__name__)
-        logger.info(list_length, n_elements)
+        logger.info(f'list len: {list_length}, required elements: {n_elements}')
         if n_elements > list_length:
             return
         x = get_fixed_number_of_indices(
