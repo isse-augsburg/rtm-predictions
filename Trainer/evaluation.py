@@ -7,6 +7,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas
 from PIL import Image
 
 """ 
@@ -80,14 +81,16 @@ def save_img(path, _str, x, index):
 
 
 class SensorToFlowfrontEvaluator(Evaluator):
-    def __init__(self, save_path=Path("/home/schroeter/Desktop/output"), halving_factor=0, skip_images=False):
+    def __init__(self, save_path: Path = None, halving_factor=0, skip_images=True):
         super().__init__()
         self.num = 0
         self.save_path = save_path
-        self.im_save_path = save_path / "images"
-        self.im_save_path.mkdir(parents=True, exist_ok=True)
-        self.halving_factor = halving_factor
         self.skip_images = skip_images
+        if save_path is not None:
+            self.im_save_path = save_path / "images"
+            if not self.skip_images:
+                self.im_save_path.mkdir(parents=True, exist_ok=True)
+        self.halving_factor = halving_factor
 
     def commit(self, net_output, label, inputs, *args):
         if self.skip_images:
@@ -147,7 +150,7 @@ class BinaryClassificationEvaluator(Evaluator):
 
         prediction = np.around(net_output)
 
-        self.confusion_matrix[int(label[0].cpu())][int(prediction[0].cpu())] += 1
+        self.confusion_matrix[int(prediction[0].cpu())][int(label[0].cpu())] += 1
 
         if np.array_equal(prediction, label):
             if prediction[0] == 1:
@@ -211,7 +214,9 @@ class BinaryClassificationEvaluator(Evaluator):
                                         fn=self.fn)
             ),
         )
-        logger.info("Confusion matrix:\n%s", str(self.confusion_matrix))
+        df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
+        df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)
+        logger.info(f'Confusion matrix:\n{df}')
 
     def reset(self):
         """Resets the internal counters for the next evaluation loop. 

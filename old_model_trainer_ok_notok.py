@@ -1,8 +1,9 @@
+import getpass
 import logging
 import socket
 from datetime import datetime
 from pathlib import Path
-import getpass
+
 import torch
 
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
@@ -82,7 +83,7 @@ class SuccessTrainer:
             self.training_data_generator,
             comment=get_comment(),
             loss_criterion=torch.nn.BCELoss(),
-            savepath=save_path,
+            save_path=save_path,
             learning_rate=0.0005,
             calc_metrics=False,
             train_print_frequency=50,

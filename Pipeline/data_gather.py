@@ -22,10 +22,37 @@ def get_filelist_within_folder(root_directory):
 
     return dataset_filenames
 
-    # l = []
-    # for dir in root_directories:
-    #    l.extend(list(Path(dir).glob('**/*.erfh5')))
-    # return l
+
+def get_filelist_within_folder_blacklisted(root_directory: str):
+    """
+    Args:
+        root_directory (string): Root directory from which all paths should be
+        collected.
+
+    Applies a blacklist, located in the root directory to the paths and thus does not return them.
+
+    Returns:
+        List of all .erfh5 files in the root_directory
+    """
+    blacklist = set()
+    blacklist_f = Path(root_directory) / 'blacklist.txt'
+    if blacklist_f.exists():
+        with blacklist_f.open('r') as f:
+            lines = f.readlines()
+            cleaned = [x.split(' ')[0] for x in lines]
+            blacklist = set([int(x.split('/')[1]) for x in cleaned])
+    dataset_filenames = []
+
+    for (dirpath, _, filenames) in walk(root_directory):
+        if Path(dirpath).stem.isdigit():
+            irun = int(Path(dirpath).stem)
+            if irun in blacklist:
+                continue
+        if filenames:
+            filenames = [Path(dirpath) / f for f in filenames if f.endswith('.erfh5')]
+            dataset_filenames.extend(filenames)
+
+    return dataset_filenames
 
 
 def get_folders_within_folder(root_directory):

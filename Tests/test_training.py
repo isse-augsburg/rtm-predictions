@@ -15,8 +15,7 @@ class TestTraining(unittest.TestCase):
         self.training_save_path = resources.test_training_out_dir
         self.training_data_paths = [
             resources.test_training_src_dir / '2019-07-11_15-14-48_100p']
-        self.load_datasets_path = resources.test_training_src_dir / \
-            '2019-09-06_15-44-58_63_sensors'
+        self.load_datasets_path = resources.test_training_src_dir / '2019-09-06_15-44-58_63_sensors'
         self.expected_num_epochs_during_training = 1
         self.st = SensorTrainer(data_source_paths=self.training_data_paths,
                                 save_datasets_path=self.training_save_path,
@@ -47,8 +46,7 @@ class TestTrainingWithFixedDataset(unittest.TestCase):
         self.training_save_path = resources.test_training_out_dir
         self.training_data_paths = [
             resources.test_training_src_dir / '2019-07-11_15-14-48_100p']
-        self.load_datasets_path = resources.test_training_src_dir / \
-            '2019-09-06_15-44-58_63_sensors'
+        self.load_datasets_path = resources.test_training_src_dir / '2019-09-06_15-44-58_63_sensors'
         self.expected_num_epochs_during_training = 5
         self.num_validation_samples = 2000
         self.num_test_samples = 2000

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from Utils.training_utils import count_parameters
 
@@ -34,11 +35,12 @@ class MasterTrainer:
             loss_criterion=torch.nn.MSELoss(),
             train_print_frequency=10,
             eval_frequency=100,
-            savepath=Path("model.pth"),
+            save_path=None,
             eval_func=None,
             learning_rate=0.00001,
             calc_metrics=False,
             classification_evaluator=None,
+            optimizer_path=None,
     ):
         self.generator = generator
         self.epochs = self.generator.epochs
@@ -46,20 +48,25 @@ class MasterTrainer:
         self.model = model
         self.train_print_frequency = train_print_frequency
         self.eval_frequency = eval_frequency
-        self.savepath = savepath
+        self.save_path = save_path
         self.loss_criterion = loss_criterion
         self.learning_rate = learning_rate
         self.loss_criterion = loss_criterion.cuda()
-        self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.learning_rate
-        )
+        self.logger = logging.getLogger(__name__)
+        if optimizer_path is None:
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        else:
+            self.logger.info(f'Loading optimizer state from {optimizer_path}')
+            self.optimizer = torch.optim.Adam(self.model.parameters())
+            checkpoint = torch.load(optimizer_path)
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu")
         self.eval_func = eval_func
         self.calc_metrics = calc_metrics
         self.classification_evaluator = classification_evaluator
         self.best_loss = np.finfo(float).max
-        self.logger = logging.getLogger(__name__)
+        self.writer = SummaryWriter(self.save_path)
 
     def start_training(self):
         """ Prints information about the used train config and starts the
@@ -100,18 +107,20 @@ class MasterTrainer:
             loss = self.loss_criterion(outputs, label)
             loss.backward()
             self.optimizer.step()
+            self.writer.add_scalar("Training/Loss", loss.item(), i)
             if i % self.train_print_frequency == 0 and i != 0:
                 time_delta = time.time() - start_time
                 time_sum += time_delta
                 self.logger.info(
                     f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s; "
                     f"|| Q: {self.generator.get_current_queue_length()}, "
-                    f"|| {((i % self.eval_frequency) / self.eval_frequency)*100:.2f} % of B"
+                    f"|| {((i % self.eval_frequency) / self.eval_frequency) * 100:.2f} % of Epoch"
                 )
                 start_time = time.time()
 
             if i % self.eval_frequency == 0 and i != 0:
-                self.eval(self.validation_list, eval_step)
+                validation_loss = self.eval(self.validation_list, eval_step)
+                self.writer.add_scalar("Validation/Loss", validation_loss, i)
                 time_sum = 0
                 eval_step += 1
                 i_of_epoch = 0
@@ -133,8 +142,6 @@ class MasterTrainer:
             for i, (data, label) in enumerate(self.__batched(data_set, self.generator.batch_size)):
                 data = data.to(self.device, non_blocking=True)
                 label = label.to(self.device, non_blocking=True)
-                # data = torch.unsqueeze(data, 0)
-                # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
@@ -159,6 +166,7 @@ class MasterTrainer:
                 if loss < self.best_loss:
                     self.save_checkpoint(eval_step, loss)
                     self.best_loss = loss
+        return loss
 
     def save_checkpoint(self, eval_step, loss):
         torch.save(
@@ -168,7 +176,7 @@ class MasterTrainer:
                 "optimizer_state_dict": self.optimizer.state_dict(),
                 "loss": loss,
             },
-            self.savepath / Path("checkpoint.pth"),
+            self.save_path / Path("checkpoint.pth"),
         )
 
     def load_checkpoint(self, path):

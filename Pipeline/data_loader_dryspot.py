@@ -8,17 +8,19 @@ def get_flowfront_bool_dryspot_143x111(file, target_shape=(143, 111)):
     return get_flowfront_bool_dryspot(file, target_shape)
 
 
-def get_flowfront_bool_dryspot(filename, target_shape, states=None):
+def get_flowfront_bool_dryspot(filename, target_shape, states=None, ignore_useless_states=False):
     """
     Load the flow front for the given states or all available states if states is None
     """
     f = h5py.File(filename, 'r')
     meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
     try:
+        if ignore_useless_states:
+            useless_states = meta_file["useless_states/singlestates"][()]
         array_of_states = meta_file["dryspot_states/singlestates"][()]
         set_of_states = set(array_of_states.flatten())
         coord_as_np_array = f[
-            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/" 
+            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
             "erfblock/res"
         ][()]
         # Cut off last column (z), since it is filled with 1s anyway
@@ -38,6 +40,8 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
         flat_fillings = np.squeeze(filling_factors_at_certain_times)
         instances = []
         for filling, state in zip(flat_fillings, states):
+            if ignore_useless_states and len(useless_states) > 0 and state == f'state{useless_states[0]:012d}':
+                break
             label = 0
             if int(str(state).replace("state", "0")) in set_of_states:
                 label = 1
@@ -52,14 +56,20 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None):
         return None
 
 
-def get_sensor_bool_dryspot(filename):
+def get_sensor_bool_dryspot_ignore_useless(filename):
+    return get_sensor_bool_dryspot(filename, True)
+
+
+def get_sensor_bool_dryspot(filename, ignore_useless_states=False):
     """
     Load the flow front for the given states or all available states if states is None
     """
-    f = h5py.File(filename)
-    meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"))
+    f = h5py.File(filename, 'r')
+    meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
     try:
         array_of_states = meta_file["dryspot_states/singlestates"][()]
+        if ignore_useless_states:
+            useless_states = meta_file["useless_states/singlestates"][()]
         set_of_states = set(array_of_states.flatten())
         pressure_array = \
             f['post']['multistate']['TIMESERIES1']['multientityresults'][
@@ -69,6 +79,8 @@ def get_sensor_bool_dryspot(filename):
         instances = []
         states = f["post"]["singlestate"]
         for state in (states):
+            if ignore_useless_states and len(useless_states) > 0 and state == f'state{useless_states[0]:012d}':
+                break
             label = 0
             state_num = int(str(state).replace("state", "0"))
             if (state_num in set_of_states):
@@ -77,9 +89,12 @@ def get_sensor_bool_dryspot(filename):
                 instances.append((np.squeeze(pressure_array[state_num - 1]) / 100000, label))
             except IndexError:
                 continue
-
+        f.close()
+        meta_file.close()
         return instances
     except KeyError:
+        f.close()
+        meta_file.close()
         return None
 
 

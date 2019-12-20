@@ -1,8 +1,9 @@
 import logging
+
 import torch
 
-from .Utils.torch_internal import FileDiscovery, FileSetIterable, CachingMode, SubSetGenerator
 from .Utils.looping_strategies import LoopingStrategy, DataLoaderListLoopingStrategy, NoOpLoopingStrategy
+from .Utils.torch_internal import FileDiscovery, FileSetIterable, CachingMode, SubSetGenerator
 
 
 class LoopingDataGenerator:
@@ -29,6 +30,7 @@ class LoopingDataGenerator:
             Defaults to the DataLoaderListLoopingStrategy if more than one epoch is used,
             otherwise the NoOpLoopingStrategy will be used.
     """
+
     def __init__(self,
                  data_paths,
                  gather_data,

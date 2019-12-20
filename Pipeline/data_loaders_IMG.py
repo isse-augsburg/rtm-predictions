@@ -122,6 +122,10 @@ def get_sensordata_and_flowfront_149x117(file, target_shape=(149, 117)):
     return get_sensordata_and_flowfront(file, target_shape)
 
 
+def get_sensordata_and_flowfront_149x117_ignore_useless(file, target_shape=(149, 117)):
+    return get_sensordata_and_flowfront(file, target_shape, ignore_useless_states=True)
+
+
 def get_sensordata_and_flowfront_143x111(file, target_shape=(143, 111)):
     return get_sensordata_and_flowfront(file, target_shape)
 
@@ -134,16 +138,25 @@ def get_sensordata_and_flowfront_154x122(file, target_shape=(154, 122)):
     return get_sensordata_and_flowfront(file, target_shape)
 
 
-def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
+def get_sensordata_and_flowfront(filename, target_shape=(38, 30), ignore_useless_states=False):
     try:
-        f = h5py.File(file, "r")
+        f = h5py.File(filename, "r")
+
     except OSError:
         logger = logging.getLogger(__name__)
-        logger.error(f"Error: File not found: {file}")
+        logger.error(f"Error: File not found: {filename}")
         return None
 
     instances = []
     try:
+        if ignore_useless_states:
+            try:
+                meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
+            except OSError:
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error: File not found: {filename.replace("RESULT.erfh5", "meta_data.hdf5")}')
+                return None
+            useless_states = meta_file["useless_states/singlestates"][()]
         coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/" "erfblock/res"][()]
         # Cut off last column (z), since it is filled with 1s anyway
         _coords = coord_as_np_array[:, :-1]
@@ -157,12 +170,17 @@ def get_sensordata_and_flowfront(file, target_shape=(38, 30)):
         pressure_array = pressure_array / 100000
         all_states = f["post"]["singlestate"]
 
-        filling_factors_at_certain_times = [
-            f["post"]["singlestate"][state]["entityresults"]["NODE"]["FILLING_FACTOR"]["ZONE1_set1"]["erfblock"]["res"][
-                ()
-            ]
-            for state in all_states
-        ]
+        filling_factors_at_certain_times = []
+        for state in all_states:
+            if ignore_useless_states and len(useless_states) > 0 and state == f'state{useless_states[0]:012d}':
+                break
+            else:
+                filling_factors_at_certain_times.append(
+                    f["post"]["singlestate"][state]["entityresults"]["NODE"]["FILLING_FACTOR"]["ZONE1_set1"][
+                        "erfblock"][
+                        "res"][
+                        ()
+                    ])
         flat_fillings = np.squeeze(filling_factors_at_certain_times)
     except KeyError:
         return None

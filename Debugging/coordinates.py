@@ -113,7 +113,7 @@ def get_elements_in_shape(filename, shape):
 
 
 def get_indices_of_elements_in_circles(filename, circles=(
-                                ([-5, -5], 1.25), ([5, 5], 2), ([7, 0], 0.5))):
+        ([-5, -5], 1.25), ([5, 5], 2), ([7, 0], 0.5))):
     f = h5py.File(filename, 'r')
     triangle_coords = f['post/constant/connectivities/SHELL/erfblock/ic'].value
     triangle_coords = triangle_coords[:, :-1]

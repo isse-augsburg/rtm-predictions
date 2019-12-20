@@ -61,9 +61,9 @@ def get_all_sensor_values(filename):
     f = h5py.File(filename, "r")
 
     pressure_array = \
-    f["post"]["multistate"]["TIMESERIES1"]["multientityresults"][
-        "SENSOR"
-    ]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
+        f["post"]["multistate"]["TIMESERIES1"]["multientityresults"][
+            "SENSOR"
+        ]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
     pressure_array = pressure_array / 100
 
     last_filling = pressure_array[-1]

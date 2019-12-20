@@ -2,7 +2,6 @@ import argparse
 import getpass
 import logging
 import math
-import os
 import pickle
 import socket
 import sys
@@ -12,7 +11,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from Models.erfh5_DeconvModel import DeconvModel
+from Models.erfh5_DeconvModel import DeconvModel_efficient
 from Pipeline import (
     erfh5_pipeline as pipeline,
     data_loaders_IMG as dli,
@@ -84,7 +83,7 @@ class SensorTrainer:
 
         logger = logging.getLogger(__name__)
 
-        model = DeconvModel()
+        model = DeconvModel_efficient()
         if socket.gethostname() == "swt-dgx1":
             logger.info('Invoking data parallel model.')
             model = nn.DataParallel(model).to("cuda:0")
@@ -132,13 +131,13 @@ class SensorTrainer:
         logger = logging.getLogger(__name__)
 
         logger.info("Saving code and generating SLURM script for later evaluation")
-        eval_preparation(save_path, os.path.abspath(__file__))
+        eval_preparation(save_path)
 
         logger.info("Generating Generator")
         self.training_data_generator = self.create_datagenerator(save_path, test_mode=False)
 
         logger.info("Generating Model")
-        model = DeconvModel()
+        model = DeconvModel_efficient()
         logger.info("Model to GPU")
         if socket.gethostname() == "swt-dgx1":
             model = nn.DataParallel(model).to("cuda:0")
@@ -149,7 +148,7 @@ class SensorTrainer:
             model,
             self.training_data_generator,
             loss_criterion=torch.nn.MSELoss(),
-            savepath=save_path,
+            save_path=save_path,
             learning_rate=0.0001,
             calc_metrics=False,
             train_print_frequency=self.train_print_frequency,
@@ -194,8 +193,8 @@ if __name__ == "__main__":
         else:
             _save_path = Path("/cfs/share/cache/output")
         _epochs = 100
-        _num_workers = 18
-        _num_validation_samples_frames = 350000  # 5 %
+        _num_workers = 10
+        _num_validation_samples_frames = 35000  # 5 %
         _num_test_samples_frames = 40000  # 5 %
 
     elif socket.gethostname() == "swtse130":
@@ -210,19 +209,16 @@ if __name__ == "__main__":
         _num_test_samples_frames = 2000
 
     elif socket.gethostname() == "swthiwi158":
-        _cache_path = \
-            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,share=share/cache")
+        _cache_path = None
         _data_root = \
-            Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
-                 r"share=share/data/RTM/Leoben/output/with_shapes")
+            Path("/cfs/share/data/RTM/Leoben/output/with_shapes")
         _batch_size = 8
-        _eval_freq = 5
-        _save_path = Path(r"/run/user/1001/gvfs/smb-share:server=137.250.170.56,"
-                          r"share=share/cache/output_niklas")
+        _eval_freq = 50
+        _save_path = Path("/cfs/share/cache/output_niklas")
         _epochs = 5
-        _num_workers = 10
-        _num_validation_samples_frames = 1000
-        _num_test_samples_frames = 2000
+        _num_workers = 4
+        _num_validation_samples_frames = 500
+        _num_test_samples_frames = 500
 
     if not run_eval:
         _data_source_paths = [
@@ -239,8 +235,8 @@ if __name__ == "__main__":
         _data_source_paths = []
 
     # Running with the same data sets
-    _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets')
-    # _load_datasets_path = None
+    # _load_datasets_path = Path('/cfs/home/s/t/stiebesi/data/RTM/Leoben/reference_datasets')
+    _load_datasets_path = None
 
     st = SensorTrainer(cache_path=_cache_path,
                        data_source_paths=_data_source_paths,

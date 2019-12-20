@@ -171,7 +171,7 @@ def run_training(save_path):
         comment=get_comment(),
         loss_criterion=torch.nn.MSELoss(),
         # loss_criterion=pixel_wise_loss_multi_input_single_label,
-        savepath=save_path,
+        save_path=save_path,
         learning_rate=0.0001,
         calc_metrics=False,
         train_print_frequency=2,
