@@ -53,6 +53,7 @@ class SensorTrainer:
 
     def create_datagenerator(self, save_path, test_mode=False):
         try:
+            data_processor = dli.DataloaderImages(135, 103)
             generator = pipeline.ERFH5DataGenerator(
                 data_paths=self.data_source_paths,
                 num_validation_samples=self.num_validation_samples,
@@ -60,7 +61,7 @@ class SensorTrainer:
                 batch_size=self.batch_size,
                 epochs=self.epochs,
                 max_queue_length=8096,
-                data_processing_function=dli.get_sensordata_and_flowfront_135x103,
+                data_processing_function=data_processor.get_sensordata_and_flowfront,
                 data_gather_function=dg.get_filelist_within_folder,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,

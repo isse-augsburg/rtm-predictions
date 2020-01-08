@@ -22,6 +22,10 @@ elif getpass.getuser() == 'hartmade':
     test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
     test_out_dir = Path('/cfs/home/h/a/hartmade/test_output')
 
+elif getpass.getuser() == 'schroeni':
+    test_out_dir = Path('/cfs/home/s/c/schroeni/code/tests')
+    test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
+
 elif getpass.getuser() == 'lodes':
     test_out_dir = Path('/cfs/home/l/o/lodesluk/code/tests')
     test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
@@ -48,7 +52,9 @@ else:
 test_training_src_dir = test_src_dir
 test_pipeline_dir = test_src_dir
 
-test_eval_dir = test_src_dir / '2019-09-02_19-40-56'
+test_eval_dir = test_src_dir / '2019-12-12_20-27-20_eff_net_cleaned_data'
+test_checkpoint = test_src_dir / '2019-12-12_20-27-20_eff_net_cleaned_data' / "checkpoint.pth"
+
 data_loader_img_file = test_src_dir / '2019-06-05_15-30-52_0_RESULT.erfh5'
 
 test_eval_output_path = test_out_dir / 'eval'
