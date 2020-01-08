@@ -54,10 +54,7 @@ def run_training(
         classification_evaluator=BinaryClassificationEvaluator()
 ):
     trainer.run_training(
-        loss_criterion,
-        learning_rate,
-        calc_metrics,
-        classification_evaluator,
+        loss_criterion, learning_rate, calc_metrics, classification_evaluator
     )
 
 
@@ -87,7 +84,7 @@ if __name__ == "__main__":
         epochs=50,
         num_workers=12,
         num_validation_samples=50,
-        num_test_samples=0
+        num_test_samples=0,
     )
 
     if not do_eval:

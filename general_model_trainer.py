@@ -122,7 +122,8 @@ class ModelTrainer:
     def inference_on_test_set(
             self,
             output_path: Path,
-            classification_evaluator):
+            classification_evaluator,
+            checkpoint_path):
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
 
@@ -143,7 +144,7 @@ class ModelTrainer:
             data_generator,
             classification_evaluator=classification_evaluator,
         )
-        eval_wrapper.load_checkpoint(output_path / "checkpoint.pth")
+        eval_wrapper.load_checkpoint(checkpoint_path)
 
         data_list = data_generator.get_test_samples()
 

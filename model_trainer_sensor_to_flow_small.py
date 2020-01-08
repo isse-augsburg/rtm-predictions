@@ -79,6 +79,7 @@ paths = [
 def create_datagenerator_pressure_flowfront(paths, save_path=None,
                                             test_mode=False):
     try:
+        data_processor = dli.DataloaderImages(143, 111)
         generator = pipeline.ERFH5DataGenerator(
             data_paths=paths,
             num_validation_samples=num_validation_samples,
@@ -86,7 +87,7 @@ def create_datagenerator_pressure_flowfront(paths, save_path=None,
             batch_size=batch_size,
             epochs=epochs,
             max_queue_length=8096,
-            data_processing_function=dli.get_sensordata_and_flowfront_143x111,
+            data_processing_function=data_processor.get_sensordata_and_flowfront,
             data_gather_function=dg.get_filelist_within_folder,
             num_workers=num_workers,
             cache_path=cache_path,
