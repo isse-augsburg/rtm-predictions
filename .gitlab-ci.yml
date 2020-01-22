@@ -13,6 +13,8 @@ test:
   stage: test
   script:
     - python3 -m unittest discover -s Tests -t Tests
+  tags:
+    - dgx2
 
   only:
     - master

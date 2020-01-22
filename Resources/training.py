@@ -12,9 +12,11 @@ elif socket.gethostname() == "swtse130":
     cache_path = None
     save_path = Path(r"C:\Users\stiebesi\CACHE\train_out")
 
-elif getpass.getuser() == 'lodes':
-    save_path = Path('/cfs/share/cache/output_lukas/Local')
-    cache_path = Path('/cfs/share/cache')
+else:
+    save_path = Path(f'/cfs/share/cache/output_{getpass.getuser()}/Local')
+    # cache_path = Path('/cfs/share/cache')
+    cache_path = None 
+
 
 _stiebesi_home = _home / 's/t/stiebesi'
 _res_leoben = _stiebesi_home / 'results_leoben'
