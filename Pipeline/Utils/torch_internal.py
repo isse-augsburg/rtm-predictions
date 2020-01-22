@@ -301,6 +301,8 @@ class SubSetGenerator:
             with open(self.load_file, 'rb') as f:
                 self.logger.debug(f"Loading {self.subset_name} from stored file {self.load_file}")
                 self.used_filenames = [Path(fn) for fn in pickle.load(f)]
+                if os.name == 'nt':
+                    self.used_filenames = [Path('X:/') / '/'.join(x.parts[3:]) for x in self.used_filenames]
                 unused_files = self._list_difference(file_paths, self.used_filenames)
         else:
             paths_copy = list(file_paths)

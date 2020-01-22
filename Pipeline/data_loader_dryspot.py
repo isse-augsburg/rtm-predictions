@@ -56,11 +56,15 @@ def get_flowfront_bool_dryspot(filename, target_shape, states=None, ignore_usele
         return None
 
 
+def get_sensor_bool_dryspot_ignore_useless_select_1_8(filename):
+    return get_sensor_bool_dryspot(filename, True, selection_tuple=((1, 8), (1, 8)))
+
+
 def get_sensor_bool_dryspot_ignore_useless(filename):
     return get_sensor_bool_dryspot(filename, True)
 
 
-def get_sensor_bool_dryspot(filename, ignore_useless_states=False):
+def get_sensor_bool_dryspot(filename, ignore_useless_states=False, selection_tuple=((0, 1), (0, 1))):
     """
     Load the flow front for the given states or all available states if states is None
     """
@@ -86,7 +90,13 @@ def get_sensor_bool_dryspot(filename, ignore_useless_states=False):
             if (state_num in set_of_states):
                 label = 1
             try:
-                instances.append((np.squeeze(pressure_array[state_num - 1]) / 100000, label))
+                data = np.squeeze(pressure_array[state_num - 1]) / 100000
+                if selection_tuple != ((0, 1), (0, 1)):
+                    rect = data.reshape(38, 30)
+                    sel = rect[selection_tuple[0][0]::selection_tuple[0][1],
+                               selection_tuple[1][0]::selection_tuple[1][1]]
+                    data = sel.flatten()
+                instances.append((data, label))
             except IndexError:
                 continue
         f.close()

@@ -126,6 +126,14 @@ def get_sensordata_and_flowfront_149x117_ignore_useless(file, target_shape=(149,
     return get_sensordata_and_flowfront(file, target_shape, ignore_useless_states=True)
 
 
+def get_sensordata_and_flowfront_119x103_ignore_useless(file, target_shape=(119, 103)):
+    return get_sensordata_and_flowfront(file, target_shape, ignore_useless_states=True)
+
+
+def get_sensordata_and_flowfront_125x109_ignore_useless(file, target_shape=(125, 109)):
+    return get_sensordata_and_flowfront(file, target_shape, ignore_useless_states=True)
+
+
 def get_sensordata_and_flowfront_143x111(file, target_shape=(143, 111)):
     return get_sensordata_and_flowfront(file, target_shape)
 

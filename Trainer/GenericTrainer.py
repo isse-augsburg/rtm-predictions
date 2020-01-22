@@ -41,6 +41,7 @@ class MasterTrainer:
             calc_metrics=False,
             classification_evaluator=None,
             optimizer_path=None,
+            tensorboard=False
     ):
         self.generator = generator
         self.epochs = self.generator.epochs
@@ -66,7 +67,11 @@ class MasterTrainer:
         self.calc_metrics = calc_metrics
         self.classification_evaluator = classification_evaluator
         self.best_loss = np.finfo(float).max
-        self.writer = SummaryWriter(log_dir=self.save_path)
+
+        if tensorboard:
+            self.writer = SummaryWriter(log_dir=self.save_path)
+        else:
+            self.writer = None
 
     def start_training(self):
         """ Prints information about the used train config and starts the
@@ -107,7 +112,8 @@ class MasterTrainer:
             loss = self.loss_criterion(outputs, label)
             loss.backward()
             self.optimizer.step()
-            self.writer.add_scalar("Training/Loss", loss.item(), i)
+            if self.writer is not None:
+                self.writer.add_scalar("Training/Loss", loss.item(), i)
             if i % self.train_print_frequency == 0 and i != 0:
                 time_delta = time.time() - start_time
                 time_sum += time_delta
@@ -120,7 +126,8 @@ class MasterTrainer:
 
             if i % self.eval_frequency == 0 and i != 0:
                 validation_loss = self.eval(self.validation_list, eval_step)
-                self.writer.add_scalar("Validation/Loss", validation_loss, i)
+                if self.writer is not None:
+                    self.writer.add_scalar("Validation/Loss", validation_loss, i)
                 time_sum = 0
                 eval_step += 1
                 i_of_epoch = 0
@@ -163,9 +170,9 @@ class MasterTrainer:
 
             self.model.train()
             if not test_mode:
-                if loss < self.best_loss:
-                    self.save_checkpoint(eval_step, loss)
-                    self.best_loss = loss
+                # if loss < self.best_loss:
+                self.save_checkpoint(eval_step, loss)
+                self.best_loss = loss
         return loss
 
     def save_checkpoint(self, eval_step, loss):
@@ -176,7 +183,7 @@ class MasterTrainer:
                 "optimizer_state_dict": self.optimizer.state_dict(),
                 "loss": loss,
             },
-            self.save_path / Path("checkpoint.pth"),
+            self.save_path / Path(f"checkpoint_{eval_step}.pth"),
         )
 
     def load_checkpoint(self, path):
@@ -195,7 +202,7 @@ class MasterTrainer:
 
         new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
-        if socket.gethostname() != "swt-dgx1":
+        if "swt-dgx" not in socket.gethostname():
             for k, v in model_state_dict.items():
                 name = k[7:]  # remove `module.`
                 new_model_state_dict[name] = v

@@ -1,5 +1,8 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from Utils.training_utils import count_parameters
 
 
 class SensorDryspotModelFC(nn.Module):
@@ -29,3 +32,44 @@ class SensorDryspotModelFC(nn.Module):
         out = self.drop(out)
         out = F.sigmoid(self.fc7(out))
         return out
+
+
+class S1140DryspotModelFCWide(nn.Module):
+    def __init__(self, input_dim=1140):
+        super(S1140DryspotModelFCWide, self).__init__()
+        self.fc = nn.Linear(input_dim, 4096)
+        self.fc2 = nn.Linear(4096, 2048)
+        self.fc3 = nn.Linear(2048, 1)
+
+    def forward(self, _input):
+        out = F.relu(self.fc(_input))
+        out = F.relu(self.fc2(out))
+        out = torch.sigmoid(self.fc3(out))
+        return out
+
+
+class S20DryspotModelFCWide(nn.Module):
+    def __init__(self, input_dim=20):
+        super(S20DryspotModelFCWide, self).__init__()
+        # self.fc = nn.Linear(input_dim, 1024)
+        # self.fc2 = nn.Linear(1024, 256)
+        # self.fc3 = nn.Linear(256, 1)
+        self.fc = nn.Linear(input_dim, 4096)
+        self.fc2 = nn.Linear(4096, 2048)
+        self.fc3 = nn.Linear(2048, 1)
+
+    def forward(self, _input):
+        out = F.relu(self.fc(_input))
+        out = F.relu(self.fc2(out))
+        out = torch.sigmoid(self.fc3(out))
+        return out
+
+
+if __name__ == "__main__":
+    model = S1140DryspotModelFCWide()
+    m = model.cuda()
+    print('param count:', count_parameters(model))
+    em = torch.empty((1, 1140)).cuda()
+    out = m(em)
+
+    print(out.shape)

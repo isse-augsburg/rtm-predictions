@@ -64,7 +64,8 @@ class ModelTrainer:
                 epochs=self.epochs,
                 num_validation_samples=self.num_validation_samples,
                 num_test_samples=self.num_test_samples,
-                split_save_path=self.load_datasets_path or save_path,
+                split_load_path=self.load_datasets_path,
+                split_save_path=save_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 looping_strategy=self.looping_strategy
@@ -112,7 +113,8 @@ class ModelTrainer:
             train_print_frequency=self.train_print_frequency,
             eval_frequency=self.eval_freq,
             classification_evaluator=classification_evaluator,
-            optimizer_path=self.optimizer_path
+            optimizer_path=self.optimizer_path,
+            tensorboard=True
         )
         logger.info("The Training Will Start Shortly")
 
@@ -122,7 +124,8 @@ class ModelTrainer:
     def inference_on_test_set(
             self,
             output_path: Path,
-            classification_evaluator):
+            classification_evaluator,
+            loss_criterion=None):
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
 
@@ -142,6 +145,7 @@ class ModelTrainer:
             self.model,
             data_generator,
             classification_evaluator=classification_evaluator,
+            loss_criterion=loss_criterion or torch.nn.MSELoss()
         )
         eval_wrapper.load_checkpoint(output_path / "checkpoint.pth")
 
