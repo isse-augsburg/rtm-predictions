@@ -3,8 +3,13 @@ import re
 import shutil
 import unittest
 
-import Tests.resources_for_testing as resources
-import model_trainer_ok_notok as mt
+import Resources.testing as resources
+from Trainer.GenericTrainer import ModelTrainer
+import torch
+from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
+import Pipeline.data_gather as dg
+import Pipeline.data_loader_sensor as dls
+from Trainer.evaluation import BinaryClassificationEvaluator
 
 
 class TestOkNotOkTraining(unittest.TestCase):
@@ -16,15 +21,20 @@ class TestOkNotOkTraining(unittest.TestCase):
         self.expected_num_epochs_during_training = 1
 
     def test_training_ok_notok(self):
-        self.model_trainer = mt.create_model_trainer(
-            data_source_paths=self.training_data_paths,
-            save_path=self.training_save_path,
+        model_trainer = ModelTrainer(
+            lambda: ERFH5_PressureSequence_Model(),
+            self.training_data_paths,
+            self.training_save_path,
             epochs=self.expected_num_epochs_during_training,
-            num_validation_samples=5,
-            num_test_samples=0,
+            data_gather_function=dg.get_filelist_within_folder,
+            data_processing_function=dls.sensorgrid_simulationsuccess,
+            num_validation_samples=1,
+            num_test_samples=1,
+            loss_criterion=torch.nn.BCELoss(),
+            classification_evaluator=BinaryClassificationEvaluator()
         )
 
-        mt.run_training(self.model_trainer)
+        model_trainer.start_training()
 
         dirs = [e for e in self.training_save_path.iterdir() if e.is_dir()]
         with open(dirs[0] / "output.log") as f:
@@ -33,7 +43,6 @@ class TestOkNotOkTraining(unittest.TestCase):
         self.assertTrue(len(epochs) > 0)
 
     def tearDown(self) -> None:
-        # self.model_trainer.data_generator.end_threads()
         logging.shutdown()
         r = logging.getLogger("")
         [r.removeHandler(x) for x in r.handlers]

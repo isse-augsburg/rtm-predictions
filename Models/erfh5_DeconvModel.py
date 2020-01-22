@@ -44,9 +44,9 @@ class DeconvModelEfficientBn(nn.Module):
         return torch.squeeze(t4, dim=1)
 
 
-class DeconvModel_efficient(nn.Module):
+class DeconvModelEfficient(nn.Module):
     def __init__(self):
-        super(DeconvModel_efficient, self).__init__()
+        super(DeconvModelEfficient, self).__init__()
 
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct2 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)

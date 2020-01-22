@@ -12,6 +12,7 @@ class LoopingStrategy(ABC):
     """
 
     def __init__(self):
+        self.num_samples = 0
         pass
 
     def store(self, batch):
@@ -20,7 +21,10 @@ class LoopingStrategy(ABC):
         Args:
             batch (tuple of feature-batch and label-batch)
         """
-        pass
+        self.num_samples += len(batch[0])
+
+    def __len__(self):
+        return self.num_samples
 
     @abstractmethod
     def get_new_iterator(self):
@@ -43,6 +47,7 @@ class SimpleListLoopingStrategy(LoopingStrategy):
         self.batches = []
 
     def store(self, batch):
+        super().store(batch)
         self.batches.append(batch)
 
     def get_new_iterator(self):
@@ -63,6 +68,7 @@ class ComplexListLoopingStrategy(LoopingStrategy):
         self.batch_size = batch_size
 
     def store(self, batch):
+        super().store(batch)
         features, labels = batch
         self.features.extend(torch.split(features, 1))
         self.labels.extend(torch.split(labels, 1))
@@ -94,15 +100,13 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         self.labels = []
 
     def store(self, batch):
+        super().store(batch)
         features, labels = batch
         self.features.extend(f.squeeze(0) for f in torch.split(features, 1))
         self.labels.extend(l.squeeze(0) for l in torch.split(labels, 1))
 
     def get_new_iterator(self):
         return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
-
-    def __len__(self):
-        return len(self.features)
 
     def __getitem__(self, index):
         return self.features[index], self.labels[index]
@@ -119,3 +123,6 @@ class NoOpLoopingStrategy(LoopingStrategy):
 
     def get_new_iterator(self):
         return iter([])
+
+    def __len__(self):
+        return 0
