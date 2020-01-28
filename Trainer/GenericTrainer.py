@@ -13,6 +13,7 @@ from torch import nn
 from Pipeline import torch_datagenerator as td
 from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
+from Utils.training_utils import count_parameters
 
 
 class ModelTrainer:
@@ -115,6 +116,16 @@ class ModelTrainer:
             exit()
         return generator
 
+    def __print_info(self):
+        self.logger.info("###########################################")
+        self.logger.info(">>> Model Trainer INFO <<<")
+        self.logger.info(f"Loss criterion: {self.loss_criterion}")
+        self.logger.info(f"Optimizer: {self.optimizer}")
+        self.logger.info(f"Batch size: {self.batch_size}")
+        self.logger.info(f"Model: {self.model}")
+        self.logger.info(f"Parameter count: {count_parameters(self.model)}")
+        self.logger.info("###########################################")
+
     def start_training(self,):
         """ Sets up training and logging and starts train loop
         """
@@ -124,7 +135,7 @@ class ModelTrainer:
         logging_cfg.apply_logging_config(save_path)
 
         logger = logging.getLogger(__name__)
-        logger.info(f"Generating Generator || Batch size: {self.batch_size}")
+        logger.info(f"Generating Generator")
 
         self.data_generator = self.__create_datagenerator(save_path)
 
@@ -148,6 +159,8 @@ class ModelTrainer:
             self.model = nn.DataParallel(self.model).to("cuda:0")
         else:
             self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        self.__print_info()
 
         logger.info("The Training Will Start Shortly")
         self.__train_loop()
