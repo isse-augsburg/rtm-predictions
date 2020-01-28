@@ -30,6 +30,8 @@ class ModelTrainer:
         train_print_frequency: Frequency (in steps) in which infos about the 
                           current loss gets logged.
         epochs: Number of epochs for training.
+        dummy_epoch: If set to True, a dummy epoch will be fetched before training.
+                     This results in better shuffling for the first epoch
         num_workers: Number of processes for processing data.
         num_validation_samples: Number of samples for the validation set.
         num_test_samples: Number of samples for the test set.
@@ -53,6 +55,7 @@ class ModelTrainer:
         batch_size=1,
         train_print_frequency=2,
         epochs=10,
+        dummy_epoch=True,
         num_workers=10,
         num_validation_samples=10,
         num_test_samples=10,
@@ -73,6 +76,7 @@ class ModelTrainer:
         self.save_path = save_path
         self.load_datasets_path = load_datasets_path
         self.epochs = epochs
+        self.dummy_epoch = dummy_epoch
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
         self.num_test_samples = num_test_samples
@@ -162,6 +166,16 @@ class ModelTrainer:
 
         self.__print_info()
 
+        if self.dummy_epoch:
+            logger.info("Prefetching a dummy epoch to get proper shuffling on the first training epoch")
+            start_time = time.time()
+            for i, _ in enumerate(self.data_generator):
+                ctime = time.time()
+                if ctime - start_time > 60:
+                    start_time = ctime
+                    logger.info(f"Fetched {i} batches.")
+            logger.info(f"Total number of samples: {len(self.data_generator)}")
+
         logger.info("The Training Will Start Shortly")
         self.__train_loop()
 
@@ -176,6 +190,7 @@ class ModelTrainer:
 
         for epoch in range(self.epochs):
             self.logger.info(f"Starting epoch {epoch}")
+            epoch_start = time.time()
             for inputs, label in self.data_generator:
                 inputs = inputs.to(self.device, non_blocking=True)
                 label = label.to(self.device, non_blocking=True)
@@ -190,8 +205,13 @@ class ModelTrainer:
                 if i % self.train_print_frequency == 0 and i != 0:
                     time_delta = time.time() - start_time
 
+                    progress = i / (len(self.data_generator) / self.batch_size)
+                    eta = (len(self.data_generator) / self.batch_size - i) * ((time.time() - epoch_start) / i)
+
+                    hours = f"{eta//3600}h " if eta // 3600 > 0 else ""
                     self.logger.info(
                         f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s; "
+                        f"{progress*100:.2f}% of epoch done; ETA {hours}{(eta%3600)//60:.0f}min {eta%60:.0f}s"
                     )
                     start_time = time.time()
 
