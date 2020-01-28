@@ -44,21 +44,22 @@ class LoopingDataGenerator:
                  cache_mode=CachingMode.Both,
                  looping_strategy: LoopingStrategy = None
                  ):
-        self.epochs = 1  # TODO: Remove me
-        self.batch_size = batch_size  # For compatibility with the MasterTrainer
+        self.logger = logging.getLogger(__name__)
+
+        self.batch_size = batch_size
         self.num_workers = num_workers
         self.store_samples = True
-        self.batch_size = batch_size
         self.cache_path = cache_path
         self.cache_mode = cache_mode
-        self.logger = logging.getLogger(__name__)
 
         if looping_strategy is None:
             looping_strategy = DataLoaderListLoopingStrategy(batch_size)
         self.looping_strategy = looping_strategy
         self.logger.debug(f"Using {type(self.looping_strategy).__name__} for looping samples across epochs.")
 
+        self.logger.info(f"Collecting files from {len(data_paths)} directories")
         all_files = self._discover_files(data_paths, gather_data)
+
         self.logger.info("Getting validation and test data splits.")
         self.eval_set_generator = SubSetGenerator(load_data, "validation_set", num_validation_samples,
                                                   load_path=split_load_path, save_path=split_save_path)
@@ -66,7 +67,7 @@ class LoopingDataGenerator:
                                                   load_path=split_load_path, save_path=split_save_path)
         remaining_files = self.eval_set_generator.prepare_subset(all_files)
         remaining_files = self.test_set_generator.prepare_subset(remaining_files)
-        self.logger.info(f"{len(remaining_files)} files remain after splitting eval and test sets.")
+        self.logger.info(f"{len(remaining_files)} remaining files will be loaded using {num_workers} workers.")
         self.file_iterable = FileSetIterable(remaining_files, load_data,
                                              cache_path=cache_path, cache_mode=cache_mode)
 
@@ -111,13 +112,3 @@ class LoopingDataGenerator:
         """ Get the set of test samples
         """
         return self.test_set_generator.get_samples()
-
-    def end_threads(self):
-        # TODO: Dummy method for compatibility with the old pipeline. Remove this once the old pipeline
-        # is removed
-        pass
-
-    def get_current_queue_length(self):
-        # TODO: Dummy method for compatibility with the old pipeline. Remove this once the old pipeline
-        # is removed
-        return "unk"
