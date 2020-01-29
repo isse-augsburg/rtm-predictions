@@ -419,9 +419,8 @@ class SensorDeconvToDryspotEfficient(nn.Module):
             return
 
         for i, c in enumerate(self.children()):
-            # logger = logging.getLogger(__name__)
-            # logger.info(f'Freezing: {c}')
-            print(f'Freezing: {c}')
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
 
             for param in c.parameters():
                 param.requires_grad = False

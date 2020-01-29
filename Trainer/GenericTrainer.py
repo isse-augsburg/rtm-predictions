@@ -69,12 +69,13 @@ class ModelTrainer:
         optimizer_path=None,
         classification_evaluator=None,
     ):
-        self.train_print_frequency = train_print_frequency
-        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.save_path = save_path / initial_timestamp
+
         self.cache_path = cache_path
+        self.train_print_frequency = train_print_frequency
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
-        self.save_path = save_path
         self.load_datasets_path = load_datasets_path
         self.epochs = epochs
         self.dummy_epoch = dummy_epoch
@@ -99,7 +100,7 @@ class ModelTrainer:
         self.loss_criterion = loss_criterion
         self.classification_evaluator = classification_evaluator
 
-    def __create_datagenerator(self, save_path):
+    def __create_datagenerator(self):
         try:
             generator = td.LoopingDataGenerator(
                 self.data_source_paths,
@@ -109,7 +110,7 @@ class ModelTrainer:
                 num_validation_samples=self.num_validation_samples,
                 num_test_samples=self.num_test_samples,
                 split_load_path=self.load_datasets_path,
-                split_save_path=save_path,
+                split_save_path=self.save_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 cache_mode=self.cache_mode,
@@ -134,18 +135,16 @@ class ModelTrainer:
     def start_training(self,):
         """ Sets up training and logging and starts train loop
         """
-
-        save_path = self.save_path / self.initial_timestamp
-        save_path.mkdir(parents=True, exist_ok=True)
-        logging_cfg.apply_logging_config(save_path)
+        self.save_path.mkdir(parents=True, exist_ok=True)
+        logging_cfg.apply_logging_config(self.save_path)
 
         logger = logging.getLogger(__name__)
         logger.info(f"Generating Generator")
 
-        self.data_generator = self.__create_datagenerator(save_path)
+        self.data_generator = self.__create_datagenerator()
 
         logger.info("Saving code and generating SLURM script for later evaluation")
-        eval_preparation(save_path)
+        eval_preparation(self.save_path)
 
         logger.info("Generating Model")
         if self.model is None:

@@ -31,7 +31,7 @@ datasets_dryspots = _stiebesi_home / 'data/RTM/Leoben/reference_datasets/dryspot
 
 chkp_S1140_to_ff_deconv = _results / '4_three_week_run/2019-09-25_16-42-53/checkpoint.pth'
 chkp_S1140_to_ff_eff = _results / '2019-12-12_20-27-20_eff_net_cleaned_data/checkpoint.pth'
-chkp_1140_transferred_dry_spot = _results / '2019-12-13_17-15-26_transfer_eff_net_dryspot/checkpoint.pth'
+chkp_1140_transferred_dry_spot = _ij_deconv_conv / '2019-12-13_17-15-26_transfer_eff_net_dryspot/checkpoint.pth'
 chkp_99_5_acc_retrained = _results / '2019-12-20_16-35-22_99.5_acc/checkpoint.pth'
 chkp_S1140_to_ff_correct_data = _ij_deconv_conv / '2020-01-18_12-34-13_S1140_to_ff_bs1024_best_loss' \
                                                   '/checkpoint.pth'

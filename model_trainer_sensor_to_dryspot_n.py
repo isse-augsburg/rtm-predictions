@@ -17,7 +17,7 @@ if __name__ == "__main__":
     num_samples_runs = 1937571
     batch_size = 1024
     m = ModelTrainer(lambda: SensorDeconvToDryspotEfficient(pretrained="deconv_weights",
-                                                            checkpoint_path=r.chkp_1140_transfered_dry_spot,
+                                                            checkpoint_path=r.chkp_S1140_to_ff_correct_data,
                                                             freeze_nlayers=8),
                      r.get_data_paths(),
                      r.save_path,

@@ -19,7 +19,6 @@ def load_model_layers_from_path(path: Path, layer_names: set):
         splitted = k.split('.')
         name = splitted[1]  # remove `module.`
         if name in layer_names:
-            print(f'{name}.{splitted[2]}')
             new_model_state_dict[f'{name}.{splitted[2]}'] = v
         else:
             continue
