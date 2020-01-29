@@ -3,6 +3,7 @@ import unittest
 
 import Resources.testing as resources
 from Pipeline.resampling import get_fixed_number_of_indices
+from Pipeline.data_loaders_IMG import DataloaderImages
 
 
 class TestDataLoaderIMG(unittest.TestCase):
@@ -25,6 +26,13 @@ class TestDataLoaderIMG(unittest.TestCase):
             list_length, n_elements)
 
         self.assertEqual(len(x), n_elements)
+
+    def test_ignore_useless(self):
+        dl = DataloaderImages()
+        dl2 = DataloaderImages(ignore_useless_states=False)
+        res = dl.get_sensordata_and_flowfront(resources.test_useless_file)
+        res2 = dl2.get_sensordata_and_flowfront(resources.test_useless_file)
+        self.assertEqual(len(res2) - len(res), 17)  # since 17 frames are ignored in this file
 
     def tearDown(self):
         pass

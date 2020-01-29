@@ -1,5 +1,5 @@
 import logging
-
+import cv2
 import numpy as np
 
 
@@ -47,3 +47,8 @@ def create_np_image(target_shape=(143, 111), norm_coords=None, data=None):
     arr[coords_value[:, 0].astype(np.int), coords_value[:, 1].astype(np.int)] = coords_value[:, 2]
 
     return arr
+
+
+def flip_array_diag(arr):
+    arr2 = cv2.rotate(arr, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    return cv2.flip(arr2, 0)
