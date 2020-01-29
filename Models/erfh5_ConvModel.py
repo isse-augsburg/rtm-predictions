@@ -342,14 +342,12 @@ class S20DeconvToDrySpotEff(nn.Module):
 
         for i, c in enumerate(self.children()):
             logger = logging.getLogger(__name__)
-            # logger.info(f'Freezing: {c}')
-            print(f'Freezing: {c}')
+            logger.info(f'Freezing: {c}')
 
             for param in c.parameters():
                 param.requires_grad = False
             if i == freeze_nlayers - 1:
                 break
-
 
     def forward(self, inputs):
         fr = inputs.reshape((-1, 1, 38, 30))

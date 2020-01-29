@@ -7,7 +7,7 @@ import torch
 
 def load_model_layers_from_path(path: Path, layer_names: set):
     logger = logging.getLogger(__name__)
-    print(f'Loading model from {path}')
+    logger.info(f'Loading model from {path}')
     if torch.cuda.is_available():
         checkpoint = torch.load(path)
     else:
