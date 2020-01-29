@@ -14,23 +14,23 @@ from general_model_trainer import ModelTrainer
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    num_samples_runs = 1937571
+    num_samples_runs = 1860000
     batch_size = 1024
     loss = torch.nn.BCELoss()
-    m = ModelTrainer(SensorDeconvToDryspotEfficient(pretrained="deconv_weights",
-                                                    checkpoint_path=r.chkp_S1140_to_ff_correct_data,
+    m = ModelTrainer(SensorDeconvToDryspotEfficient(pretrained="all_weights",
+                                                    checkpoint_path=r.chkp_S1140_to_ds_frozen_deeper_convnet2,
                                                     freeze_nlayers=8),
-                     r.get_data_paths(),
+                     r.get_data_paths_new_test_set(),
                      r.save_path,
-                     load_datasets_path=r.datasets_dryspots,
+                     load_datasets_path=None,
                      cache_path=r.cache_path,
                      batch_size=batch_size,
                      eval_freq=int(num_samples_runs / batch_size),
                      train_print_freq=10,
                      epochs=1000,
                      num_workers=75,
-                     num_validation_samples=8192,
-                     num_test_samples=8192,
+                     num_validation_samples=0,
+                     num_test_samples=131072,
                      data_processing_function=get_sensor_bool_dryspot_ignore_useless,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      looping_strategy=ComplexListLoopingStrategy(batch_size)

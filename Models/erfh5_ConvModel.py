@@ -377,7 +377,7 @@ class S20DeconvToDrySpotEff(nn.Module):
 
 
 class SensorDeconvToDryspotEfficient(nn.Module):
-    def __init__(self, pretrained=False, checkpoint_path=None, freeze_nlayers=0):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
         super(SensorDeconvToDryspotEfficient, self).__init__()
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct2 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
@@ -401,12 +401,20 @@ class SensorDeconvToDryspotEfficient(nn.Module):
         self.bn32 = nn.BatchNorm2d(32)
         self.bn512 = nn.BatchNorm2d(512)
 
-        if pretrained:
+        self.dropout = nn.Dropout(0.5)
+
+        if pretrained == "deconv_weights":
             weights = load_model_layers_from_path(path=checkpoint_path,
-                                                  layer_names={'ct1', 'ct2', 'ct3', 'ct4',
-                                                               'shaper0', 'shaper', 'med', 'details'})
-                                                               ##
-                                                               #'details2', 'details3', 'linear2', 'linear3', 'linear4'})
+                                                  layer_names={"ct1", "ct2", "ct3", "ct4",
+                                                               "shaper0", "shaper", "med", "details"})
+            self.load_state_dict(weights, strict=False)
+        elif pretrained == "all_weights":
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={"ct1", "ct2", "ct3", "ct4",
+                                                               "shaper0", "shaper", "med", "details",
+                                                               "details2", "details3", "details4", "details5",
+                                                               "linear2", "linear3",
+                                                               "bn32", "bn512"})
             self.load_state_dict(weights, strict=False)
 
         if freeze_nlayers == 0:
@@ -445,6 +453,7 @@ class SensorDeconvToDryspotEfficient(nn.Module):
         x = x.view((x.shape[0], 7680, -1)).contiguous()
         x = x.mean(-1).contiguous()
         x = F.relu(self.linear2(x))
+        x = self.dropout(x)
         x = torch.sigmoid(self.linear3(x))
         return x
 
