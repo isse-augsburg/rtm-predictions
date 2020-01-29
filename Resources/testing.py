@@ -36,5 +36,8 @@ test_split_path = test_src_dir / '2019-09-06_15-44-58_63_sensors'
 
 test_caching_dir = test_out_dir / 'erfh5_pipeline' / 'caching'
 
+test_useless_file = test_src_dir / "2019-07-23_15-38-08_5000p_0/2019-07-23_15-38-08_0_RESULT.erfh5"
+
+
 if __name__ == "__main__":
     print(running_in_docker())
