@@ -278,7 +278,7 @@ class SubSetGenerator:
     def _load_sub_set_from_files(self, file_paths):
         # TODO: Once we remove the old pipeline, we could refactor this to return batches instead of samples
         # This would allow for a more streamlined usage and cleaner code in the GenericTrainer
-        self.logger.info(f"Loading samples for {self.subset_name}")
+        self.logger.debug(f"Loading samples for {self.subset_name}")
         sample_iterator = FileSetIterator(file_paths, self.load_data)
         try:
             subset = [next(sample_iterator) for _ in range(self.num_samples)]
@@ -299,12 +299,13 @@ class SubSetGenerator:
         """
         if self.load_file is not None and self.load_file.is_file():
             with open(self.load_file, 'rb') as f:
-                self.logger.debug(f"Loading {self.subset_name} from stored file {self.load_file}")
+                self.logger.info(f"Loading {self.subset_name} from stored file {self.load_file}")
                 self.used_filenames = [Path(fn) for fn in pickle.load(f)]
                 if os.name == 'nt':
                     self.used_filenames = [Path('X:/') / '/'.join(x.parts[3:]) for x in self.used_filenames]
                 unused_files = self._list_difference(file_paths, self.used_filenames)
         else:
+            self.logger.info(f"Generating a new split for {self.subset_name}.")
             paths_copy = list(file_paths)
             random.shuffle(paths_copy)
             self.samples, unused_files = self._load_sub_set_from_files(paths_copy)

@@ -4,13 +4,13 @@ from pathlib import Path
 
 import h5py
 
+import Resources.testing as resources
 from HDF5DB.hdf5_writer import create_hdf5, write_dict_to_hdf5
-from Tests import resources_for_testing
 
 
 class TestPyWriter(unittest.TestCase):
     def setUp(self):
-        self.testfolder = Path(resources_for_testing.test_out_dir)
+        self.testfolder = Path(resources.test_out_dir)
         self.filename = Path("test_for_hdf5writer.hdf5db")
         self.filename2 = Path("test_for_hdf5writer2.hdf5db")
         self.testdata = \

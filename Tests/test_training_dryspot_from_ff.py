@@ -3,8 +3,13 @@ import re
 import shutil
 import unittest
 
-import Tests.resources_for_testing as resources
-from model_trainer_dryspot import DrySpotTrainer
+import torch
+
+import Resources.testing as resources
+from Models.erfh5_ConvModel import DrySpotModel
+from Pipeline import data_gather as dg, data_loader_dryspot as dld
+from Trainer.GenericTrainer import ModelTrainer
+from Trainer.evaluation import BinaryClassificationEvaluator
 
 
 class TestTrainingDryspotFF(unittest.TestCase):
@@ -12,18 +17,23 @@ class TestTrainingDryspotFF(unittest.TestCase):
         self.training_save_path = resources.test_training_out_dir
         self.training_data_paths = [resources.test_training_src_dir / 'dry_spot_from_ff']
         self.expected_num_epochs_during_training = 1
-        self.dt = DrySpotTrainer(
+
+        self.dt = ModelTrainer(
+            lambda: DrySpotModel(),
             data_source_paths=self.training_data_paths,
+            save_path=self.training_save_path,
             batch_size=10,
-            eval_freq=1,
-            save_datasets_path=self.training_save_path,
             epochs=self.expected_num_epochs_during_training,
             num_validation_samples=5,
             num_test_samples=5,
+            data_gather_function=dg.get_filelist_within_folder,
+            data_processing_function=dld.get_flowfront_bool_dryspot_143x111,
+            loss_criterion=torch.nn.BCELoss(),
+            classification_evaluator=BinaryClassificationEvaluator(save_path=self.training_save_path, skip_images=True)
         )
 
     def test_training(self):
-        self.dt.run_training()
+        self.dt.start_training()
         dirs = [e for e in self.training_save_path.iterdir() if e.is_dir()]
         with open(dirs[0] / "output.log") as f:
             content = f.read()

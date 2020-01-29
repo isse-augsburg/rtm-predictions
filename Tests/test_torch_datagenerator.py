@@ -1,22 +1,23 @@
+import logging
+import random
+import sys
+import tempfile
 import unittest
 from pathlib import Path
-import tempfile
-import random
-import logging
-import sys
 
 import h5py
 import numpy as np
 import torch
-import Tests.resources_for_testing as resources
-import Pipeline.Utils.torch_internal as ti
-import Pipeline.Utils.looping_strategies as ls
-import Pipeline.torch_datagenerator as td
+
+import Pipeline.TorchDataGeneratorUtils.looping_strategies as ls
+import Pipeline.TorchDataGeneratorUtils.torch_internal as ti
 import Pipeline.data_gather as dg
+import Pipeline.torch_datagenerator as td
+import Resources.testing as resources
 from Utils.natural_sorting import natural_sort_key
 
 logger = logging.getLogger()
-logger.level = logging.DEBUG
+logger.level = logging.ERROR
 stream_handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(stream_handler)
 
@@ -193,9 +194,24 @@ class TestLoopingStrategies(unittest.TestCase):
             strategy = strategyfn()
             with self.subTest(msg=f"Checking strategy {type(strategy).__name__}"):
                 dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
-                                                     _dummy_dataloader_fn, looping_strategy=strategy, epochs=2)
+                                                     _dummy_dataloader_fn, looping_strategy=strategy)
+                self.assertEqual(len(dataloader), 0)
                 first_epoch = set(SampleWrapper((b[0][i], b[1][i]))
-                                  for _, b in zip(range(int(self.test_set.num_samples)), dataloader)
+                                  for b in dataloader
                                   for i in range(len(b[0])))
+                self.assertEqual(len(dataloader), self.test_set.num_samples)
                 second_epoch = set(SampleWrapper((b[0][i], b[1][i])) for b in dataloader for i in range(len(b[0])))
                 self.assertSetEqual(first_epoch, second_epoch)
+
+    def test_noop_strategy(self):
+        strategy = ls.NoOpLoopingStrategy()
+        dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
+                                             _dummy_dataloader_fn, looping_strategy=strategy)
+        self.assertEqual(len(dataloader), 0)
+        first_epoch = set(SampleWrapper((b[0][i], b[1][i]))
+                          for b in dataloader
+                          for i in range(len(b[0])))
+        self.assertEqual(len(first_epoch), self.test_set.num_samples)
+        self.assertEqual(len(dataloader), 0)
+        second_epoch = set(SampleWrapper((b[0][i], b[1][i])) for b in dataloader for i in range(len(b[0])))
+        self.assertEqual(len(second_epoch), 0)

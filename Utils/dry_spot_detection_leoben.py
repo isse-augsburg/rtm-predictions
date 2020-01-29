@@ -219,7 +219,8 @@ def multiprocess_wrapper(triang, Xi, Yi, xi, yi, curr_path, i):
         output = Path("/cfs/share/cache/DrySpotDet2")
 
     a, b, c = dry_spot_analysis(source / curr_path / str(i) / f"{stamp}_{i}_RESULT.erfh5", output / curr_path / str(i),
-                                triang, Xi, Yi, xi, yi, change_meta_file=True, save_flowfront_img=True, detect_useless=True)
+                                triang, Xi, Yi, xi, yi, change_meta_file=True, save_flowfront_img=True, 
+                                detect_useless=True)
 
 
 def create_triangle_mesh(file_path):

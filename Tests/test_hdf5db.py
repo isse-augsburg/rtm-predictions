@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-import Tests.resources_for_testing as Resources
+import Resources.testing as resources
 from HDF5DB.hdf5_writer import create_hdf5, write_dict_to_hdf5
 from HDF5DB.hdf5db_object import HDF5Object
 from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
@@ -14,7 +14,7 @@ from HDF5DB.hdf5db_toolbox import HDF5DBToolbox
 class TestHDF5DB(unittest.TestCase):
     def setUp(self):
         self.age = "2019-08-30_12-23-59"
-        self.testfolder = Resources.test_out_dir / Path("H5_Testfolder")
+        self.testfolder = resources.test_out_dir / Path("H5_Testfolder")
         # Metadata
         self.path_meta = Path("2019-08-30_12-23-59_test_meta_data.hdf5")
         self.output_frequency_type = 99

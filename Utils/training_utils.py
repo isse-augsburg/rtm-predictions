@@ -32,12 +32,12 @@ def transform_to_tensor_and_cache(i, separate_set_list, num=0, s_path=None):
 def apply_blacklists(_data_source_paths):
     _cleaned = []
     for _p in _data_source_paths:
-        blacklist_f = _p / 'blacklist.txt'
+        blacklist_f = _p / "blacklist.txt"
         if blacklist_f.exists():
             with open(blacklist_f) as f:
                 lines = f.readlines()
-                cleaned = [x.split(' ')[0] for x in lines]
-                runs_num_only = set([int(x.split('/')[1]) for x in cleaned])
+                cleaned = [x.split(" ")[0] for x in lines]
+                runs_num_only = set([int(x.split("/")[1]) for x in cleaned])
                 for subdir in _p.iterdir():
                     if not subdir.is_dir():
                         continue
@@ -54,16 +54,26 @@ def apply_blacklists(_data_source_paths):
 
 
 def read_cmd_params():
-    parser = argparse.ArgumentParser(description='Run training or test.')
-    parser.add_argument('--eval', action='store_true', help='Run a test.')
-    parser.add_argument('--eval_path', type=str, default=None, help='Full directory path of trained model (to test).')
+    parser = argparse.ArgumentParser(description="Run training or test.")
+    parser.add_argument("--eval", action="store_true", help="Run a test.")
+    parser.add_argument(
+        "--eval_path",
+        type=str,
+        default=None,
+        help="Full directory to output trained model (to test).",
+    )
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Full directory path to a checkpoint")
     args = parser.parse_args()
     run_eval = args.eval
     eval_path = args.eval_path
+    checkpoint_path = args.checkpoint_path
 
-    if run_eval and eval_path is None:
+    if run_eval and (eval_path is None or checkpoint_path is None):
         logger = logging.getLogger(__name__)
-        logger.error("No eval_path given. You should specify the --eval_path argument if you would like to run a test.")
+        logger.error(
+            "No eval_path or checkpoint_path given. You should specify the --eval_path / --checkpoint_path argument if"
+            "you would like to run a test."
+        )
         logger.error(parser.format_help())
         logging.shutdown()
         sys.exit()

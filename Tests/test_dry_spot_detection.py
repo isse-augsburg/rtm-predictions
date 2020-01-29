@@ -1,7 +1,7 @@
 import shutil
 import unittest
 
-import Tests.resources_for_testing as resources
+import Resources.testing as resources
 from Utils.dry_spot_detection_leoben import dry_spot_analysis, create_triangle_mesh
 
 
