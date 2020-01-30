@@ -2,12 +2,15 @@ import io
 import logging
 from pathlib import Path
 
+import cv2
 import h5py
-import numpy as np
+import matplotlib.pyplot as matplot
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
-import cv2
+import numpy as np
 
+from Pipeline.resampling import get_fixed_number_of_indices
+from Utils.img_utils import flip_array_diag
 # from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
 from Utils.img_utils import (
@@ -15,19 +18,18 @@ from Utils.img_utils import (
     create_np_image,
 )
 
-from Pipeline.resampling import get_fixed_number_of_indices
-import matplotlib.pyplot as matplot
-from Utils.img_utils import flip_array_diag
-
 
 # This class provides all original functions but tries to improve the performance of consecutive calls
 class DataloaderImages():
-    def __init__(self, image_size=(135, 103), ignore_useless_states=True):
+    def __init__(self, image_size=(135, 103),
+                 ignore_useless_states=True,
+                 sensor_indizes=((0, 1), (0, 1))):
         self.image_size = image_size
         self.coords = None
         self.ff_coords = None
         self.fftriang = None
         self.ignore_useless_states = ignore_useless_states
+        self.sensor_indizes = sensor_indizes
 
     def _get_flowfront(self, f, meta_f, states=None):
         """
@@ -48,10 +50,10 @@ class DataloaderImages():
                     break
                 else:
                     filling_factors_at_certain_times.append(f["post"][
-                                                            "singlestate"][state]["entityresults"]["NODE"][
-                                                            "FILLING_FACTOR"][
-                                                            "ZONE1_set1"][
-                                                            "erfblock"]["res"][()])
+                                                                "singlestate"][state]["entityresults"]["NODE"][
+                                                                "FILLING_FACTOR"][
+                                                                "ZONE1_set1"][
+                                                                "erfblock"]["res"][()])
 
             flat_fillings = np.squeeze(filling_factors_at_certain_times)
             return (create_np_image(target_shape=self.image_size, norm_coords=coords, data=filling)
@@ -121,6 +123,11 @@ class DataloaderImages():
                     s = state.replace("state", "")
                     state_num = int(s)
                     sensordata = np.squeeze(pressure_array[state_num - 1])
+                    if self.sensor_indizes != ((0, 1), (0, 1)):
+                        sensordata = sensordata.reshape((38, 30))
+                        sensordata = sensordata[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
+                                     self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
+                        sensordata = sensordata.flatten()
                     yield sensordata
                 except IndexError:
                     yield None
@@ -173,6 +180,7 @@ class DataloaderImageSequences(DataloaderImages):
     Subclass for dataloader functions that generate sequences of images
     as samples and only generate one sample per file
     """
+
     def __init__(self, image_size=(135, 103), wanted_frames=10):
         super().__init__(image_size=image_size)
         self.wanted_frames = wanted_frames

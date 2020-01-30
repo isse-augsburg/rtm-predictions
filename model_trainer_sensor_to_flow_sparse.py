@@ -1,46 +1,45 @@
 from pathlib import Path
 
-import Resources.resources_for_training as r
 import torch
-from Pipeline.Utils.looping_strategies import ComplexListLoopingStrategy
-from general_model_trainer import ModelTrainer
 
+import Resources.training as r
 from Models.erfh5_DeconvModel import S20DeconvModelEfficient
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
-from Pipeline.data_loaders_IMG import get_sensordata_and_flowfront_125x109_ignore_useless
+from Pipeline.data_loaders_IMG import DataloaderImages
+from Trainer.GenericTrainer import ModelTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    num_samples_runs = 1860000
     batch_size = 2048
-    m = ModelTrainer(S20DeconvModelEfficient(),
+    dl = DataloaderImages((125, 109), sensor_indizes=((1, 8), (1, 8)))
+
+    m = ModelTrainer(lambda: S20DeconvModelEfficient(),
                      r.get_data_paths(),
                      r.save_path,
                      load_datasets_path=r.datasets_dryspots,
                      cache_path=r.cache_path,
                      batch_size=batch_size,
-                     eval_freq=int(num_samples_runs / batch_size),
-                     train_print_freq=10,
+                     train_print_frequency=10,
                      epochs=1000,
                      num_workers=35,
                      num_validation_samples=8192,
                      num_test_samples=8192,
-                     data_processing_function=get_sensordata_and_flowfront_125x109_ignore_useless,
+                     data_processing_function=dl.get_sensordata_and_flowfront,
                      data_gather_function=get_filelist_within_folder_blacklisted,
-                     looping_strategy=ComplexListLoopingStrategy(batch_size)
+                     loss_criterion=torch.nn.MSELoss(),
+                     classification_evaluator=SensorToFlowfrontEvaluator(),
                      )
 
     if not args.eval:
-        m.run_training(
-            loss_criterion=torch.nn.MSELoss(),
-            learning_rate=0.0001,
-            calc_metrics=False,
-            classification_evaluator=SensorToFlowfrontEvaluator()
-        )
+        m.start_training()
     else:
-        m.inference_on_test_set(Path(args.eval_path),
-                                SensorToFlowfrontEvaluator(Path(args.eval_path) / "eval_on_test_set",
-                                                           skip_images=False))
+        m.inference_on_test_set(
+            Path(args.eval_path),
+            Path(args.checkpoint_path),
+            SensorToFlowfrontEvaluator(
+                Path(args.eval_path) / "eval_on_test_set", skip_images=False
+            ),
+        )
