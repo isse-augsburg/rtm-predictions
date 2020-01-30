@@ -1,15 +1,15 @@
 from pathlib import Path
 
-import torch
-
 import Resources.resources_for_training as r
-from Models.erfh5_DeconvModel import S20DeconvModelEfficient
+import torch
 from Pipeline.Utils.looping_strategies import ComplexListLoopingStrategy
+from general_model_trainer import ModelTrainer
+
+from Models.erfh5_DeconvModel import S20DeconvModelEfficient
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import get_sensordata_and_flowfront_125x109_ignore_useless
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
-from general_model_trainer import ModelTrainer
 
 if __name__ == "__main__":
     args = read_cmd_params()

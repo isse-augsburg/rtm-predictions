@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 from Pipeline import torch_datagenerator as td
 from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
-from Utils.training_utils import count_parameters
+from Utils.training_utils import count_parameters, CheckpointingStrategy
 
 
 class ModelTrainer:
@@ -68,6 +68,7 @@ class ModelTrainer:
         learning_rate=0.0001,
         optimizer_path=None,
         classification_evaluator=None,
+        checkpointing_strategy=CheckpointingStrategy.Best
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -99,6 +100,7 @@ class ModelTrainer:
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.loss_criterion = loss_criterion
         self.classification_evaluator = classification_evaluator
+        self.checkpointing = checkpointing_strategy
 
     def __create_datagenerator(self):
         try:
@@ -261,13 +263,15 @@ class ModelTrainer:
 
             self.model.train()
             if not test_mode:
-                if loss < self.best_loss:
+                if self.checkpointing == CheckpointingStrategy.Best and loss < self.best_loss:
                     self.__save_checkpoint(eval_step, loss)
                     self.best_loss = loss
+                else:
+                    self.__save_checkpoint(eval_step, loss, fn=f"checkpoint_{eval_step}.pth")
 
             return loss
 
-    def __save_checkpoint(self, eval_step, loss):
+    def __save_checkpoint(self, eval_step, loss, fn="checkpoint.pth"):
         torch.save(
             {
                 "epoch": eval_step,
@@ -275,7 +279,7 @@ class ModelTrainer:
                 "optimizer_state_dict": self.optimizer.state_dict(),
                 "loss": loss,
             },
-            self.save_path / Path("checkpoint.pth"),
+            self.save_path / Path(fn),
         )
 
     def __load_checkpoint(self, path):
