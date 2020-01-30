@@ -36,7 +36,7 @@ class TestEval(unittest.TestCase):
         self.expected_num_epochs_during_training = 1
 
     def test_eval(self):
-        dl = DataloaderImages((149, 117))
+        dl = DataloaderImages((149, 117), ignore_useless_states=False)
         st = ModelTrainer(
             lambda: DeconvModelEfficient(),
             self.test_src_dir,
@@ -72,7 +72,8 @@ class TestEval(unittest.TestCase):
         self.assertEqual(len(list_all_imgs), self.expected_num_frames)
 
     def test_training(self):
-        dl = DataloaderImages((149, 117))
+        dl = DataloaderImages((149, 117),
+                              ignore_useless_states=False)
         st = ModelTrainer(
             lambda: DeconvModelEfficient(),
             self.test_src_dir,
@@ -98,7 +99,7 @@ class TestEval(unittest.TestCase):
                              len(epochs))
 
     def test_eval_preparation(self):
-        dl = DataloaderImages((149, 117))
+        dl = DataloaderImages((149, 117), ignore_useless_states=False)
         st = ModelTrainer(
             lambda: DeconvModelEfficient(),
             self.test_src_dir,
