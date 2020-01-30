@@ -311,7 +311,7 @@ class SensorDeconvToDryspot2(nn.Module):
 
 
 class S20DeconvToDrySpotEff(nn.Module):
-    def __init__(self, pretrained=False, checkpoint_path=None, freeze_nlayers=0):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
         super(S20DeconvToDrySpotEff, self).__init__()
         self.ct1 = ConvTranspose2d(1, 256, 3, stride=2, padding=0)
         self.ct2 = ConvTranspose2d(256, 128, 5, stride=2, padding=0)
@@ -329,13 +329,14 @@ class S20DeconvToDrySpotEff(nn.Module):
         self.lin2 = Linear(512, 256)
         self.lin3 = Linear(256, 1)
 
-        if pretrained:
+        if pretrained == "deconv_weights":
+            logger = logging.getLogger(__name__)
             weights = load_model_layers_from_path(path=checkpoint_path,
                                                   layer_names={'ct1', 'ct2', 'ct3', 'ct4',
                                                                'details'})
             incomp = self.load_state_dict(weights, strict=False)
-            print(f'All layers:', self.state_dict().keys())
-            print(f'Loaded weights but the following: {incomp}')
+            logger.debug(f'All layers:', self.state_dict().keys())
+            logger.debug(f'Loaded weights but the following: {incomp}')
 
         if freeze_nlayers == 0:
             return
