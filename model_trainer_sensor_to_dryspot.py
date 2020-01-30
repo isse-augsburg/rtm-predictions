@@ -14,7 +14,7 @@ from Utils.training_utils import read_cmd_params
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    num_samples_runs = 1937571
+    # num_samples_runs = 1937571
     batch_size = 1024
     m = ModelTrainer(lambda: SensorDeconvToDryspotEfficient(pretrained="deconv_weights",
                                                             checkpoint_path=r.chkp_S1140_to_ff_correct_data,
