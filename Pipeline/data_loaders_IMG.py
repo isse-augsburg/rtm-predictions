@@ -50,10 +50,10 @@ class DataloaderImages():
                     break
                 else:
                     filling_factors_at_certain_times.append(f["post"][
-                                                                "singlestate"][state]["entityresults"]["NODE"][
-                                                                "FILLING_FACTOR"][
-                                                                "ZONE1_set1"][
-                                                                "erfblock"]["res"][()])
+                                                            "singlestate"][state]["entityresults"]["NODE"][
+                                                            "FILLING_FACTOR"][
+                                                            "ZONE1_set1"][
+                                                            "erfblock"]["res"][()])
 
             flat_fillings = np.squeeze(filling_factors_at_certain_times)
             return (create_np_image(target_shape=self.image_size, norm_coords=coords, data=filling)
@@ -126,7 +126,7 @@ class DataloaderImages():
                     if self.sensor_indizes != ((0, 1), (0, 1)):
                         sensordata = sensordata.reshape((38, 30))
                         sensordata = sensordata[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
-                                     self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
+                                                self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
                         sensordata = sensordata.flatten()
                     yield sensordata
                 except IndexError:
