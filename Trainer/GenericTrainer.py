@@ -350,7 +350,7 @@ class ModelTrainer:
             self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         logger.info("Generating Test Generator")
-        data_generator = self.__create_datagenerator(None)
+        data_generator = self.__create_datagenerator()
         logger.info("Loading Checkpoint")
         self.__load_checkpoint(checkpoint_path)
 
