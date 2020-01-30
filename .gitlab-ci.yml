@@ -16,5 +16,5 @@ test:
   tags:
     - dgx2
 
-#  only:
-#    - master
+  only:
+    - master

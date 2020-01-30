@@ -4,7 +4,6 @@ from pathlib import Path
 
 import cv2
 import h5py
-import matplotlib.pyplot as matplot
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
@@ -223,5 +222,5 @@ if __name__ == "__main__":
     for p in paths:
         res = dl.get_sensordata_and_flowfront(p)
         for thing in res:
-            matplot.imshow(thing[1])
-            matplot.imshow(flip_array_diag(thing[1]))
+            plt.imshow(thing[1])
+            plt.imshow(flip_array_diag(thing[1]))

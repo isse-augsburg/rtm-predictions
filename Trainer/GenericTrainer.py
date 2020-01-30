@@ -2,7 +2,6 @@ import logging
 import socket
 import time
 from collections import OrderedDict
-# from TorchDataGeneratorUtils.training_utils import count_parameters
 from datetime import datetime
 from pathlib import Path
 
