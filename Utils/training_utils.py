@@ -1,9 +1,15 @@
 import argparse
 import logging
 import sys
+from enum import Enum
 
 import numpy as np
 import torch
+
+
+class CheckpointingStrategy(Enum):
+    Best = 1
+    All = 2
 
 
 def count_parameters(model):

@@ -17,10 +17,10 @@ def eval_preparation(save_path):
     shutil.copytree(src_path, save_path / "rtm-predictions",
                     ignore=shutil.ignore_patterns('.git*', 'env*', '.idea*', '.vscode*', '__pycache__*',
                                                   'Docs/*', 'Debugging/*', 'Legacy/*'))
-    docker_img = 'docker://nvcr.io/isse/pytorch_extended:19.11'
+    docker_img = 'docker://nvcr.io/isse/pytorch_extended:19.12'
     slurm_txt = f"""#!/bin/sh
 #SBATCH --gres=gpu:8
-#SBATCH --job-name  eval_rtm_predictions
+#SBATCH --job-name eval_rtm_predictions
 #SBATCH --ntasks=1
 #SBATCH -p gpu
 #SBATCH --mem=495000

@@ -2,8 +2,8 @@ import logging
 
 import torch
 
-from .TorchDataGeneratorUtils.torch_internal import FileDiscovery, FileSetIterable, CachingMode, SubSetGenerator
 from .TorchDataGeneratorUtils.looping_strategies import LoopingStrategy, DataLoaderListLoopingStrategy
+from .TorchDataGeneratorUtils.torch_internal import FileDiscovery, FileSetIterable, CachingMode, SubSetGenerator
 
 
 class LoopingDataGenerator:

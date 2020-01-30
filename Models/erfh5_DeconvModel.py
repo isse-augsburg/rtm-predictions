@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import ConvTranspose2d, Conv2d, Linear
 
+from Utils.training_utils import count_parameters
+
 
 class DeconvModelEfficientBn(nn.Module):
     def __init__(self):
@@ -44,6 +46,32 @@ class DeconvModelEfficientBn(nn.Module):
         return torch.squeeze(t4, dim=1)
 
 
+class S20DeconvModelEfficient(nn.Module):
+    def __init__(self):
+        super(S20DeconvModelEfficient, self).__init__()
+
+        self.ct1 = ConvTranspose2d(1, 256, 3, stride=2, padding=0)
+        self.ct2 = ConvTranspose2d(256, 128, 5, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(128, 64, 10, stride=2, padding=0)
+        self.ct4 = ConvTranspose2d(64, 16, 17, stride=2, padding=0)
+
+        self.details = Conv2d(16, 8, 5)
+        self.details2 = Conv2d(8, 1, 3, padding=0)
+
+    def forward(self, inputs):
+        fr = inputs.reshape((-1, 1, 38, 30))
+        frs = fr[:, :, 3::8, 3::8]
+
+        k = F.relu(self.ct1(frs))
+        k = F.relu(self.ct2(k))
+        k = F.relu(self.ct3(k))
+        k = F.relu(self.ct4(k))
+
+        k = F.relu(self.details(k))
+        k = torch.sigmoid(self.details2(k))
+        return torch.squeeze(k, dim=1)
+
+
 class DeconvModelEfficient(nn.Module):
     def __init__(self):
         super(DeconvModelEfficient, self).__init__()
@@ -57,11 +85,11 @@ class DeconvModelEfficient(nn.Module):
         self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
         self.med = Conv2d(32, 32, 7, padding=0)
         self.details = Conv2d(32, 32, 3)
+        ###
         self.details2 = Conv2d(32, 1, 3, padding=0)
 
     def forward(self, inputs):
-        f = inputs
-        fr = f.reshape((-1, 1, 38, 30))
+        fr = inputs.reshape((-1, 1, 38, 30))
 
         k = F.relu(self.ct1(fr))
         k2 = F.relu(self.ct2(k))
@@ -228,9 +256,12 @@ class DeconvModel8x(nn.Module):
 
 if __name__ == "__main__":
     # model = SensorDeconvToDryspot()
-    model = DeconvModelEfficientBn()
+    # model = DeconvModelEfficientBn()
+    # model = DeconvModelEfficient()
+    model = S20DeconvModelEfficient()
+    print('param count:', count_parameters(model))
     m = model.cuda()
     em = torch.empty((1, 1140)).cuda()
     out = m(em)
 
-    print(out.shape)
+    print('end', out.shape)

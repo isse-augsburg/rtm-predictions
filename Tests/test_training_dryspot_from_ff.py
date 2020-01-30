@@ -2,12 +2,14 @@ import logging
 import re
 import shutil
 import unittest
+
 import torch
+
 import Resources.testing as resources
-from Trainer.GenericTrainer import ModelTrainer
-from Trainer.evaluation import BinaryClassificationEvaluator
 from Models.erfh5_ConvModel import DrySpotModel
 from Pipeline import data_gather as dg, data_loader_dryspot as dld
+from Trainer.GenericTrainer import ModelTrainer
+from Trainer.evaluation import BinaryClassificationEvaluator
 
 
 class TestTrainingDryspotFF(unittest.TestCase):

@@ -2,18 +2,18 @@ import logging
 import socket
 import time
 from collections import OrderedDict
+from datetime import datetime
 from pathlib import Path
+
 import numpy as np
 import torch
+from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
-# from TorchDataGeneratorUtils.training_utils import count_parameters
-from datetime import datetime
-from torch import nn
 from Pipeline import torch_datagenerator as td
 from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
-from Utils.training_utils import count_parameters
+from Utils.training_utils import count_parameters, CheckpointingStrategy
 
 
 class ModelTrainer:
@@ -67,13 +67,15 @@ class ModelTrainer:
         learning_rate=0.0001,
         optimizer_path=None,
         classification_evaluator=None,
+        checkpointing_strategy=CheckpointingStrategy.Best
     ):
-        self.train_print_frequency = train_print_frequency
-        self.initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        self.save_path = save_path / initial_timestamp
+
         self.cache_path = cache_path
+        self.train_print_frequency = train_print_frequency
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
-        self.save_path = save_path
         self.load_datasets_path = load_datasets_path
         self.epochs = epochs
         self.dummy_epoch = dummy_epoch
@@ -97,8 +99,9 @@ class ModelTrainer:
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.loss_criterion = loss_criterion
         self.classification_evaluator = classification_evaluator
+        self.checkpointing = checkpointing_strategy
 
-    def __create_datagenerator(self, save_path):
+    def __create_datagenerator(self):
         try:
             generator = td.LoopingDataGenerator(
                 self.data_source_paths,
@@ -108,7 +111,7 @@ class ModelTrainer:
                 num_validation_samples=self.num_validation_samples,
                 num_test_samples=self.num_test_samples,
                 split_load_path=self.load_datasets_path,
-                split_save_path=save_path,
+                split_save_path=self.save_path,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 cache_mode=self.cache_mode,
@@ -133,18 +136,16 @@ class ModelTrainer:
     def start_training(self,):
         """ Sets up training and logging and starts train loop
         """
-
-        save_path = self.save_path / self.initial_timestamp
-        save_path.mkdir(parents=True, exist_ok=True)
-        logging_cfg.apply_logging_config(save_path)
+        self.save_path.mkdir(parents=True, exist_ok=True)
+        logging_cfg.apply_logging_config(self.save_path)
 
         logger = logging.getLogger(__name__)
         logger.info(f"Generating Generator")
 
-        self.data_generator = self.__create_datagenerator(save_path)
+        self.data_generator = self.__create_datagenerator()
 
         logger.info("Saving code and generating SLURM script for later evaluation")
-        eval_preparation(save_path)
+        eval_preparation(self.save_path)
 
         logger.info("Generating Model")
         if self.model is None:
@@ -261,13 +262,15 @@ class ModelTrainer:
 
             self.model.train()
             if not test_mode:
-                if loss < self.best_loss:
+                if self.checkpointing == CheckpointingStrategy.Best and loss < self.best_loss:
                     self.__save_checkpoint(eval_step, loss)
                     self.best_loss = loss
+                else:
+                    self.__save_checkpoint(eval_step, loss, fn=f"checkpoint_{eval_step}.pth")
 
             return loss
 
-    def __save_checkpoint(self, eval_step, loss):
+    def __save_checkpoint(self, eval_step, loss, fn="checkpoint.pth"):
         torch.save(
             {
                 "epoch": eval_step,
@@ -275,7 +278,7 @@ class ModelTrainer:
                 "optimizer_state_dict": self.optimizer.state_dict(),
                 "loss": loss,
             },
-            self.save_path / Path("checkpoint.pth"),
+            self.save_path / Path(fn),
         )
 
     def __load_checkpoint(self, path):
@@ -350,7 +353,7 @@ class ModelTrainer:
             self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
         logger.info("Generating Test Generator")
-        data_generator = self.__create_datagenerator(None)
+        data_generator = self.__create_datagenerator()
         logger.info("Loading Checkpoint")
         self.__load_checkpoint(checkpoint_path)
 

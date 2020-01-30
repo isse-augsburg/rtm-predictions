@@ -1,17 +1,19 @@
 import logging
+import os
 import re
 import shutil
 import unittest
 from pathlib import Path
-import os
+
 import numpy as np
 import torch
+
+import Resources.testing as resources
 from Models.erfh5_DeconvModel import DeconvModelEfficient
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
-from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Pipeline.data_loaders_IMG import DataloaderImages
 from Trainer.GenericTrainer import ModelTrainer
-import Resources.testing as resources
+from Trainer.evaluation import SensorToFlowfrontEvaluator
 
 
 class TestEval(unittest.TestCase):
@@ -34,7 +36,7 @@ class TestEval(unittest.TestCase):
         self.expected_num_epochs_during_training = 1
 
     def test_eval(self):
-        dl = DataloaderImages((149, 117))
+        dl = DataloaderImages((149, 117), ignore_useless_states=False)
         st = ModelTrainer(
             lambda: DeconvModelEfficient(),
             self.test_src_dir,
@@ -70,7 +72,8 @@ class TestEval(unittest.TestCase):
         self.assertEqual(len(list_all_imgs), self.expected_num_frames)
 
     def test_training(self):
-        dl = DataloaderImages((149, 117))
+        dl = DataloaderImages((149, 117),
+                              ignore_useless_states=False)
         st = ModelTrainer(
             lambda: DeconvModelEfficient(),
             self.test_src_dir,
@@ -96,7 +99,7 @@ class TestEval(unittest.TestCase):
                              len(epochs))
 
     def test_eval_preparation(self):
-        dl = DataloaderImages((149, 117))
+        dl = DataloaderImages((149, 117), ignore_useless_states=False)
         st = ModelTrainer(
             lambda: DeconvModelEfficient(),
             self.test_src_dir,

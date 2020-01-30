@@ -1,20 +1,20 @@
+import logging
+import random
+import sys
+import tempfile
 import unittest
 from pathlib import Path
-import tempfile
-import random
 
 import h5py
 import numpy as np
 import torch
-import Resources.testing as resources
-import Pipeline.TorchDataGeneratorUtils.torch_internal as ti
-import Pipeline.TorchDataGeneratorUtils.looping_strategies as ls
-import Pipeline.torch_datagenerator as td
-import Pipeline.data_gather as dg
-from Utils.natural_sorting import natural_sort_key
-import logging
-import sys
 
+import Pipeline.TorchDataGeneratorUtils.looping_strategies as ls
+import Pipeline.TorchDataGeneratorUtils.torch_internal as ti
+import Pipeline.data_gather as dg
+import Pipeline.torch_datagenerator as td
+import Resources.testing as resources
+from Utils.natural_sorting import natural_sort_key
 
 logger = logging.getLogger()
 logger.level = logging.ERROR
