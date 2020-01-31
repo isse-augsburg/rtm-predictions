@@ -151,7 +151,8 @@ class ModelTrainer:
         if self.model is None:
             self.model = self.model_creation_function()
         if self.optimizer_path is None:
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+            # Changed it to AdamW temporarily
+            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
         else:
             self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
             self.optimizer = torch.optim.Adam(self.model.parameters())
