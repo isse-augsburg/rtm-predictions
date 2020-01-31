@@ -14,7 +14,7 @@ from PIL import Image
 >>>> PLEASE NOTE: <<<<
 Evaluation classes must provide three functions even if not all of them have functionality: 
 
-* commit(output, label): updates the evaluation class with a new pair of a single prediction and a single label
+* commit(output, label, inputs, aux): updates the evaluation state
 * print_metrics(): prints a set of application-specific print_metrics
 * reset: Resets the internal metrics of an evaluator, e.g. after a evaluation loop is finished.  
 
@@ -92,7 +92,7 @@ class SensorToFlowfrontEvaluator(Evaluator):
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.halving_factor = halving_factor
 
-    def commit(self, net_output, label, inputs, *args):
+    def commit(self, net_output, label, inputs, aux, *args):
         if self.skip_images:
             return
         a = net_output.numpy()
@@ -137,7 +137,7 @@ class BinaryClassificationEvaluator(Evaluator):
         self.num = 0
         self.with_text_overlay = with_text_overlay
 
-    def commit(self, net_output, label, inputs, *args):
+    def commit(self, net_output, label, inputs, aux, *args):
         """Updates the confusion matrix and updates the metrics. 
 
         Args: 
@@ -250,7 +250,7 @@ class FlowFrontPredictionEvaluator(Evaluator):
         self.im_save_path = save_path / "images"
         self.im_save_path.mkdir(parents=True, exist_ok=True)
 
-    def commit(self, inputs, label, *args):
+    def commit(self, inputs, label, aux, *args):
         inputs = np.squeeze(inputs)
         label = np.squeeze(label)
         inp = Image.fromarray(np.uint8(inputs * 255))
