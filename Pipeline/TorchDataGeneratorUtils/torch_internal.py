@@ -35,16 +35,17 @@ class FileSetIterator:
         self.worker_id = worker_id
 
     def _assert_instance_correctness(self, instance):
+        err = '''The data loader seems to return instances in the wrong format. 
+                The required format is [(data_1, label1, [aux_1]), ... , 
+                (data_n, label_n, [aux_n])] or None.'''
         assert isinstance(
             instance, list
-        ), '''The data loader seems to return instances in the wrong format. 
-                The required format is [(data_1, label1), ... , 
-                (data_n, label_n)] or None.'''
-        for i in instance:
-            assert (isinstance(i, tuple) and len(i) == 2), \
-                '''The data loader seems to return instances in the wrong format. 
-                    The required format is [(data_1, label1), ... , 
-                    (data_n, label_n)] or None.'''
+        ), err
+        for idx, i in enumerate(instance):
+            assert isinstance(i, tuple), err
+            if len(i) == 2:
+                instance[idx] += (dict(), )
+            assert len(instance[idx]) == 3, err
 
     def _get_cache_path_for_file(self, filename):
         s_path = Path(filename)
@@ -58,10 +59,11 @@ class FileSetIterator:
                 # Get all pickled sample files
                 instance_f = s_path.glob("*.pt")
                 instance_f = sorted(instance_f, key=natural_sort_key)
-                for i in range(len(instance_f) // 2):
-                    _data = torch.load(s_path.joinpath(instance_f[i * 2]))
-                    _label = torch.load(s_path.joinpath(instance_f[i * 2 + 1]))
-                    self.sample_queue.put((_data, _label))
+                for i in range(len(instance_f) // 3):
+                    _data = torch.load(s_path.joinpath(instance_f[i * 3]))
+                    _label = torch.load(s_path.joinpath(instance_f[i * 3 + 1]))
+                    _aux = torch.load(s_path.joinpath(instance_f[i * 3 + 2]))
+                    self.sample_queue.put((_data, _label, _aux))
                 return True
         return False
 
@@ -77,10 +79,14 @@ class FileSetIterator:
             elif i[1] == 1:
                 _label = torch.FloatTensor([1.])
 
-        self.sample_queue.put((_data, _label))
+        _aux = i[2]
+
+        self.sample_queue.put((_data, _label, _aux))
         if s_path is not None:
             torch.save(_data, s_path.joinpath(f"{num}-data.pt"))
             torch.save(_label, s_path.joinpath(f"{num}-label.pt"))
+            # Preserve alphabetic ordering by using xua instead of aux
+            torch.save(_aux, s_path.joinpath(f"{num}-xua.pt"))
 
     def _load_file(self):
         while True:
@@ -95,6 +101,8 @@ class FileSetIterator:
                 continue
             else:
                 self._assert_instance_correctness(instance)
+                for i in instance:
+                    i[2]["sourcefile"] = str(fn)
                 s_path = None
                 if self.cache_path is not None:
                     s_path = self._get_cache_path_for_file(fn)
