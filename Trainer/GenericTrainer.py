@@ -266,7 +266,7 @@ class ModelTrainer:
                 if self.checkpointing == CheckpointingStrategy.Best and loss < self.best_loss:
                     self.__save_checkpoint(eval_step, loss)
                     self.best_loss = loss
-                else:
+                elif self.checkpointing == CheckpointingStrategy.All:
                     self.__save_checkpoint(eval_step, loss, fn=f"checkpoint_{eval_step}.pth")
 
             return loss
