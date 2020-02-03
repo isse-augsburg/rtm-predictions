@@ -25,7 +25,8 @@ _results = _stiebesi_home / 'results'
 _ijcai = _results / 'IJCAI_PRICAI_20_FlowFrontNet'
 _ij_deconv_conv = _ijcai / "S1140_to_DS_deconv_conv"
 
-data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'
+# data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'
+data_root = _share_path / 'data/RTM/Leoben/sim_output'
 
 datasets_dryspots = _stiebesi_home / 'data/RTM/Leoben/reference_datasets/dryspot_detection'
 
@@ -83,8 +84,8 @@ def get_data_paths():
 # 1.379.230 + 1.391.145 + 816.891 + 1.406.003 = 4993269 ~ 5 M Samples - invalid samples from blacklist and useless
 # Approx. 4'5 M Samples at a 10 % waste rate
 # Test Train Split:
-# Validation set 1.4 %:  65536
-# Test set 23 %:       1048576
+# Validation set 2.8 %:   131072
+# Test set 23 %:         1048576
 
 def get_more_data_paths():
     data_paths = [
