@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch import nn
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from Pipeline import torch_datagenerator as td
@@ -192,12 +193,12 @@ class ModelTrainer:
 
         start_time = time.time()
         eval_step = 0
-        i = 0
 
         for epoch in range(self.epochs):
+            i = 0
             self.logger.info(f"Starting epoch {epoch}")
             epoch_start = time.time()
-            for inputs, label in self.data_generator:
+            for inputs, label, aux in self.data_generator:
                 inputs = inputs.to(self.device, non_blocking=True)
                 label = label.to(self.device, non_blocking=True)
 
@@ -238,9 +239,10 @@ class ModelTrainer:
             self.model.eval()
             loss = 0
             count = 0
-            for i, (data, label) in enumerate(
+            for i, (data, label, aux) in enumerate(
                 self.__batched(data_set, self.batch_size)
             ):
+                auxs = list(td.split_aux_dicts(aux))
                 data = data.to(self.device, non_blocking=True)
                 label = label.to(self.device, non_blocking=True)
                 # data = torch.unsqueeze(data, 0)
@@ -255,7 +257,7 @@ class ModelTrainer:
                 if self.classification_evaluator is not None:
                     for c in range(output.size()[0]):
                         self.classification_evaluator.commit(
-                            output[c], label[c], data[c]
+                            output[c], label[c], data[c], auxs[c]
                         )
 
             loss = loss / count
@@ -316,17 +318,7 @@ class ModelTrainer:
         return epoch, loss
 
     def __batched(self, data_l: list, batch_size: int):
-        dats = []
-        labs = []
-        for data, label in data_l:
-            dats.append(data)
-            labs.append(label)
-            if len(dats) == batch_size:
-                yield torch.stack(dats), torch.stack(labs)
-                dats = []
-                labs = []
-        if len(dats) > 1:
-            yield torch.stack(dats), torch.stack(labs)
+        return DataLoader(data_l, batch_size=batch_size, shuffle=False)
 
     def inference_on_test_set(self, output_path: Path, checkpoint_path: Path, classification_evaluator):
         """Start evaluation on a dedicated test set. 

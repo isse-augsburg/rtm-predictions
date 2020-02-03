@@ -2,8 +2,13 @@ import logging
 
 import torch
 
-from .TorchDataGeneratorUtils.looping_strategies import LoopingStrategy, DataLoaderListLoopingStrategy
+from .TorchDataGeneratorUtils.looping_strategies import (
+    LoopingStrategy, DataLoaderListLoopingStrategy, stack_aux_dicts, split_aux_dicts
+)
 from .TorchDataGeneratorUtils.torch_internal import FileDiscovery, FileSetIterable, CachingMode, SubSetGenerator
+
+stack_aux_dicts = stack_aux_dicts
+split_aux_dicts = split_aux_dicts
 
 
 class LoopingDataGenerator:
@@ -91,7 +96,7 @@ class LoopingDataGenerator:
                                                      batch_size=self.batch_size, num_workers=self.num_workers)
 
             def store_batch(batch):
-                batch = [e.clone() for e in batch]
+                batch = [e.clone() for e in batch[:2]] + batch[2:]
                 self.looping_strategy.store(batch)
                 return batch
             iterator = map(store_batch, dataloader)

@@ -156,8 +156,8 @@ class DataloaderImages():
         # Return only tuples without None values and if we get no data at all, return None
         # `if not None in t` does not work here because numpy does some weird stuff on
         # such comparisons
-        return (list(t for t in zip(sensor_data, fillings)
-                     if t[0] is not None and t[1] is not None)
+        return (list((d, f, {"state": s}) for d, f, s in zip(sensor_data, fillings, f["post"]["singlestate"])
+                     if d is not None and f is not None)
                 or None)
 
     def _get_coords(self, f):

@@ -58,7 +58,7 @@ class SampleWrapper:
     Provides a by-value hash function and a nice __repr__ method
     """
     def __init__(self, sample):
-        self.data, self.label = sample
+        self.data, self.label, self.aux = sample
 
     def __eq__(self, other):
         od, ol = other.data, other.label
@@ -103,8 +103,10 @@ class TestFileSetIterator(unittest.TestCase):
 
     def test_loading(self):
         iterator = ti.FileSetIterator(self.test_set.erf_files, _dummy_dataloader_fn)
-        samples = set(iterator)
+        samples = set(SampleWrapper(b) for b in iterator)
         self.assertEqual(len(samples), self.test_set.num_samples)
+        loaded_files = set(fn for fn in (b.aux["sourcefile"] for b in samples))
+        self.assertSetEqual(set(map(str, self.test_set.erf_files)), loaded_files)
 
     def test_caching(self):
         with tempfile.TemporaryDirectory(prefix="FileSetIterator_Cache") as cache_path:
@@ -127,7 +129,7 @@ class TestFileSetIterable(unittest.TestCase):
         self.iterable = ti.FileSetIterable(self.test_set.erf_files, _dummy_dataloader_fn)
 
     def test_simple(self):
-        samples = set(self.iterable)
+        samples = set(map(SampleWrapper, self.iterable))
         self.assertEqual(len(samples), self.test_set.num_samples)
 
     def test_dataloader(self):
@@ -180,6 +182,14 @@ class TestSubsetGenerator(unittest.TestCase):
             self.assertListEqual(save_samples, load_samples)
 
 
+def _batch_to_samples(batch):
+    return zip(batch[0], batch[1], ls.split_aux_dicts(batch[2]))
+
+
+def _get_samples_in_epoch(dataloader):
+    return (SampleWrapper(t) for b in dataloader for t in _batch_to_samples(b))
+
+
 class TestLoopingStrategies(unittest.TestCase):
     def setUp(self):
         self.test_set = _TestSetInfo()
@@ -196,11 +206,9 @@ class TestLoopingStrategies(unittest.TestCase):
                 dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
                                                      _dummy_dataloader_fn, looping_strategy=strategy)
                 self.assertEqual(len(dataloader), 0)
-                first_epoch = set(SampleWrapper((b[0][i], b[1][i]))
-                                  for b in dataloader
-                                  for i in range(len(b[0])))
+                first_epoch = set(_get_samples_in_epoch(dataloader))
                 self.assertEqual(len(dataloader), self.test_set.num_samples)
-                second_epoch = set(SampleWrapper((b[0][i], b[1][i])) for b in dataloader for i in range(len(b[0])))
+                second_epoch = set(_get_samples_in_epoch(dataloader))
                 self.assertSetEqual(first_epoch, second_epoch)
 
     def test_noop_strategy(self):
@@ -208,10 +216,8 @@ class TestLoopingStrategies(unittest.TestCase):
         dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
                                              _dummy_dataloader_fn, looping_strategy=strategy)
         self.assertEqual(len(dataloader), 0)
-        first_epoch = set(SampleWrapper((b[0][i], b[1][i]))
-                          for b in dataloader
-                          for i in range(len(b[0])))
+        first_epoch = set(_get_samples_in_epoch(dataloader))
         self.assertEqual(len(first_epoch), self.test_set.num_samples)
         self.assertEqual(len(dataloader), 0)
-        second_epoch = set(SampleWrapper((b[0][i], b[1][i])) for b in dataloader for i in range(len(b[0])))
+        second_epoch = set(_get_samples_in_epoch(dataloader))
         self.assertEqual(len(second_epoch), 0)

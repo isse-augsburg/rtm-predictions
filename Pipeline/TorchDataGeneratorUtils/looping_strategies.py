@@ -4,6 +4,21 @@ from abc import ABC, abstractmethod
 import torch
 
 
+def split_aux_dicts(aux):
+    for i in range(len(aux[list(aux)[0]])):
+        yield {
+            key: aux[key][i]
+            for key in aux.keys()
+        }
+
+
+def stack_aux_dicts(auxs):
+    return {
+        key: [aux[key] for aux in auxs]
+        for key in auxs[0].keys()
+    }
+
+
 class LoopingStrategy(ABC):
     """ LoopingStrategies are used to repeat samples after the first epoch.
     The LoopingDataGenerator will pass every loaded batch into the store function.
@@ -65,16 +80,18 @@ class ComplexListLoopingStrategy(LoopingStrategy):
         super().__init__()
         self.features = []
         self.labels = []
+        self.aux = []
         self.batch_size = batch_size
 
     def store(self, batch):
         super().store(batch)
-        features, labels = batch
+        features, labels, aux = batch
         self.features.extend(torch.split(features, 1))
         self.labels.extend(torch.split(labels, 1))
+        self.aux.extend(split_aux_dicts(aux))
 
     def get_new_iterator(self):
-        samples = list(zip(self.features, self.labels))
+        samples = list(zip(self.features, self.labels, self.aux))
         random.shuffle(samples)
         list_iter = iter(samples)
         while True:
@@ -84,7 +101,8 @@ class ComplexListLoopingStrategy(LoopingStrategy):
                 break
             features = [b[0].squeeze(0) for b in batch]
             labels = [b[1].squeeze(0) for b in batch]
-            yield torch.stack(features), torch.stack(labels)
+            auxs = [b[2] for b in batch]
+            yield torch.stack(features), torch.stack(labels), stack_aux_dicts(auxs)
 
 
 class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
@@ -98,18 +116,20 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         self.batch_size = batch_size
         self.features = []
         self.labels = []
+        self.aux = []
 
     def store(self, batch):
         super().store(batch)
-        features, labels = batch
+        features, labels, aux = batch
         self.features.extend(f.squeeze(0) for f in torch.split(features, 1))
         self.labels.extend(l.squeeze(0) for l in torch.split(labels, 1))
+        self.aux.extend(split_aux_dicts(aux))
 
     def get_new_iterator(self):
         return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
 
     def __getitem__(self, index):
-        return self.features[index], self.labels[index]
+        return self.features[index], self.labels[index], self.aux[index]
 
 
 class NoOpLoopingStrategy(LoopingStrategy):
