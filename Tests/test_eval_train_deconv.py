@@ -98,6 +98,31 @@ class TestEval(unittest.TestCase):
             self.assertEqual(self.expected_num_epochs_during_training,
                              len(epochs))
 
+    def test_training_load_optimizer(self):
+        dl = DataloaderImages((149, 117),
+                              ignore_useless_states=False)
+        st = ModelTrainer(
+            lambda: DeconvModelEfficient(),
+            self.test_src_dir,
+            self.training_save_path,
+            load_datasets_path=self.test_split_dir,
+            cache_path=None,
+            batch_size=16,
+            train_print_frequency=10,
+            epochs=self.expected_num_epochs_during_training,
+            num_workers=4,
+            num_validation_samples=2,
+            num_test_samples=self.num_test_samples,
+            data_processing_function=dl.get_sensordata_and_flowfront,
+            data_gather_function=get_filelist_within_folder_blacklisted,
+            loss_criterion=torch.nn.BCELoss(),
+            optimizer_path=self.checkpoint
+        )
+        st.start_training()
+        after = len(st.optimizer.state.keys())
+        # Optimizer has now more than 0 states, therefore was loaded
+        self.assertGreater(after, 0)
+
     def test_eval_preparation(self):
         dl = DataloaderImages((149, 117), ignore_useless_states=False)
         st = ModelTrainer(

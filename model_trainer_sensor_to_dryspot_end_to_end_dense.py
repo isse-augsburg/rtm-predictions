@@ -30,7 +30,6 @@ if __name__ == "__main__":
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      looping_strategy=ComplexListLoopingStrategy(batch_size),
                      loss_criterion=torch.nn.BCELoss(),
-                     learning_rate=0.0001,
                      classification_evaluator=BinaryClassificationEvaluator()
                      )
 

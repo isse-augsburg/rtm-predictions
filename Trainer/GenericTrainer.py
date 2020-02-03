@@ -65,7 +65,7 @@ class ModelTrainer:
         looping_strategy=None,
         cache_mode=td.CachingMode.Both,
         loss_criterion=None,
-        learning_rate=0.0001,
+        optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
         optimizer_path=None,
         classification_evaluator=None,
         checkpointing_strategy=CheckpointingStrategy.Best
@@ -94,9 +94,10 @@ class ModelTrainer:
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
 
-        self.learning_rate = learning_rate
-        self.optimizer = None
+        self.optimizer_function = optimizer_function
         self.optimizer_path = optimizer_path
+        self.optimizer = None
+
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.loss_criterion = loss_criterion
         self.classification_evaluator = classification_evaluator
@@ -134,6 +135,26 @@ class ModelTrainer:
         self.logger.info(f"Parameter count: {count_parameters(self.model)}")
         self.logger.info("###########################################")
 
+    def __create_model_and_optimizer(self):
+        logger = logging.getLogger(__name__)
+        logger.info("Generating Model")
+        if self.model is None:
+            self.model = self.model_creation_function()
+
+        if "swt-dgx" in socket.gethostname():
+            logger.info("Invoking data parallel model.")
+            self.model = nn.DataParallel(self.model).to("cuda:0")
+        else:
+            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        if self.optimizer_path is None:
+            self.optimizer = self.optimizer_function(self.model.parameters())
+        else:
+            self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
+            self.optimizer = self.optimizer_function(self.model.parameters())
+            checkpoint = torch.load(self.optimizer_path)
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
     def start_training(self,):
         """ Sets up training and logging and starts train loop
         """
@@ -148,23 +169,7 @@ class ModelTrainer:
         logger.info("Saving code and generating SLURM script for later evaluation")
         eval_preparation(self.save_path)
 
-        logger.info("Generating Model")
-        if self.model is None:
-            self.model = self.model_creation_function()
-        if self.optimizer_path is None:
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        else:
-            self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
-            self.optimizer = torch.optim.Adam(self.model.parameters())
-            checkpoint = torch.load(self.optimizer_path)
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
-        if torch.cuda.is_available():
-            logger.info("Model to GPU")
-        if "swt-dgx" in socket.gethostname():
-            self.model = nn.DataParallel(self.model).to("cuda:0")
-        else:
-            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.__create_model_and_optimizer()
 
         self.__print_info()
 
@@ -267,7 +272,7 @@ class ModelTrainer:
                 if self.checkpointing == CheckpointingStrategy.Best and loss < self.best_loss:
                     self.__save_checkpoint(eval_step, loss)
                     self.best_loss = loss
-                else:
+                elif self.checkpointing == CheckpointingStrategy.All:
                     self.__save_checkpoint(eval_step, loss, fn=f"checkpoint_{eval_step}.pth")
 
             return loss
@@ -327,22 +332,8 @@ class ModelTrainer:
         logging_cfg.apply_logging_config(save_path, eval=True)
 
         logger = logging.getLogger(__name__)
-        logger.info("Generating Model")
-        if self.model is None:
-            self.model = self.model_creation_function()
-        if self.optimizer_path is None:
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        else:
-            self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
-            self.optimizer = torch.optim.Adam(self.model.parameters())
-            checkpoint = torch.load(self.optimizer_path)
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-        if socket.gethostname() == "swt-dgx1":
-            logger.info("Invoking data parallel model.")
-            self.model = nn.DataParallel(self.model).to("cuda:0")
-        else:
-            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.__create_model_and_optimizer()
 
         logger.info("Generating Test Generator")
         data_generator = self.__create_datagenerator()

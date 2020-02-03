@@ -79,6 +79,24 @@ def get_data_paths():
     return data_paths
 
 
+# 5000 * 3 runs + 8500 runs = 23500 runs;
+# 1.379.230 + 1.391.145 + 816.891 + 1.406.003 = 4993269 ~ 5 M Samples - invalid samples from blacklist and useless
+# Approx. 4'5 M Samples at a 10 % waste rate
+# Test Train Split:
+# Validation set 1.4 %:  65536
+# Test set 23 %:       1048576
+
+def get_more_data_paths():
+    data_paths = [
+        #                                         # Dryspots  # Has blacklist # FVC       # Dry Spot Prob # Useless
+        data_root / "2019-07-24_16-32-40_5000p",  # X         # X             # .2 - .8   # High          # X
+        data_root / '2019-11-08_15-40-44_5000p',  # X         # X             # .3 - .5   # Low           # X
+        data_root / "2019-07-29_10-45-18_5000p",  # X         # X             # .2 - .8   # High          # X
+        data_root / '2019-11-29_16-56-17_10000p'  # X         # X             # .3 - .5   # Low           # X
+    ]
+    return data_paths
+
+
 def get_data_paths_debug():
     data_paths = [
         #                                       # Dryspot Data  # Has blacklist # FVC       # Dry Spot Prob
