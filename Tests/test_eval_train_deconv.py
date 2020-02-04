@@ -72,6 +72,7 @@ class TestEval(unittest.TestCase):
         self.assertEqual(len(list_all_imgs), self.expected_num_frames)
 
     def test_training(self):
+        num_epochs = 2
         dl = DataloaderImages((149, 117),
                               ignore_useless_states=False)
         st = ModelTrainer(
@@ -82,7 +83,7 @@ class TestEval(unittest.TestCase):
             cache_path=None,
             batch_size=16,
             train_print_frequency=10,
-            epochs=self.expected_num_epochs_during_training,
+            epochs=num_epochs,
             num_workers=4,
             num_validation_samples=2,
             num_test_samples=self.num_test_samples,
@@ -95,8 +96,10 @@ class TestEval(unittest.TestCase):
         with open(dirs[0] / 'output.log') as f:
             content = f.read()
             epochs = re.findall('Mean Loss on Eval', content)
-            self.assertEqual(self.expected_num_epochs_during_training,
-                             len(epochs))
+            self.assertEqual(num_epochs, len(epochs))
+            # Check if steps are growing / if there are doubled steps in the output
+            steps = [int(re.findall(r'\d+', x)[0]) for x in re.findall(r'Duration of step.+\d:', content)]
+            self.assertEqual(len(set(steps)), len(steps))
 
     def test_training_load_optimizer(self):
         dl = DataloaderImages((149, 117),

@@ -193,7 +193,7 @@ class ModelTrainer:
 
         start_time = time.time()
         eval_step = 0
-
+        step_count = 0
         for epoch in range(self.epochs):
             i = 0
             self.logger.info(f"Starting epoch {epoch}")
@@ -206,7 +206,7 @@ class ModelTrainer:
                 outputs = self.model(inputs)
 
                 loss = self.loss_criterion(outputs, label)
-                self.writer.add_scalar("Training/Loss", loss.item(), i)
+                self.writer.add_scalar("Training/Loss", loss.item(), step_count)
                 loss.backward()
                 self.optimizer.step()
                 if i % self.train_print_frequency == 0 and i != 0:
@@ -217,12 +217,13 @@ class ModelTrainer:
 
                     hours = f"{eta//3600}h " if eta // 3600 > 0 else ""
                     self.logger.info(
-                        f"Loss: {loss.item():12.4f} || Duration of step {i:6}: {time_delta:10.2f} s; "
+                        f"Loss: {loss.item():12.4f} || Duration of step {step_count:6}: {time_delta:10.2f} s; "
                         f"{progress*100:.2f}% of epoch done; ETA {hours}{(eta%3600)//60:.0f}min {eta%60:.0f}s"
                     )
                     start_time = time.time()
 
                 i += 1
+                step_count += 1
 
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step)
             self.writer.add_scalar("Validation/Loss", validation_loss, i)

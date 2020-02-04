@@ -19,7 +19,7 @@ if __name__ == "__main__":
         lambda: DeconvModelEfficient(),
         data_source_paths=r.get_more_data_paths(),
         save_path=r.save_path,
-        load_datasets_path=None,
+        load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
         batch_size=batch_size,
         train_print_frequency=10,
