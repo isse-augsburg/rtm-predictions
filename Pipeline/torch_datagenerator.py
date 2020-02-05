@@ -1,3 +1,4 @@
+import pickle
 import logging
 
 import torch
@@ -72,6 +73,10 @@ class LoopingDataGenerator:
                                                   load_path=split_load_path, save_path=split_save_path)
         remaining_files = self.eval_set_generator.prepare_subset(all_files)
         remaining_files = self.test_set_generator.prepare_subset(remaining_files)
+        if split_save_path is not None:
+            filename = split_save_path / "training_set.p"
+            with open(filename, 'wb') as f:
+                pickle.dump([str(fn) for fn in remaining_files], f)
         self.logger.info(f"{len(remaining_files)} remaining files will be loaded using {num_workers} workers.")
         self.file_iterable = FileSetIterable(remaining_files, load_data,
                                              cache_path=cache_path, cache_mode=cache_mode)
