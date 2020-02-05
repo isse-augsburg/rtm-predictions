@@ -4,9 +4,9 @@ Enter a path wich shall be scanned in the code.
 Run it and keep the stdout.
 Use the following snippets to get out the runs with atypical behaviour:
 ```
-cat dryspots.txt | grep '\[\]' | grep -x '.\{220,600\}' > dry_spot_out_filtered.txt
+cat dryspots.txt | grep '\[\]' | grep -x '.\{220,600\}' > dryspots_filtered.txt
  
-cat dry_spot_out_filtered_*.txt | cut -c 30-59 > blacklist.txt
+cat dryspots_filtered.txt | cut -c 30-59 > blacklist.txt
 ```
  
  
