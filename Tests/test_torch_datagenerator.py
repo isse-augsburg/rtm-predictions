@@ -174,7 +174,6 @@ class TestSubsetGenerator(unittest.TestCase):
             load_samples = subset_gen.get_samples()
 
             self.assertCountEqual(save_unused_files, load_unused_files)
-            # TODO: Proper file sorting will result in correct ordering of samples here
             save_samples = list(SampleWrapper(sample) for sample in save_samples) 
             load_samples = list(SampleWrapper(sample) for sample in load_samples) 
 

@@ -284,8 +284,6 @@ class SubSetGenerator:
         return [ai for ai in a if ai not in bset]
 
     def _load_sub_set_from_files(self, file_paths):
-        # TODO: Once we remove the old pipeline, we could refactor this to return batches instead of samples
-        # This would allow for a more streamlined usage and cleaner code in the GenericTrainer
         self.logger.debug(f"Loading samples for {self.subset_name}")
         sample_iterator = FileSetIterator(file_paths, self.load_data)
         try:

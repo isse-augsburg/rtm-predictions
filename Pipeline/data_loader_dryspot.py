@@ -90,6 +90,7 @@ def get_sensor_bool_dryspot(filename, ignore_useless_states=False, selection_tup
             if (state_num in set_of_states):
                 label = 1
             try:
+                # Normalize data to fit betw. 0 and 1
                 data = np.squeeze(pressure_array[state_num - 1]) / 100000
                 if selection_tuple != ((0, 1), (0, 1)):
                     rect = data.reshape(38, 30)
