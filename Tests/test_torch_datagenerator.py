@@ -1,4 +1,6 @@
+import itertools
 import logging
+import pickle
 import random
 import sys
 import tempfile
@@ -220,3 +222,35 @@ class TestLoopingStrategies(unittest.TestCase):
         self.assertEqual(len(dataloader), 0)
         second_epoch = set(_get_samples_in_epoch(dataloader))
         self.assertEqual(len(second_epoch), 0)
+
+
+class TestLoopingDatagenerator(unittest.TestCase):
+    def setUp(self):
+        self.test_set = _TestSetInfo()
+        self.num_validation_samples = 10
+        self.num_test_samples = 1000
+
+    def test_splits_add_up(self):
+        with tempfile.TemporaryDirectory(prefix="TorchDG_Splits") as splitpath:
+            splitpath = Path(splitpath)
+            td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder, _dummy_dataloader_fn,
+                                    split_save_path=splitpath, num_validation_samples=self.num_validation_samples,
+                                    num_test_samples=self.num_validation_samples)
+
+            split_files = [splitpath / f"{name}_set.p" for name in ["training", "validation", "test"]]
+            for f in split_files:
+                self.assertTrue(f.exists(), msg=f"Split file {f} is missing.")
+
+            def load_pickled_filenames(fn):
+                with open(fn, "rb") as f:
+                    return pickle.load(f)
+            splits = [(fn, load_pickled_filenames(fn)) for fn in split_files]
+
+            for a, b in itertools.combinations(splits, 2):
+                a_name, a_files = a
+                b_name, b_files = b
+                self.assertFalse(set(a_files) & set(b_files), msg=f"Files in {a_name} and {b_name} intersect!")
+
+            files_in_splits = sum((files for _, files in splits), [])
+            self.assertCountEqual(map(str, self.test_set.erf_files), files_in_splits,
+                                  msg="Combining splits should result in the original file set!")
