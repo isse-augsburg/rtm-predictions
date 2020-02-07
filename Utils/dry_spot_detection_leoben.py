@@ -211,15 +211,17 @@ def dry_spot_analysis(file_path, output_dir_imgs, triang, Xi, Yi, xi, yi, change
 def multiprocess_wrapper(triang, Xi, Yi, xi, yi, curr_path, i):
     date, time, _ = curr_path.split('_')
     stamp = date + '_' + time
-    if socket.gethostname() == "swtse130":
-        source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
-        output = Path(r"Y:\cache\DrySpotDet2")
-    else:
-        source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
-        output = Path("/cfs/share/cache/DrySpotDet2")
+    # if socket.gethostname() == "swtse130":
+    #     source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
+    #     output = Path(r"Y:\cache\DrySpotDet2")
+    # else:
+    source = Path("/cfs/share/data/RTM/Leoben/sim_output/")
+    output = Path("/cfs/share/cache/DrySpotDet2")
 
     a, b, c = dry_spot_analysis(source / curr_path / str(i) / f"{stamp}_{i}_RESULT.erfh5", output / curr_path / str(i),
-                                triang, Xi, Yi, xi, yi, change_meta_file=True, save_flowfront_img=True, 
+                                triang, Xi, Yi, xi, yi,
+                                change_meta_file=True,
+                                save_flowfront_img=True,
                                 detect_useless=True)
 
 
@@ -241,13 +243,13 @@ def create_triangle_mesh(file_path):
 
 
 def main_for_end():
-    file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/0/"
+    file_path = Path("/cfs/share/data/RTM/Leoben/sim_output/2019-07-23_15-38-08_5000p/0/"
                      "2019-07-23_15-38-08_0_RESULT.erfh5")
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
     curr_path = '2019-08-24_11-51-48_5000p'
     date, time, _ = curr_path.split('_')
     stamp = date + '_' + time
-    source = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes")
+    source = Path("//cfs/share/data/RTM/Leoben/sim_output")
     output = Path("/cfs/share/cache/DrySpotDet2")
 
     a, b, c = dry_spot_analysis(source / curr_path / str(0) / f"{stamp}_{0}_RESULT.erfh5", output / curr_path / str(0),
@@ -259,11 +261,11 @@ def main():
         file_path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-09-06_17-03-51_10000p\0"
                          r"\2019-09-06_17-03-51_0_RESULT.erfh5")
     else:
-        file_path = Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-11_15-14-48_100p/0"
-                         "/2019-07-11_15-14-48_0_RESULT.erfh5")
+        file_path = Path("/cfs/share/data/RTM/Leoben/sim_output/2019-07-23_15-38-08_5000p/0/"
+                         "2019-07-23_15-38-08_0_RESULT.erfh5")
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
 
-    curr_path = '2019-11-29_16-56-17_10000p'
+    curr_path = "2019-09-06_17-03-51_10000p"
     num_runs = int(curr_path.split('_')[-1][:-1])
 
     with Pool() as p:

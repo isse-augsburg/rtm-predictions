@@ -50,25 +50,19 @@ chkp_20_sensors_to_ff = _output_stiebesi / '2020-01-10_15-09-30/checkpoint0_2055
 def get_all_data_paths():
     data_paths = [
         # data_root / "2019-07-23_15-38-08_5000p",     # Folder to play with, CAUTION, has invalid data
-        # 1.379.230                               # DS  # BL # FVC       # Drysp Prob # Useless # Base Pressure
-        data_root / "2019-07-24_16-32-40_5000p",  # X   # X  # .2 - .8   # High       # X       # 0
-        # 1.391.145
-        data_root / "2019-07-29_10-45-18_5000p",  # X   # X  # .2 - .8   # High       # X       # 0
-        # 496.161
-        data_root / "2019-08-23_15-10-02_5000p",  # X   # X  # .1 - .8   # High       # X       # 0
-        # 497.478
-        data_root / "2019-08-24_11-51-48_5000p",  # X   # X  # .1 - .8   # High       # X       # 0
-        # 499.598
-        # data_root / "2019-08-25_09-16-40_5000p",  # Wrong dryspot data  #  #
-        # 1.729.106
-        # data_root / "2019-08-26_16-59-08_6000p",  # Wrong dryspot data  #  #
-        # 1.606.405
-        data_root / '2019-09-06_17-03-51_10000p',  # X   # X  # .3 - .8   # Very High
-        # 816.891
-        data_root / '2019-11-08_15-40-44_5000p',  # X    # X  # .3 - .5   # Low       # X       # 200k
-        # 1.406.003
-        data_root / '2019-11-29_16-56-17_10000p'  # X    # X  # .3 - .5   # Low       # X       # 200k
-        # Overall count: 9822017
+        #                                          # DS  | BL | FVC       | Drysp Prob | Usel.  | Press | Fr. Count
+        data_root / "2019-07-24_16-32-40_5000p",   # X   | X  | .2 - .8   | High      | X       | 0     | 1.379.230
+        data_root / "2019-07-29_10-45-18_5000p",   # X   | X  | .2 - .8   | High      | X       | 0     | 1.391.145
+        data_root / "2019-08-23_15-10-02_5000p",   # X   | X  | .1 - .8   | High      | X       | 0     | 496.161
+        data_root / "2019-08-24_11-51-48_5000p",   # X   | X  | .1 - .8   | High      | X       | 0     | 497.478
+        data_root / "2019-08-25_09-16-40_5000p",   # X   | X  | .1 - .8   | High      | X       | 0     | 499.598
+        data_root / "2019-08-26_16-59-08_6000p",   # X   | X  | .3 - .8   | V. High   | X       | 0     | 1.729.106
+        data_root / '2019-09-06_17-03-51_10000p',  # X   | X  | .3 - .8   | V. High   | X       | 0     | 1.606.405
+
+        data_root / '2019-11-08_15-40-44_5000p',   # X   | X  | .3 - .5   | Low       | X       | 200k  | 816.891
+        data_root / '2019-11-29_16-56-17_10000p'   # X   | X  | .3 - .5   | Low       | X       | 200k  | 1.406.003
+
+        #                                                                                 Overall count:  9.822.017
     ]
     return data_paths
 
@@ -111,9 +105,14 @@ def get_data_paths_base_200k():
 
 def get_data_paths_base_0():
     data_paths = [
-        #                                         # DS  # BL # FVC       # Drysp Prob # Useless # Base Pressure
-        data_root / "2019-07-24_16-32-40_5000p",  # X   # X  # .2 - .8   # High       # X       # 0
-        data_root / "2019-07-29_10-45-18_5000p",  # X   # X  # .2 - .8   # High       # X       # 0
+        #                                          # DS  | BL | FVC       | Drysp Prob | Usel.  | Press | Fr. Count
+        data_root / "2019-07-24_16-32-40_5000p",   # X   | X  | .2 - .8   | High      | X       | 0     | 1.379.230
+        data_root / "2019-07-29_10-45-18_5000p",   # X   | X  | .2 - .8   | High      | X       | 0     | 1.391.145
+        data_root / "2019-08-23_15-10-02_5000p",   # X   | X  | .1 - .8   | High      | X       | 0     | 496.161
+        data_root / "2019-08-24_11-51-48_5000p",   # X   | X  | .1 - .8   | High      | X       | 0     | 497.478
+        data_root / "2019-08-25_09-16-40_5000p",   # X   | X  | .1 - .8   | High      | X       | 0     | 499.598
+        data_root / "2019-08-26_16-59-08_6000p",   # X   | X  | .3 - .8   | V. High   | X       | 0     | 1.729.106
+        data_root / '2019-09-06_17-03-51_10000p',  # X   | X  | .3 - .8   | V. High   | X       | 0     | 1.606.405
     ]
     return data_paths
 
