@@ -4,9 +4,8 @@ import torch
 
 import Resources.training as r
 from Models.erfh5_ConvModel import S20DeconvToDrySpotEff
-from Pipeline.TorchDataGeneratorUtils.looping_strategies import ComplexListLoopingStrategy
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
-from Pipeline.data_loader_dryspot import get_sensor_bool_dryspot_ignore_useless
+from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.GenericTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.training_utils import read_cmd_params
@@ -14,8 +13,7 @@ from Utils.training_utils import read_cmd_params
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    num_samples_runs = 1937571
-    batch_size = 8192
+    dlds = DataloaderDryspots()
     m = ModelTrainer(lambda: S20DeconvToDrySpotEff(pretrained="deconv_weights",
                                                    checkpoint_path=r.chkp_20_sensors_to_ff,
                                                    freeze_nlayers=5),
@@ -23,15 +21,14 @@ if __name__ == "__main__":
                      r.save_path,
                      load_datasets_path=r.datasets_dryspots,
                      cache_path=r.cache_path,
-                     batch_size=batch_size,
+                     batch_size=8192,
                      train_print_frequency=10,
                      epochs=1000,
                      num_workers=75,
                      num_validation_samples=8192,
                      num_test_samples=8192,
-                     data_processing_function=get_sensor_bool_dryspot_ignore_useless,
+                     data_processing_function=dlds.get_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
-                     looping_strategy=ComplexListLoopingStrategy(batch_size),
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.Adam(params, lr=0.00001),
                      classification_evaluator=BinaryClassificationEvaluator()

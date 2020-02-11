@@ -5,7 +5,7 @@ import torch
 import Resources.training as r
 from Models.erfh5_ConvModel import SensorDeconvToDryspotEfficient
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
-from Pipeline.data_loader_dryspot import get_sensor_bool_dryspot_ignore_useless
+from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.GenericTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.training_utils import read_cmd_params
@@ -14,6 +14,7 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     batch_size = 1024
+    dlds = DataloaderDryspots()
     m = ModelTrainer(lambda: SensorDeconvToDryspotEfficient(pretrained="deconv_weights",
                                                             checkpoint_path=r.chkp_S1140_to_ff_retrain_mixed_press,
                                                             freeze_nlayers=8),
@@ -27,7 +28,7 @@ if __name__ == "__main__":
                      num_workers=75,
                      num_validation_samples=131072,
                      num_test_samples=1048576,
-                     data_processing_function=get_sensor_bool_dryspot_ignore_useless,
+                     data_processing_function=dlds.get_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),

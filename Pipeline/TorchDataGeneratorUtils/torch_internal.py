@@ -101,6 +101,7 @@ class FileSetIterator:
                 continue
             else:
                 self._assert_instance_correctness(instance)
+                # Add filepath to every sample
                 for i in instance:
                     i[2]["sourcefile"] = str(fn)
                 s_path = None
@@ -311,8 +312,8 @@ class SubSetGenerator:
                     # If the paths were already saved as Windows paths, as in the tests, do nothing
                     # Explicitly not using type() and WindowsPath here, since this Class is not implemented on Linux
                     # -> Check would not work
-                    if str(self.used_filenames[0])[0] != 'X':
-                        self.used_filenames = [Path('X:/') / '/'.join(x.parts[3:]) for x in self.used_filenames]
+                    if str(self.used_filenames[0])[0] != 'Y':
+                        self.used_filenames = [Path('Y:/') / '/'.join(x.parts[3:]) for x in self.used_filenames]
                 unused_files = self._list_difference(file_paths, self.used_filenames)
         else:
             self.logger.info(f"Generating a new split for {self.subset_name}.")

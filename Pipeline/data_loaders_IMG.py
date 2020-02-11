@@ -19,7 +19,7 @@ from Utils.img_utils import (
 
 
 # This class provides all original functions but tries to improve the performance of consecutive calls
-class DataloaderImages():
+class DataloaderImages:
     def __init__(self, image_size=(135, 103),
                  ignore_useless_states=True,
                  sensor_indizes=((0, 1), (0, 1))):
@@ -156,7 +156,9 @@ class DataloaderImages():
         # Return only tuples without None values and if we get no data at all, return None
         # `if not None in t` does not work here because numpy does some weird stuff on
         # such comparisons
-        return (list((d, f, {"state": s}) for d, f, s in zip(sensor_data, fillings, f["post"]["singlestate"])
+        return (list((d,
+                      f,
+                      {"state": s}) for d, f, s in zip(sensor_data, fillings, f["post"]["singlestate"])
                      if d is not None and f is not None)
                 or None)
 

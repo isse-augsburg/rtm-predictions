@@ -7,7 +7,7 @@ stages:
 linter:
   stage: lint
   script:
-    - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Debugging,Legacy .
+    - flake8 --max-line-length=120 --ignore=W291,W503,W504 .
 
 test:
   stage: test
