@@ -226,7 +226,7 @@ class ModelTrainer:
                 step_count += 1
 
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step)
-            self.writer.add_scalar("Validation/Loss", validation_loss, i)
+            self.writer.add_scalar("Validation/Loss", validation_loss, step_count)
             eval_step += 1
 
     def __eval(self, data_set, eval_step=0, test_mode=False):

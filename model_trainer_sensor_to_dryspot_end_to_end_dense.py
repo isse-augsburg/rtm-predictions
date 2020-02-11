@@ -14,11 +14,10 @@ from Utils.training_utils import read_cmd_params
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    # num_samples_runs = 1937571
     batch_size = 131072
     m = ModelTrainer(lambda: S1140DryspotModelFCWide(),
-                     r.get_data_paths(),
-                     r.save_path,
+                     data_source_paths=r.get_data_paths_base_0(),
+                     save_path=r.save_path,
                      load_datasets_path=r.datasets_dryspots,
                      cache_path=r.cache_path,
                      batch_size=batch_size,
@@ -38,8 +37,6 @@ if __name__ == "__main__":
     else:
         m.inference_on_test_set(output_path=Path(args.eval_path),
                                 checkpoint_path=Path(args.checkpoint_path),
-                                # TODO fix Image creation when handling sensor input
-                                #  reshape etc.
                                 classification_evaluator=BinaryClassificationEvaluator(Path(args.eval_path) /
                                                                                        "eval_on_test_set",
                                                                                        skip_images=True,

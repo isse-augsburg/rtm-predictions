@@ -87,7 +87,7 @@ def get_sensor_bool_dryspot(filename, ignore_useless_states=False, selection_tup
                 break
             label = 0
             state_num = int(str(state).replace("state", "0"))
-            if (state_num in set_of_states):
+            if state_num in set_of_states:
                 label = 1
             try:
                 # Normalize data to fit betw. 0 and 1
