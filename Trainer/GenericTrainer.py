@@ -72,6 +72,7 @@ class ModelTrainer:
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
+        self.save_path.mkdir(parents=True, exist_ok=True)
 
         self.cache_path = cache_path
         self.train_print_frequency = train_print_frequency
@@ -158,7 +159,7 @@ class ModelTrainer:
     def start_training(self,):
         """ Sets up training and logging and starts train loop
         """
-        self.save_path.mkdir(parents=True, exist_ok=True)
+        # self.save_path.mkdir(parents=True, exist_ok=True)
         logging_cfg.apply_logging_config(self.save_path)
 
         logger = logging.getLogger(__name__)

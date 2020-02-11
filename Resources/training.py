@@ -39,7 +39,7 @@ chkp_S1140_to_ff_correct_data = _ij_deconv_conv / '2020-01-18_12-34-13_S1140_to_
 chkp_S1140_to_ff_retrain_mixed_press = _ij_deconv_conv / "0_new_split_mixed_ground_pressure/" \
                                                          "2020-02-03_17-19-34_S1140_to_ff_retrain/checkpoint.pth"
 chkp_S1140_to_ff_retrain_0_base_press = _ij_deconv_conv / "1_new_split_0_ground_pressure/" \
-                                                         "2020-02-07_13-55-43_S1140_to_ff_base_0/checkpoint.pth"
+                                                          "2020-02-07_13-55-43_S1140_to_ff_base_0/checkpoint.pth"
 chkp_S1140_to_ds_frozen = _ij_deconv_conv / "2020-01-21_09-32-50_S1140_to_DS_frozen_bad_chkp/checkpoint.pth"
 chkp_S1140_to_ds_frozen_deeper_convnet = _ij_deconv_conv / "2020-01-22_16-44-26_S1140_to_DS_frozen_deeper_convnet" \
                                                            '/checkpoint.pth'
@@ -103,6 +103,7 @@ def get_data_paths_base_200k():
         data_root / '2019-11-29_16-56-17_10000p'  # X   # X  # .3 - .5   # Low        # X       # 200k
     ]
     return data_paths
+
 
 # Exactly 5067352 Samples
 # Test Train Split:

@@ -7,7 +7,8 @@ import torch
 
 import Resources.testing as resources
 from Models.erfh5_ConvModel import DrySpotModel
-from Pipeline import data_gather as dg, data_loader_dryspot as dld
+from Pipeline import data_gather as dg
+from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.GenericTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 
@@ -17,7 +18,7 @@ class TestTrainingDryspotFF(unittest.TestCase):
         self.training_save_path = resources.test_training_out_dir
         self.training_data_paths = [resources.test_training_src_dir / 'dry_spot_from_ff']
         self.expected_num_epochs_during_training = 1
-
+        dlds = DataloaderDryspots(image_size=(143, 111), ignore_useless_states=False)
         self.dt = ModelTrainer(
             lambda: DrySpotModel(),
             data_source_paths=self.training_data_paths,
@@ -27,7 +28,7 @@ class TestTrainingDryspotFF(unittest.TestCase):
             num_validation_samples=5,
             num_test_samples=5,
             data_gather_function=dg.get_filelist_within_folder,
-            data_processing_function=dld.get_flowfront_bool_dryspot_143x111,
+            data_processing_function=dlds.get_flowfront_bool_dryspot,
             loss_criterion=torch.nn.BCELoss(),
             classification_evaluator=BinaryClassificationEvaluator(save_path=self.training_save_path, skip_images=True)
         )
