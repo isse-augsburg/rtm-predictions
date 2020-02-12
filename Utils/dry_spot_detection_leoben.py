@@ -14,11 +14,11 @@ import numpy as np
 from Utils.img_utils import scale_coords_leoben
 
 
-def __analyze_image(img, perm_map):
+def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
     """
        Args:
-           img (np.array): array that contains the current flow front
-           perm_map ( np.array): array that contains the permeability map
+           img (np.ndarray): array that contains the current flow front
+           perm_map ( np.ndarray): array that contains the permeability map
 
        Returns:
              spots (bool): true if the img contains dryspots
@@ -64,8 +64,9 @@ def __analyze_image(img, perm_map):
     return spots, dryspots, probs
 
 
-def dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, change_meta_file=False,
-                      save_flowfront_img=False, output_dir_imgs=None, silent=False, detect_useless=False):
+def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: np.ndarray, xi: np.ndarray,
+                      yi: np.ndarray, change_meta_file=False, save_flowfront_img=False, output_dir_imgs=None,
+                      silent=False, detect_useless=False):
     """
            Args:
                 save_flowfront_img: if true, saves all intermediate image representations to the output_dir_imgs
