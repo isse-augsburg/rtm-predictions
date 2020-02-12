@@ -31,7 +31,7 @@ if __name__ == "__main__":
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.Adam(params, lr=0.00001),
-                     classification_evaluator=BinaryClassificationEvaluator()
+                     classification_evaluator_function=BinaryClassificationEvaluator()
                      )
 
     if not args.eval:

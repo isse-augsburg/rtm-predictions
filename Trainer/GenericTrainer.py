@@ -42,7 +42,7 @@ class ModelTrainer:
                               gathering the paths to the single files.
         loss_criterion: Loss criterion for training.
         learning_rate: Learning rate for training.
-        classification_evaluator: Classification Evaluator for evaluating the
+        classification_evaluator_function: Classification Evaluator for evaluating the
                                   models performance.
     """
 
@@ -54,7 +54,7 @@ class ModelTrainer:
         load_datasets_path=None,
         cache_path=None,
         batch_size=1,
-        train_print_frequency=2,
+        train_print_frequency=10,
         epochs=10,
         dummy_epoch=True,
         num_workers=10,
@@ -66,8 +66,9 @@ class ModelTrainer:
         cache_mode=td.CachingMode.Both,
         loss_criterion=None,
         optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
+        lr_scheduler_function=None,
         optimizer_path=None,
-        classification_evaluator=None,
+        classification_evaluator_function=None,
         checkpointing_strategy=CheckpointingStrategy.Best
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
@@ -92,17 +93,22 @@ class ModelTrainer:
         self.test_data_generator = None
         self.model = None
         self.model_creation_function = model_creation_function
+        self.model_name = "Model"
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
 
         self.optimizer_function = optimizer_function
+        self.lr_scheduler_function = lr_scheduler_function
+        self.lr_scheduler = None
         self.optimizer_path = optimizer_path
         self.optimizer = None
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.loss_criterion = loss_criterion
-        self.classification_evaluator = classification_evaluator
         self.checkpointing = checkpointing_strategy
+        self.classification_evaluator_function = classification_evaluator_function
+        self.classification_evaluator = None
+        self.writer = None
 
     def __create_datagenerator(self):
         try:
@@ -135,12 +141,16 @@ class ModelTrainer:
         self.logger.info(f"Model: {self.model}")
         self.logger.info(f"Parameter count: {count_parameters(self.model)}")
         self.logger.info("###########################################")
+        self.writer.add_text("Info/Model", f"{self.model_name}")
+        self.writer.add_text("Info/LossCriterion", f"{self.loss_criterion}")
+        self.writer.add_text("Info/BatchSize", f"{self.batch_size}")
 
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
         logger.info("Generating Model")
         if self.model is None:
             self.model = self.model_creation_function()
+            self.model_name = self.model._get_name()
 
         if "swt-dgx" in socket.gethostname():
             logger.info("Invoking data parallel model.")
@@ -150,6 +160,8 @@ class ModelTrainer:
 
         if self.optimizer_path is None:
             self.optimizer = self.optimizer_function(self.model.parameters())
+            if self.lr_scheduler_function is not None:
+                self.lr_scheduler = self.lr_scheduler_function(self.optimizer)
         else:
             self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
             self.optimizer = self.optimizer_function(self.model.parameters())
@@ -161,6 +173,8 @@ class ModelTrainer:
         """
         # self.save_path.mkdir(parents=True, exist_ok=True)
         logging_cfg.apply_logging_config(self.save_path)
+        self.writer = SummaryWriter(log_dir=self.save_path)
+        self.classification_evaluator = self.classification_evaluator_function(sw=self.writer)
 
         logger = logging.getLogger(__name__)
         logger.info(f"Generating Generator")
@@ -184,16 +198,17 @@ class ModelTrainer:
                     logger.info(f"Fetched {i} batches.")
             logger.info(f"Total number of samples: {len(self.data_generator)}")
 
+        logger.info("Running eval before training to see, if any training happens")
+        validation_loss = self.__eval(self.data_generator.get_validation_samples(), 0, 0)
+        self.writer.add_scalar("Validation/Loss", validation_loss, 0)
         logger.info("The Training Will Start Shortly")
         self.__train_loop()
 
         logging.shutdown()
 
     def __train_loop(self):
-        self.writer = SummaryWriter(log_dir=self.save_path)
-
         start_time = time.time()
-        eval_step = 0
+        eval_step = 1
         step_count = 0
         for epoch in range(self.epochs):
             i = 0
@@ -221,16 +236,18 @@ class ModelTrainer:
                         f"Loss: {loss.item():12.4f} || Duration of step {step_count:6}: {time_delta:10.2f} s; "
                         f"{progress*100:.2f}% of epoch done; ETA {hours}{(eta%3600)//60:.0f}min {eta%60:.0f}s"
                     )
+                    if self.lr_scheduler is not None:
+                        self.lr_scheduler.step()
                     start_time = time.time()
 
                 i += 1
                 step_count += 1
 
-            validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step)
+            validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step, step_count)
             self.writer.add_scalar("Validation/Loss", validation_loss, step_count)
             eval_step += 1
 
-    def __eval(self, data_set, eval_step=0, test_mode=False):
+    def __eval(self, data_set, eval_step=0, step_count=0, test_mode=False):
         """Evaluators must have a commit, print and reset function. commit
             updates the evaluator with the current step,
             print can show all relevant stats and reset resets the internal
@@ -266,7 +283,7 @@ class ModelTrainer:
             self.logger.info(f"{eval_step} Mean Loss on Eval: {loss:8.8f}")
 
             if self.classification_evaluator is not None:
-                self.classification_evaluator.print_metrics()
+                self.classification_evaluator.print_metrics(step_count)
                 self.classification_evaluator.reset()
 
             self.model.train()
@@ -330,6 +347,7 @@ class ModelTrainer:
         """
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
+        self.classification_evaluator = self.classification_evaluator_function(sw=None)
 
         logging_cfg.apply_logging_config(save_path, eval=True)
 

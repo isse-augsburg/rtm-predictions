@@ -124,7 +124,7 @@ class BinaryClassificationEvaluator(Evaluator):
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
 
-    def __init__(self, save_path: Path = None, skip_images=True, with_text_overlay=False):
+    def __init__(self, save_path: Path = None, skip_images=True, with_text_overlay=False, sw=None):
         super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
@@ -136,6 +136,8 @@ class BinaryClassificationEvaluator(Evaluator):
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.num = 0
         self.with_text_overlay = with_text_overlay
+        print(f"Summary writer in log dir {str(self.save_path)}")
+        self.sw = sw
 
     def commit(self, net_output, label, inputs, aux, *args):
         """Updates the confusion matrix and updates the metrics. 
@@ -182,7 +184,7 @@ class BinaryClassificationEvaluator(Evaluator):
                 plt.imsave(self.im_save_path / f"{self.num}-pred_{prediction}_label_{label}.jpg", c)
         self.num += 1
 
-    def print_metrics(self):
+    def print_metrics(self, step_count=0):
         """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall,
         Specificity and the confusion matrix.
         """
@@ -194,26 +196,15 @@ class BinaryClassificationEvaluator(Evaluator):
             str(self.tn),
             str(self.fn)
         )
-
-        logger.info(
-            "Accuracy: %s, Precision: %s, Recall: %s, Specificity: %s",
-            "{:7.4f}".format(
-                self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn,
-                                     fn=self.fn)
-            ),
-            "{:7.4f}".format(
-                self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn,
-                                      fn=self.fn)
-            ),
-            "{:7.4f}".format(
-                self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn,
-                                   fn=self.fn)
-            ),
-            "{:7.4f}".format(
-                self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn,
-                                        fn=self.fn)
-            ),
-        )
+        acc = self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+        prec = self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+        recall = self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+        spec = self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+        self.sw.add_scalar("Validation/Accuracy", acc, step_count)
+        self.sw.add_scalar("Validation/Precision", prec, step_count)
+        self.sw.add_scalar("Validation/Recall", recall, step_count)
+        self.sw.add_scalar("Validation/Specificity", spec, step_count)
+        logger.info(f"Accuracy: {acc:7.4f}, Precision: {prec:7.4f}, Recall: {recall:7.4f}, Specificity: {spec:7.4f}")
         df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
         df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)
         logger.info(f'Confusion matrix:\n{df}')
