@@ -36,11 +36,13 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
     spots = False
     probs = []
     for i, cnt in enumerate(contours):
+        # create a polygon from a contour with tolerance
         approx = cv2.approxPolyDP(cnt, 0.005 * cv2.arcLength(cnt, True), True)
         size = cv2.contourArea(cnt)
+        # if the contour is to small, ignore it
         if size < min_size:
             continue
-        # max contour
+        # if the contour contains the whole image, it can be ignored as well
         if size > 273440:
             continue
 
@@ -184,7 +186,6 @@ def __update_meta_data(meta_file, spot_list_e, spot_list_s, ignore_list, detect_
         for start, stop in zip(spot_list_s, spot_list_e):
             if int(start) <= i < int(stop):
                 states.append(int(key.replace("state", "0")))
-    # -> Moved to useless_frame_detection.py
     if detect_useless:
         try:
             useless_states = meta_file.require_group('useless_states')
