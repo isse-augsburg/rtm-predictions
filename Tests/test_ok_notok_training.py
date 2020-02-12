@@ -32,7 +32,7 @@ class TestOkNotOkTraining(unittest.TestCase):
             num_validation_samples=1,
             num_test_samples=1,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=BinaryClassificationEvaluator()
+            classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(summary_writer=sw)
         )
 
         model_trainer.start_training()

@@ -47,9 +47,11 @@ def _dummy_dataloader_fn(filename):
     """ This is a dummy data loader that returns a fake sample for every singlestate in the given file.
     The data will always be the filename while the label is the index of the sample
     """
+
     def fn_to_list(fn):
         lst = list(str(filename).encode("utf-8"))
         return lst + (200 - len(lst)) * [0]
+
     with h5py.File(filename, "r") as f:
         return [(fn_to_list(f), np.array([i, 0]))
                 for i in range(len(f["post"]["singlestate"].keys()))]
@@ -59,6 +61,7 @@ class SampleWrapper:
     """ A wrapper around samples returned using the _dummy_dataloader_fn
     Provides a by-value hash function and a nice __repr__ method
     """
+
     def __init__(self, sample):
         self.data, self.label, self.aux = sample
 
@@ -116,7 +119,7 @@ class TestFileSetIterator(unittest.TestCase):
             iterator = ti.FileSetIterator(list(self.test_set.erf_files), _dummy_dataloader_fn, cache_path=cache_path)
             orig_samples = list(SampleWrapper(sample) for sample in iterator)
             iterator = ti.FileSetIterator(list(self.test_set.erf_files), None, cache_path=cache_path)
-            cached_samples = list(SampleWrapper(sample) for sample in iterator) 
+            cached_samples = list(SampleWrapper(sample) for sample in iterator)
             self.assertListEqual(orig_samples, cached_samples)
 
     def test_get_remaining_files(self):
@@ -153,10 +156,10 @@ class TestSubsetGenerator(unittest.TestCase):
     def test_split_size(self):
         subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples)
         unused_files = subset_gen.prepare_subset(self.test_set.erf_files)
-        self.assertCountEqual(unused_files + subset_gen.used_filenames, self.test_set.erf_files, msg="Splitting should"
-                              "not loose any files")
+        self.assertCountEqual(unused_files + subset_gen.used_filenames,
+                              self.test_set.erf_files, msg="Splitting should not loose any files")
         samples = subset_gen.get_samples()
-        self.assertEqual(len(samples), self.num_split_samples) 
+        self.assertEqual(len(samples), self.num_split_samples)
 
     def test_split_save_load(self):
         with tempfile.TemporaryDirectory(prefix="SubsetGenerator_Splits") as splitpath:
@@ -176,8 +179,8 @@ class TestSubsetGenerator(unittest.TestCase):
             load_samples = subset_gen.get_samples()
 
             self.assertCountEqual(save_unused_files, load_unused_files)
-            save_samples = list(SampleWrapper(sample) for sample in save_samples) 
-            load_samples = list(SampleWrapper(sample) for sample in load_samples) 
+            save_samples = list(SampleWrapper(sample) for sample in save_samples)
+            load_samples = list(SampleWrapper(sample) for sample in load_samples)
 
             self.assertSetEqual(set(save_samples), set(load_samples))
             self.assertListEqual(save_samples, load_samples)
@@ -244,6 +247,7 @@ class TestLoopingDatagenerator(unittest.TestCase):
             def load_pickled_filenames(fn):
                 with open(fn, "rb") as f:
                     return pickle.load(f)
+
             splits = [(fn, load_pickled_filenames(fn)) for fn in split_files]
 
             for a, b in itertools.combinations(splits, 2):

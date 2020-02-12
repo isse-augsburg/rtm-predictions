@@ -33,7 +33,7 @@ if __name__ == "__main__":
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
                      lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
-                     classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(sw=sw),
+                     classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(summary_writer=sw),
                      checkpointing_strategy=CheckpointingStrategy.All
                      )
 
@@ -45,8 +45,8 @@ if __name__ == "__main__":
             checkpoint_path=Path(args.checkpoint_path),
             # TODO fix Image creation when handling sensor input
             #  reshape etc.
-            classification_evaluator=BinaryClassificationEvaluator(Path(args.eval_path) /
-                                                                   "eval_on_test_set",
-                                                                   skip_images=True,
-                                                                   with_text_overlay=True)
+            classification_evaluator_function=BinaryClassificationEvaluator(Path(args.eval_path) /
+                                                                            "eval_on_test_set",
+                                                                            skip_images=True,
+                                                                            with_text_overlay=True)
         )

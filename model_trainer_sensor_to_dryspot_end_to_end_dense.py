@@ -37,7 +37,7 @@ if __name__ == "__main__":
     else:
         m.inference_on_test_set(output_path=Path(args.eval_path),
                                 checkpoint_path=Path(args.checkpoint_path),
-                                classification_evaluator=BinaryClassificationEvaluator(Path(args.eval_path) /
-                                                                                       "eval_on_test_set",
-                                                                                       skip_images=True,
-                                                                                       with_text_overlay=True))
+                                classification_evaluator_function=BinaryClassificationEvaluator(Path(args.eval_path) /
+                                                                                                "eval_on_test_set",
+                                                                                                skip_images=True,
+                                                                                                with_text_overlay=True))
