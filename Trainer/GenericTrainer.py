@@ -148,26 +148,33 @@ class ModelTrainer:
         return model_as_str
 
     def __print_info(self):
+        param_count = count_parameters(self.model)
+        sched_str = self.lr_scheduler.__class__.__name__ + f"  \n{self.lr_scheduler.state_dict()}"
         self.logger.info("###########################################")
         self.logger.info(">>> Model Trainer INFO <<<")
         self.logger.info(f"Loss criterion: {self.loss_criterion}")
         self.logger.info(f"Optimizer: {self.optimizer}")
+        self.logger.info(f"LR scheduler: {sched_str}")
         self.logger.info(f"Batch size: {self.batch_size}")
         self.logger.info(f"Model: {self.model}")
-        self.logger.info(f"Parameter count: {count_parameters(self.model)}")
+        self.logger.info(f"Parameter count: {param_count}")
         self.logger.info("###########################################")
-        self.writer.add_text("Info/Model", f"{self.model_name}")
-        self.writer.add_text("Info/LossCriterion", f"{self.loss_criterion}")
-        self.writer.add_text("Info/BatchSize", f"{self.batch_size}")
-        self.writer.add_text("Info/Model2", f"{self.__get_model_def()}")
-        print(self.__get_model_def())
+        self.writer.add_text("General/LossCriterion", f"{self.loss_criterion}")
+        self.writer.add_text("General/BatchSize", f"{self.batch_size}")
+        optim_str = str(self.optimizer).replace("\n", "  \n")
+        self.writer.add_text("Optimizer/Optimizer", f"{optim_str}")
+        self.writer.add_text("Optimizer/LRScheduler", f"{sched_str}")
+        self.writer.add_text("Model/Structure", f"{self.__get_model_def()}")
+        self.writer.add_text("Model/ParamCount", f"{param_count}")
+        self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
+        self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
 
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
         logger.info("Generating Model")
         if self.model is None:
             self.model = self.model_creation_function()
-            self.model_name = self.model._get_name()
+            self.model_name = self.model.__class__.__name__
 
         if "swt-dgx" in socket.gethostname():
             logger.info("Invoking data parallel model.")
