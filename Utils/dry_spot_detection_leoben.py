@@ -121,6 +121,7 @@ def dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, change_meta_file=False,
         if save_flowfront_img:
             cv2.imwrite(str(output_dir_imgs / (f"{k}_dry.png")), dryspot_img)
 
+        # check for large jumps in dryspot probability. This is used to determine whether a file should be blacklisted.
         if len(probs) > 0:
             # Saving the course of the maximum of avg. probabilities of dry spot
             max_prob = max(probs)
