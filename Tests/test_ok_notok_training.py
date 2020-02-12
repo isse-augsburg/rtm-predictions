@@ -9,7 +9,7 @@ import Pipeline.data_gather as dg
 import Pipeline.data_loader_sensor as dls
 import Resources.testing as resources
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 
 

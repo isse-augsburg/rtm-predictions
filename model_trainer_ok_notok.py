@@ -3,7 +3,7 @@ import torch
 import Resources.training as r
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Pipeline import data_loader_sensor as dls, data_gather as dg
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 
 if __name__ == "__main__":

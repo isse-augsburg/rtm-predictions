@@ -9,7 +9,7 @@ import Resources.testing as resources
 from Models.erfh5_ConvModel import DrySpotModel
 from Pipeline import data_gather as dg
 from Pipeline.data_loader_dryspot import DataloaderDryspots
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 
 
