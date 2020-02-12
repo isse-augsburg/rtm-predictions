@@ -30,7 +30,8 @@ class TestTrainingDryspotFF(unittest.TestCase):
             data_gather_function=dg.get_filelist_within_folder,
             data_processing_function=dlds.get_flowfront_bool_dryspot,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=BinaryClassificationEvaluator(save_path=self.training_save_path, skip_images=True)
+            classification_evaluator_function=
+            BinaryClassificationEvaluator(save_path=self.training_save_path, skip_images=True)
         )
 
     def test_training(self):

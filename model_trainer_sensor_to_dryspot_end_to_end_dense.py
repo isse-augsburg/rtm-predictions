@@ -28,8 +28,8 @@ if __name__ == "__main__":
                      data_processing_function=dlds.get_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
-                     classification_evaluator_function=lambda save_path: BinaryClassificationEvaluator(
-                                                                            save_path=save_path)
+                     classification_evaluator_function=lambda save_path:
+                     BinaryClassificationEvaluator(save_path=save_path)
                      )
 
     if not args.eval:
