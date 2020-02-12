@@ -150,10 +150,10 @@ def dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, change_meta_file=False,
     if change_meta_file:
         try:
             meta_file = h5py.File(str(file_path).replace("RESULT.erfh5", "meta_data.hdf5"), "r+")
+            __update_meta_data(meta_file, spot_list_e, spot_list_s, ignore_list, detect_useless, keys)
         except OSError:
             print('ERROR: Could not open file(s)!', str(file_path).replace("RESULT.erfh5", "meta_data.hdf5"))
             return
-        __update_meta_data(meta_file, spot_list_e, spot_list_s, ignore_list, detect_useless, keys)
 
     f.close()
     if not silent:
