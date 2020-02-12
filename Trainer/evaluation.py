@@ -136,7 +136,6 @@ class BinaryClassificationEvaluator(Evaluator):
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.num = 0
         self.with_text_overlay = with_text_overlay
-        print(f"Summary writer in log dir {str(self.save_path)}")
         self.sw = sw
 
     def commit(self, net_output, label, inputs, aux, *args):

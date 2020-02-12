@@ -132,6 +132,21 @@ class ModelTrainer:
             exit()
         return generator
 
+    def __get_model_def(self):
+        model_as_str = self.model_name + ":  \n"
+        for c in self.model.named_children():
+            if len(list(c[1].parameters())) == 0:
+                model_as_str += str(c)
+                model_as_str += "  \n"
+                continue
+            else:
+                # If first parameter of layer is frozen, so is the rest of the layer -> parameters()[0]
+                model_as_str += "~~  " if not list(c[1].parameters())[0].requires_grad else ""
+                model_as_str += str(c)
+                model_as_str += " ~~   \n" if not list(c[1].parameters())[0].requires_grad else "  \n"
+
+        return model_as_str
+
     def __print_info(self):
         self.logger.info("###########################################")
         self.logger.info(">>> Model Trainer INFO <<<")
@@ -144,6 +159,8 @@ class ModelTrainer:
         self.writer.add_text("Info/Model", f"{self.model_name}")
         self.writer.add_text("Info/LossCriterion", f"{self.loss_criterion}")
         self.writer.add_text("Info/BatchSize", f"{self.batch_size}")
+        self.writer.add_text("Info/Model2", f"{self.__get_model_def()}")
+        print(self.__get_model_def())
 
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
@@ -236,8 +253,6 @@ class ModelTrainer:
                         f"Loss: {loss.item():12.4f} || Duration of step {step_count:6}: {time_delta:10.2f} s; "
                         f"{progress*100:.2f}% of epoch done; ETA {hours}{(eta%3600)//60:.0f}min {eta%60:.0f}s"
                     )
-                    if self.lr_scheduler is not None:
-                        self.lr_scheduler.step()
                     start_time = time.time()
 
                 i += 1
@@ -245,6 +260,8 @@ class ModelTrainer:
 
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step, step_count)
             self.writer.add_scalar("Validation/Loss", validation_loss, step_count)
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step()
             eval_step += 1
 
     def __eval(self, data_set, eval_step=0, step_count=0, test_mode=False):
