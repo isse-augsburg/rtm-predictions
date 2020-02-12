@@ -20,7 +20,7 @@ if __name__ == "__main__":
         data_gather_function=dg.get_filelist_within_folder,
         data_processing_function=dls.sensorgrid_simulationsuccess,
         loss_criterion=torch.nn.BCELoss(),
-        classification_evaluator=BinaryClassificationEvaluator(),
+        classification_evaluator_function=BinaryClassificationEvaluator(),
     )
     trainer.start_training()
     print("training finished")

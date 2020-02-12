@@ -30,7 +30,7 @@ if __name__ == "__main__":
                      data_processing_function=dl.get_sensordata_and_flowfront,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.MSELoss(),
-                     classification_evaluator=SensorToFlowfrontEvaluator(),
+                     classification_evaluator_function=SensorToFlowfrontEvaluator(),
                      )
 
     if not args.eval:

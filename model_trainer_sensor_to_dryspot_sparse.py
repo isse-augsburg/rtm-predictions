@@ -31,7 +31,7 @@ if __name__ == "__main__":
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.Adam(params, lr=0.00001),
-                     classification_evaluator=BinaryClassificationEvaluator()
+                     classification_evaluator_function=BinaryClassificationEvaluator()
                      )
 
     if not args.eval:
@@ -41,7 +41,7 @@ if __name__ == "__main__":
                                 checkpoint_path=Path(args.checkpoint_path),
                                 # TODO fix Image creation when handling sensor input
                                 #  reshape etc.
-                                classification_evaluator=BinaryClassificationEvaluator(Path(args.eval_path) /
-                                                                                       "eval_on_test_set",
-                                                                                       skip_images=True,
-                                                                                       with_text_overlay=True))
+                                classification_evaluator_function=BinaryClassificationEvaluator(Path(args.eval_path) /
+                                                                                                "eval_on_test_set",
+                                                                                                skip_images=True,
+                                                                                                with_text_overlay=True))

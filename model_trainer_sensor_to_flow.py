@@ -31,7 +31,7 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
-        classification_evaluator=SensorToFlowfrontEvaluator(),
+        classification_evaluator_function=SensorToFlowfrontEvaluator(),
     )
 
     if not args.eval:
