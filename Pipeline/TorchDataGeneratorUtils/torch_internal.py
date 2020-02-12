@@ -141,6 +141,13 @@ class FileSetIterator:
 
 
 class CachingMode(Enum):
+    """
+    Enum to specify if and how caching is done.
+
+    Nothing: No caching is done
+    FileList: Only the list of files is cached.
+    Both: The list of files and the processed data is cached.
+    """
     Nothing = 1
     Both = 2
     FileList = 3

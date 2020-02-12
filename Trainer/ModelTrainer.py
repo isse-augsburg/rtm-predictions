@@ -19,8 +19,10 @@ from Utils.training_utils import count_parameters, CheckpointingStrategy
 
 class ModelTrainer:
     """Unified class for training a model.
+
     Args:
-        model: Pytorch model to be trained.
+        model_creation_function: Pytorch model to be trained. Passed as a lambda call,
+                                 e.g. lambda: YourModel()
         data_source_paths: List of file paths containing the files for
                            training.
         save_path: Path for saving outputs.
@@ -29,7 +31,7 @@ class ModelTrainer:
         cache_path: Path containing cached objects.
         batch_size: Batch size for training.
         train_print_frequency: Frequency (in steps) in which infos about the 
-                          current loss gets logged.
+                               current loss gets logged.
         epochs: Number of epochs for training.
         dummy_epoch: If set to True, a dummy epoch will be fetched before training.
                      This results in better shuffling for the first epoch
@@ -40,35 +42,40 @@ class ModelTrainer:
                                   for transforming paths into desired data.
         data_gather_function: function object used by the data generator for
                               gathering the paths to the single files.
+        caching_mode: From enum CachingMode in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
+                      Specifies if and how caching is done.
         loss_criterion: Loss criterion for training.
-        learning_rate: Learning rate for training.
+        optimizer_function: Object of a Torch optimizer. Passed as a lambda call, e.g.
+                            lambda: params: torch.optim.Adam(params, lr=0.0001
         classification_evaluator: Classification Evaluator for evaluating the
                                   models performance.
+        chechpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
+                                Specifies which checkpoints are stored during training.
     """
 
     def __init__(
-        self,
-        model_creation_function,
-        data_source_paths,
-        save_path,
-        load_datasets_path=None,
-        cache_path=None,
-        batch_size=1,
-        train_print_frequency=2,
-        epochs=10,
-        dummy_epoch=True,
-        num_workers=10,
-        num_validation_samples=10,
-        num_test_samples=10,
-        data_processing_function=None,
-        data_gather_function=None,
-        looping_strategy=None,
-        cache_mode=td.CachingMode.Both,
-        loss_criterion=None,
-        optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
-        optimizer_path=None,
-        classification_evaluator=None,
-        checkpointing_strategy=CheckpointingStrategy.Best
+            self,
+            model_creation_function,
+            data_source_paths,
+            save_path,
+            load_datasets_path=None,
+            cache_path=None,
+            batch_size=1,
+            train_print_frequency=2,
+            epochs=10,
+            dummy_epoch=True,
+            num_workers=10,
+            num_validation_samples=10,
+            num_test_samples=10,
+            data_processing_function=None,
+            data_gather_function=None,
+            looping_strategy=None,
+            caching_mode=td.CachingMode.Both,
+            loss_criterion=None,
+            optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
+            optimizer_path=None,
+            classification_evaluator=None,
+            checkpointing_strategy=CheckpointingStrategy.Best
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -87,7 +94,7 @@ class ModelTrainer:
         self.data_processing_function = data_processing_function
         self.data_gather_function = data_gather_function
         self.looping_strategy = looping_strategy
-        self.cache_mode = cache_mode
+        self.cache_mode = caching_mode
         self.data_generator = None
         self.test_data_generator = None
         self.model = None
@@ -156,7 +163,7 @@ class ModelTrainer:
             checkpoint = torch.load(self.optimizer_path)
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    def start_training(self,):
+    def start_training(self, ):
         """ Sets up training and logging and starts train loop
         """
         # self.save_path.mkdir(parents=True, exist_ok=True)
@@ -216,10 +223,10 @@ class ModelTrainer:
                     progress = i / (len(self.data_generator) / self.batch_size)
                     eta = (len(self.data_generator) / self.batch_size - i) * ((time.time() - epoch_start) / i)
 
-                    hours = f"{eta//3600}h " if eta // 3600 > 0 else ""
+                    hours = f"{eta // 3600}h " if eta // 3600 > 0 else ""
                     self.logger.info(
                         f"Loss: {loss.item():12.4f} || Duration of step {step_count:6}: {time_delta:10.2f} s; "
-                        f"{progress*100:.2f}% of epoch done; ETA {hours}{(eta%3600)//60:.0f}min {eta%60:.0f}s"
+                        f"{progress * 100:.2f}% of epoch done; ETA {hours}{(eta % 3600) // 60:.0f}min {eta % 60:.0f}s"
                     )
                     start_time = time.time()
 
@@ -242,7 +249,7 @@ class ModelTrainer:
             loss = 0
             count = 0
             for i, (data, label, aux) in enumerate(
-                self.__batched(data_set, self.batch_size)
+                    self.__batched(data_set, self.batch_size)
             ):
                 auxs = list(td.split_aux_dicts(aux))
                 data = data.to(self.device, non_blocking=True)
