@@ -188,13 +188,14 @@ class ModelTrainer:
 
         if self.optimizer_path is None:
             self.optimizer = self.optimizer_function(self.model.parameters())
-            if self.lr_scheduler_function is not None:
-                self.lr_scheduler = self.lr_scheduler_function(self.optimizer)
         else:
             self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
             self.optimizer = self.optimizer_function(self.model.parameters())
             checkpoint = torch.load(self.optimizer_path)
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+        if self.lr_scheduler_function is not None:
+            self.lr_scheduler = self.lr_scheduler_function(self.optimizer)
 
     def start_training(self,):
         """ Sets up training and logging and starts train loop
@@ -274,7 +275,10 @@ class ModelTrainer:
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step, step_count)
             self.writer.add_scalar("Validation/Loss", validation_loss, step_count)
             if self.lr_scheduler is not None:
+                old_lr = [pg['lr'] for pg in self.optimizer.state_dict()['param_groups']]
                 self.lr_scheduler.step()
+                self.logger.info(f"LR scheduler step; LR: {old_lr} -> "
+                                 f"{[pg['lr'] for pg in self.optimizer.state_dict()['param_groups']]}")
             eval_step += 1
 
     def __eval(self, data_set, eval_step=0, step_count=0, test_mode=False):
