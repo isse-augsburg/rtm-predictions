@@ -22,13 +22,15 @@ from Utils.img_utils import (
 class DataloaderImages:
     def __init__(self, image_size=(135, 103),
                  ignore_useless_states=True,
-                 sensor_indizes=((0, 1), (0, 1))):
+                 sensor_indizes=((0, 1), (0, 1)),
+                 skip_indizes=(0, None, 1)):
         self.image_size = image_size
         self.coords = None
         self.ff_coords = None
         self.fftriang = None
         self.ignore_useless_states = ignore_useless_states
         self.sensor_indizes = sensor_indizes
+        self.skip_indizes = skip_indizes
 
     def _get_flowfront(self, f, meta_f, states=None):
         """
@@ -39,6 +41,7 @@ class DataloaderImages:
             coords = self._get_coords(f)
             if not states:
                 states = f["post"]["singlestate"]
+            states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
             if meta_f is not None:
                 useless_states = meta_f["useless_states/singlestates"][()]
                 if len(useless_states) == 0:
@@ -112,12 +115,14 @@ class DataloaderImages:
             ]["SENSOR"]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
             # convert barye to bar ( smaller values are more stable while training)
             pressure_array = pressure_array / 100000
-            all_states = f["post"]["singlestate"]
+            states = f["post"]["singlestate"]
         except KeyError:
             return None
 
+        states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
+
         def sensordata_gen():
-            for state in all_states:
+            for state in states:
                 try:
                     s = state.replace("state", "")
                     state_num = int(s)

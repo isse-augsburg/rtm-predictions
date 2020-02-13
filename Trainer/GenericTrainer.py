@@ -54,13 +54,13 @@ class ModelTrainer:
         save_path,
         load_datasets_path=None,
         cache_path=None,
-        batch_size=1,
-        train_print_frequency=10,
-        epochs=10,
+        batch_size: int = 1,
+        train_print_frequency: int = 10,
+        epochs: int = 10,
         dummy_epoch=True,
-        num_workers=10,
-        num_validation_samples=10,
-        num_test_samples=10,
+        num_workers: int = 10,
+        num_validation_samples: int = 10,
+        num_test_samples: int = 10,
         data_processing_function=None,
         data_gather_function=None,
         looping_strategy=None,
@@ -71,7 +71,7 @@ class ModelTrainer:
         optimizer_path=None,
         classification_evaluator_function=None,
         checkpointing_strategy=CheckpointingStrategy.Best,
-        run_eval_step_before_training=False
+        run_eval_step_before_training=False,
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -152,7 +152,6 @@ class ModelTrainer:
                 model_as_str += str(c)
                 model_as_str += " ~~   \n" if not list(c[1].parameters())[0].requires_grad else "  \n"
 
-        print(model_as_str)
         return model_as_str
 
     def __print_info(self):
@@ -177,6 +176,9 @@ class ModelTrainer:
         self.writer.add_text("Model/ParamCount", f"{param_count}")
         self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
         self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
+        dl_info = self.data_processing_function.__self__.__dict__
+        dl_str = '  \n'.join([f"{k} {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
+        self.writer.add_text("Data/DataLoader", f"{dl_str}")
 
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
