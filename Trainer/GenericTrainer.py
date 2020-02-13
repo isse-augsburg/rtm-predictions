@@ -137,7 +137,11 @@ class ModelTrainer:
 
     def __get_model_def(self):
         model_as_str = self.model_name + ":  \n"
-        for c in self.model.named_children():
+        if self.model.__class__.__name__ == "DataParallel":
+            m = list(self.model.children())[0]
+        else:
+            m = self.model
+        for c in m.named_children():
             if len(list(c[1].parameters())) == 0:
                 model_as_str += str(c)
                 model_as_str += "  \n"
@@ -148,6 +152,7 @@ class ModelTrainer:
                 model_as_str += str(c)
                 model_as_str += " ~~   \n" if not list(c[1].parameters())[0].requires_grad else "  \n"
 
+        print(model_as_str)
         return model_as_str
 
     def __print_info(self):
@@ -357,7 +362,7 @@ class ModelTrainer:
 
         new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
-        if socket.gethostname() != "swt-dgx1":
+        if "swt-dgx" not in socket.gethostname():
             for k, v in model_state_dict.items():
                 name = k[7:]  # remove `module.`
                 new_model_state_dict[name] = v

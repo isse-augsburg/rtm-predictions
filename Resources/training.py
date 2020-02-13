@@ -32,14 +32,16 @@ datasets_dryspots = _share_path / 'data/RTM/Leoben/reference_datasets/dryspot_de
 
 chkp_S1140_to_ff_deconv = _results / '4_three_week_run/2019-09-25_16-42-53/checkpoint.pth'
 chkp_S1140_to_ff_eff = _results / '2019-12-12_20-27-20_eff_net_cleaned_data/checkpoint.pth'
-chkp_1140_transferred_dry_spot = _ij_deconv_conv / '2019-12-13_17-15-26_transfer_eff_net_dryspot/checkpoint.pth'
-chkp_99_5_acc_retrained = _results / '2019-12-20_16-35-22_99.5_acc/checkpoint.pth'
+# chkp_S1140_transferred_dry_spot = _ij_deconv_conv / '2019-12-13_17-15-26_transfer_eff_net_dryspot/checkpoint.pth'
+# Mixed up data sets in different training phases:
+# chkp_99_5_acc_retrained = _results / '2019-12-20_16-35-22_99.5_acc/checkpoint.pth'
 chkp_S1140_to_ff_correct_data = _ij_deconv_conv / '2020-01-18_12-34-13_S1140_to_ff_bs1024_best_loss' \
                                                   '/checkpoint.pth'
 chkp_S1140_to_ff_retrain_mixed_press = _ij_deconv_conv / "0_new_split_mixed_ground_pressure/" \
                                                          "2020-02-03_17-19-34_S1140_to_ff_retrain/checkpoint.pth"
-chkp_S1140_to_ff_retrain_0_base_press = _ij_deconv_conv / "1_new_split_0_ground_pressure/" \
-                                                          "2020-02-07_13-55-43_S1140_to_ff_base_0/checkpoint.pth"
+zero_basepr = _ij_deconv_conv / "1_new_split_0_ground_pressure"
+chkp_S1140_to_ff_0_basepr = zero_basepr / "2020-02-07_13-55-43_S1140_to_ff_base_0/checkpoint.pth"
+chkp_S1140_to_ds_0_basepr_frozen = zero_basepr / "2020-02-12_11-23-35_S1140_to_ds_base_0_frozen/checkpoint.pth"
 chkp_S1140_to_ds_frozen = _ij_deconv_conv / "2020-01-21_09-32-50_S1140_to_DS_frozen_bad_chkp/checkpoint.pth"
 chkp_S1140_to_ds_frozen_deeper_convnet = _ij_deconv_conv / "2020-01-22_16-44-26_S1140_to_DS_frozen_deeper_convnet" \
                                                            '/checkpoint.pth'
