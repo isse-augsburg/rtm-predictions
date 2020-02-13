@@ -177,7 +177,7 @@ class ModelTrainer:
         self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
         self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
         dl_info = self.data_processing_function.__self__.__dict__
-        dl_str = '  \n'.join([f"{k} {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
+        dl_str = '  \n'.join([f"{k}: {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
         self.writer.add_text("Data/DataLoader", f"{dl_str}")
 
     def __create_model_and_optimizer(self):

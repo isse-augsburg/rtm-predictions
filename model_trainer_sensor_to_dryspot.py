@@ -15,9 +15,9 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     dlds = DataloaderDryspots()
-    m = ModelTrainer(lambda: SensorDeconvToDryspotEfficient2(pretrained="all_weights",
-                                                             checkpoint_path=r.chkp_S1140_to_ds_0_basepr_frozen,
-                                                             freeze_nlayers=7),
+    m = ModelTrainer(lambda: SensorDeconvToDryspotEfficient2(pretrained="deconv_weights",
+                                                             checkpoint_path=r.chkp_S1140_to_ff_0_basepr,
+                                                             freeze_nlayers=8),
                      data_source_paths=r.get_data_paths_base_0(),
                      save_path=r.save_path,
                      load_datasets_path=r.datasets_dryspots,
@@ -31,7 +31,7 @@ if __name__ == "__main__":
                      data_processing_function=dlds.get_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
-                     optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-5),
+                     optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                      lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
                      classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(summary_writer=sw),
                      checkpointing_strategy=CheckpointingStrategy.All,
