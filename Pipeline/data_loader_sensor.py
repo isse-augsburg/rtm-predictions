@@ -5,8 +5,16 @@ import Pipeline.resampling as rs
 
 
 class DataLoaderSensor:
+    def __init__(self,
+                 num_samples_sensorgrid=50,
+                 frm=0,
+                 until=-1):
 
-    def get_sensordata_and_filling_percentage(self, file, until=-1, frm=0):
+        self.num_samples = num_samples_sensorgrid
+        self.frm = frm
+        self.until = until
+
+    def get_sensordata_and_filling_percentage(self, file):
         """
          Args:
             file (string): File from which the data should be extracted.
@@ -33,27 +41,20 @@ class DataLoaderSensor:
                     ()]
             non_zeros = np.count_nonzero(last_filling)
             state_count = np.shape(last_filling)[0]
-            # filling = np.floor(non_zeros / state_count)
             filling = np.array([np.floor(non_zeros / state_count)])
-            # filling_percentage = np.array((filling, 1 - filling), dtype=np.long)
 
         except KeyError:
             return None
 
-        if np.shape(pressure_array)[0] < frm:
+        if np.shape(pressure_array)[0] < self.frm:
             return None
-        # pressure_array = pressure_array[frm:until, :, :]
-        pressure_array = pressure_array[frm:, :, :]
+        pressure_array = pressure_array[self.frm:, :, :]
         pressure_array = pressure_array / 1000000
-        # pressure_array = pressure_array[-frm:,:,:]
         pressure_array = np.squeeze(pressure_array)
 
-        # print(np.shape(pressure_array), filling_percentage)
-
-        # return ([(pressure_array, filling_percentage)])
         return [(pressure_array, filling)]
 
-    def sensorgrid_simulationsuccess(self, file, num_samples=50):
+    def sensorgrid_simulationsuccess(self, file):
         data = self.get_sensordata_and_filling_percentage(file)
 
         if data is None:
@@ -61,7 +62,7 @@ class DataLoaderSensor:
 
         try:
             pressure_array, label = data[0]
-            indices = rs.get_fixed_number_of_indices(len(pressure_array), num_samples)
+            indices = rs.get_fixed_number_of_indices(len(pressure_array), self.num_samples)
             pressure_array = pressure_array[indices]
             pressure_array = np.where(pressure_array > 0, 1.0, 0.0)
             pressure_array = np.reshape(pressure_array, (38, 30, -1))
