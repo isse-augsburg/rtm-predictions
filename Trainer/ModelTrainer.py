@@ -163,8 +163,8 @@ class ModelTrainer:
             checkpoint = torch.load(self.optimizer_path)
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    def start_training(self, ):
-        """ Sets up training and logging and starts train loop
+    def start_training(self):
+        """ Sets up training and logging and starts the train loop
         """
         # self.save_path.mkdir(parents=True, exist_ok=True)
         logging_cfg.apply_logging_config(self.save_path)
@@ -330,9 +330,10 @@ class ModelTrainer:
         return DataLoader(data_l, batch_size=batch_size, shuffle=False)
 
     def inference_on_test_set(self, output_path: Path, checkpoint_path: Path, classification_evaluator):
-        """Start evaluation on a dedicated test set. 
+        """Start evaluation on a dedicated test set.
+      
         Args:
-            output_path:
+            output_path: Directory for test outputs.
             classificaton: Evaluator object that should be used for the test run.
         """
         save_path = output_path / "eval_on_test_set"

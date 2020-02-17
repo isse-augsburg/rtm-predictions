@@ -19,14 +19,14 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'tu-kaiserslautern'
-copyright = '2019, ISSE Uni Augsburg'
+project = 'RTM-Predictions'
+copyright = '2020, ISSE Uni Augsburg'
 author = 'lodesluk'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = 'alpha 0.1'
+release = '2.0'
 
 # -- General configuration ---------------------------------------------------
 
@@ -105,7 +105,7 @@ html_sidebars = {}
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'tu-kaiserslauterndoc'
+htmlhelp_basename = 'rtm-predictionsdoc'
 
 # -- Options for LaTeX output ------------------------------------------------
 

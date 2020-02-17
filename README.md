@@ -1,4 +1,4 @@
-**Short Guide to the CosiMo Data-Pipeline:**
+**Short Guide to the RTM-Predictions Data-Pipeline:**
 
 
 * Most of the work is done by the `ModelTrainer` class (defined in `Trainer.ModelTrainer.py`)
