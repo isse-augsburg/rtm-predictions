@@ -397,7 +397,7 @@ class S20DeconvToDrySpotEff2(nn.Module):
 
         self.dropout = nn.Dropout(0.3)
         self.bn8 = nn.BatchNorm2d(8)
-        self.bn1024 = nn.BatchNorm2d(1024)
+        self.bn512 = nn.BatchNorm2d(512)
 
         if pretrained == "deconv_weights":
             logger = logging.getLogger(__name__)
@@ -442,7 +442,7 @@ class S20DeconvToDrySpotEff2(nn.Module):
         x = F.relu(self.c6(x))
         x = F.relu(self.c7(x))
 
-        x = self.bn1024(x)
+        x = self.bn512(x)
         x = x.view((x.shape[0], 1024, -1)).contiguous()
         x = x.mean(-1).contiguous()
         x = F.relu(self.lin1(x))
