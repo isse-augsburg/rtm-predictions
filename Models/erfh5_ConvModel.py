@@ -335,7 +335,7 @@ class S20DeconvToDrySpotEff(nn.Module):
                                                   layer_names={'ct1', 'ct2', 'ct3', 'ct4',
                                                                'details'})
             incomp = self.load_state_dict(weights, strict=False)
-            logger.debug(f'All layers:', self.state_dict().keys())
+            logger.debug(f'All layers: {self.state_dict().keys()}')
             logger.debug(f'Loaded weights but the following: {incomp}')
 
         if freeze_nlayers == 0:
@@ -351,8 +351,7 @@ class S20DeconvToDrySpotEff(nn.Module):
                 break
 
     def forward(self, inputs):
-        fr = inputs.reshape((-1, 1, 38, 30))
-        frs = fr[:, :, 1::8, 1::8]
+        frs = inputs.reshape((-1, 1, 5, 4))
 
         x = F.relu(self.ct1(frs))
         x = F.relu(self.ct2(x))
@@ -371,6 +370,84 @@ class S20DeconvToDrySpotEff(nn.Module):
         x = F.relu(self.lin1(x))
         x = F.relu(self.lin2(x))
         x = torch.sigmoid(self.lin3(x))
+
+        return x
+
+
+class S20DeconvToDrySpotEff2(nn.Module):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
+        super(S20DeconvToDrySpotEff2, self).__init__()
+        self.ct1 = ConvTranspose2d(1, 256, 3, stride=2)
+        self.ct2 = ConvTranspose2d(256, 128, 5, stride=2)
+        self.ct3 = ConvTranspose2d(128, 64, 10, stride=2)
+        self.ct4 = ConvTranspose2d(64, 16, 17, stride=2)
+
+        self.details = Conv2d(16, 8, 5)
+        # ^ Pretrained ^
+        self.c2 = Conv2d(8, 16, 13)
+        self.c3 = Conv2d(16, 64, 7)
+        self.c4 = Conv2d(64, 128, 3)
+        self.c5 = Conv2d(128, 256, 3)
+        self.c6 = Conv2d(256, 512, 3)
+        self.c7 = Conv2d(512, 512, 1)
+
+        self.maxpool = nn.MaxPool2d(2, 2)
+        self.lin1 = Linear(1024, 256)
+        self.lin2 = Linear(256, 1)
+
+        self.dropout = nn.Dropout(0.3)
+        self.bn8 = nn.BatchNorm2d(8)
+        self.bn1024 = nn.BatchNorm2d(1024)
+
+        if pretrained == "deconv_weights":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct2', 'ct3', 'ct4',
+                                                               'details'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
+    def forward(self, inputs):
+        frs = inputs.reshape((-1, 1, 5, 4))
+
+        x = F.relu(self.ct1(frs))
+        x = F.relu(self.ct2(x))
+        x = F.relu(self.ct3(x))
+        x = F.relu(self.ct4(x))
+        x = F.relu(self.details(x))
+
+        # Shape: [1, 8, 127, 111]
+        x = self.bn8(x)
+        x = F.relu(self.c2(x))
+        x = self.maxpool(x)
+        x = F.relu(self.c3(x))
+        x = self.maxpool(x)
+        x = F.relu(self.c4(x))
+        x = self.maxpool(x)
+        x = F.relu(self.c5(x))
+        x = self.maxpool(x)
+        x = F.relu(self.c6(x))
+        x = F.relu(self.c7(x))
+
+        x = self.bn1024(x)
+        x = x.view((x.shape[0], 1024, -1)).contiguous()
+        x = x.mean(-1).contiguous()
+        x = F.relu(self.lin1(x))
+        x = self.dropout(x)
+        x = torch.sigmoid(self.lin2(x))
 
         return x
 
@@ -542,14 +619,14 @@ class SensorDeconvToDryspotEfficient2(nn.Module):
 
 if __name__ == "__main__":
     # model = DrySpotModel()
-    model = SensorDeconvToDryspotEfficient(freeze_nlayers=8)
+    model = S20DeconvToDrySpotEff2(freeze_nlayers=5)
     m = model.cuda()
     print('param count:', count_parameters(model))
     print(m.state_dict().keys())
 
     # Img:
     # em = torch.empty((1, 143, 111)).cuda()
-    em = torch.empty((1, 1140)).cuda()
+    em = torch.empty((1, 20)).cuda()
     # fr[:, :, 1::8, 1::8]
     # How to get the numbers of used sensors:
     # torch.tensor(np.arange(1., 1141.)).reshape((38, 30))[1::8, 1::8]

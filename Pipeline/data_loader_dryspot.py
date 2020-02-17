@@ -99,12 +99,13 @@ class DataloaderDryspots:
                 try:
                     # Normalize data to fit betw. 0 and 1
                     data = np.squeeze(pressure_array[state_num - 1]) / 100000
-                    if self.sensor_indizes != ((0, 1), (0, 1)):
+                    if self.sensor_indizes == ((0, 1), (0, 1)):
+                        instances.append((data, label))
+                    else:
                         rect = data.reshape(38, 30)
                         sel = rect[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
                                    self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
-                        data = sel.flatten()
-                    instances.append((data, label))
+                        instances.append((sel.flatten(), label))
                 except IndexError:
                     continue
             f.close()

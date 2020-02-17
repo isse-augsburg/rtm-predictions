@@ -13,7 +13,6 @@ from Utils.training_utils import read_cmd_params
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    batch_size = 2048
     dl = DataloaderImages((149, 117), skip_indizes=(7, None, 8))
     m = ModelTrainer(
         lambda: DeconvModelEfficient(),
@@ -21,7 +20,7 @@ if __name__ == "__main__":
         save_path=r.save_path,
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
-        batch_size=batch_size,
+        batch_size=2048,
         train_print_frequency=10,
         epochs=1000,
         num_workers=75,
