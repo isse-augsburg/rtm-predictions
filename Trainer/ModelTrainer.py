@@ -330,8 +330,8 @@ class ModelTrainer:
         return DataLoader(data_l, batch_size=batch_size, shuffle=False)
 
     def inference_on_test_set(self, output_path: Path, checkpoint_path: Path, classification_evaluator):
-        """Start evaluation on a dedicated test set.
-      
+        """Start evaluation on a dedicated test set.    
+
         Args:
             output_path: Directory for test outputs.
             classificaton: Evaluator object that should be used for the test run.
