@@ -25,6 +25,6 @@ documentation:
   script:
     - pip install -U sphinx
     - cd ./Docs
-    - spinx-build -b html 
+    - make html 
   #only:
   #  - master 
