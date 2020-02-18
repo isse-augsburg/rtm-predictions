@@ -527,6 +527,7 @@ class S20DeconvToDrySpotEff3(nn.Module):
 
         return x
 
+
 class SensorDeconvToDryspotEfficient(nn.Module):
     def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
         super(SensorDeconvToDryspotEfficient, self).__init__()

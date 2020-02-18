@@ -36,14 +36,13 @@ if __name__ == "__main__":
     if not args.eval:
         m.start_training()
     else:
-        m.inference_on_test_set(output_path=Path(args.eval_path),
-                                checkpoint_path=Path(args.checkpoint_path),
-                                # TODO fix Image creation when handling sensor input
-                                #  reshape etc.
-                                classification_evaluator_function=
-                                lambda sw: BinaryClassificationEvaluator(Path(args.eval_path) /
-                                                                         "eval_on_test_set",
-                                                                         skip_images=True,
-                                                                         with_text_overlay=True,
-                                                                         ))
-
+        m.inference_on_test_set(
+            output_path=Path(args.eval_path),
+            checkpoint_path=Path(args.checkpoint_path),
+            # TODO fix Image creation when handling sensor input
+            #  reshape etc.
+            classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(
+                Path(args.eval_path) / "eval_on_test_set",
+                skip_images=True,
+                with_text_overlay=True)
+        )
