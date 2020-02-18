@@ -410,7 +410,7 @@ class ModelTrainer:
 
         data_list = data_generator.get_test_samples()
         tmp_evaluator = self.classification_evaluator
-        self.classification_evaluator = classification_evaluator_function
+        self.classification_evaluator = classification_evaluator_function(sw=None)
         self.__eval(data_list, test_mode=True)
         self.classification_evaluator = tmp_evaluator
         logging.shutdown()

@@ -81,7 +81,7 @@ def save_img(path, _str, x, index):
 
 
 class SensorToFlowfrontEvaluator(Evaluator):
-    def __init__(self, save_path: Path = None, halving_factor=0, skip_images=True, summary_writer=None):
+    def __init__(self, save_path: Path = None, sensors_shape=(38, 30), skip_images=True, summary_writer=None):
         super().__init__()
         self.num = 0
         self.save_path = save_path
@@ -90,7 +90,7 @@ class SensorToFlowfrontEvaluator(Evaluator):
             self.im_save_path = save_path / "images"
             if not self.skip_images:
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
-        self.halving_factor = halving_factor
+        self.sensors_shape = sensors_shape
         self.summary_writer = summary_writer
 
     def commit(self, net_output, label, inputs, aux, *args):
@@ -102,9 +102,7 @@ class SensorToFlowfrontEvaluator(Evaluator):
         b = np.squeeze(b)
         c = inputs.numpy()
         c = np.squeeze(c)
-        c = c.reshape(38, 30)
-        if self.halving_factor != 0:
-            c = c[::self.halving_factor, ::self.halving_factor]
+        c = c.reshape(self.sensors_shape[0], self.sensors_shape[1])
 
         plt.imsave(self.im_save_path / Path(str(self.num) + "out.jpg"), a)
         plt.imsave(self.im_save_path / Path(str(self.num) + "lab.jpg"), b)

@@ -41,6 +41,8 @@ if __name__ == "__main__":
             Path(args.eval_path),
             Path(args.checkpoint_path),
             SensorToFlowfrontEvaluator(
-                Path(args.eval_path) / "eval_on_test_set", skip_images=False
+                Path(args.eval_path) / "eval_on_test_set",
+                skip_images=False,
+                sensors_shape=(5, 4)
             ),
         )
