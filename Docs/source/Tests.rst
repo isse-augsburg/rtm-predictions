@@ -34,13 +34,6 @@ Tests.test\_hdf5\_writer
     :undoc-members:
     :show-inheritance:
 
-Tests.test\_hdf5db
-------------------------------
-
-.. automodule:: Tests.test_hdf5db
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 Tests.test\_ok\_notok\_training
 -------------------------------
