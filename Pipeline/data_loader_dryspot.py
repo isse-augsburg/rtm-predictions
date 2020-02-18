@@ -3,7 +3,8 @@ import logging
 import h5py
 import numpy as np
 
-from Utils.img_utils import normalize_coords, create_np_image
+from Utils.data_utils import normalize_coords
+from Utils.img_utils import create_np_image
 
 
 class DataloaderDryspots:

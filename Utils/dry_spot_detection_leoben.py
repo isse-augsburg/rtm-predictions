@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
 
-from Utils.img_utils import scale_coords_leoben
+from Utils.data_utils import scale_coords_leoben
 
 
 def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
