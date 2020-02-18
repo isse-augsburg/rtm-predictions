@@ -9,10 +9,12 @@ from Utils.img_utils import normalize_coords, create_np_image
 class DataloaderDryspots:
     def __init__(self, image_size=None,
                  ignore_useless_states=True,
-                 sensor_indizes=((0, 1), (0, 1))):
+                 sensor_indizes=((0, 1), (0, 1)),
+                 skip_indizes=(0, None, 1)):
         self.image_size = image_size
         self.ignore_useless_states = ignore_useless_states
         self.sensor_indizes = sensor_indizes
+        self.skip_indizes = skip_indizes
 
     def get_flowfront_bool_dryspot(self, filename, states=None):
         """
@@ -34,6 +36,8 @@ class DataloaderDryspots:
             _coords = normalize_coords(_coords)
             if not states:
                 states = f["post"]["singlestate"]
+
+            states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
 
             filling_factors_at_certain_times = [
                 f["post"]["singlestate"][state]["entityresults"]["NODE"][
@@ -82,7 +86,10 @@ class DataloaderDryspots:
                     'res'][()]
             instances = []
             states = f["post"]["singlestate"]
-            for state in (states):
+
+            states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
+
+            for state in states:
                 if self.ignore_useless_states and len(useless_states) > 0 and state == f'state{useless_states[0]:012d}':
                     break
                 label = 0
@@ -92,12 +99,13 @@ class DataloaderDryspots:
                 try:
                     # Normalize data to fit betw. 0 and 1
                     data = np.squeeze(pressure_array[state_num - 1]) / 100000
-                    if self.sensor_indizes != ((0, 1), (0, 1)):
+                    if self.sensor_indizes == ((0, 1), (0, 1)):
+                        instances.append((data, label))
+                    else:
                         rect = data.reshape(38, 30)
                         sel = rect[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
                                    self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
-                        data = sel.flatten()
-                    instances.append((data, label))
+                        instances.append((sel.flatten(), label))
                 except IndexError:
                     continue
             f.close()

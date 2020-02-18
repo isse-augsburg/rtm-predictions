@@ -104,6 +104,7 @@ class LoopingDataGenerator:
                 batch = [e.clone() for e in batch[:2]] + batch[2:]
                 self.looping_strategy.store(batch)
                 return batch
+
             iterator = map(store_batch, dataloader)
             self.first = False
         else:

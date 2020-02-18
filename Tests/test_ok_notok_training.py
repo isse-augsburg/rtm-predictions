@@ -6,11 +6,11 @@ import unittest
 import torch
 
 import Pipeline.data_gather as dg
-import Pipeline.data_loader_sensor as dls
 import Resources.testing as resources
 from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
+from Pipeline.data_loader_sensor import DataLoaderSensor
 
 
 class TestOkNotOkTraining(unittest.TestCase):
@@ -22,6 +22,8 @@ class TestOkNotOkTraining(unittest.TestCase):
         self.expected_num_epochs_during_training = 1
 
     def test_training_ok_notok(self):
+        dls = DataLoaderSensor()
+
         model_trainer = ModelTrainer(
             lambda: ERFH5_PressureSequence_Model(),
             self.training_data_paths,
@@ -32,7 +34,7 @@ class TestOkNotOkTraining(unittest.TestCase):
             num_validation_samples=1,
             num_test_samples=1,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator=BinaryClassificationEvaluator()
+            classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(summary_writer=sw)
         )
 
         model_trainer.start_training()

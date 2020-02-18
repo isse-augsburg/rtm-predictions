@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch import nn
+from torch.nn import MSELoss
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -42,7 +43,7 @@ class ModelTrainer:
                                   for transforming paths into desired data.
         data_gather_function: function object used by the data generator for
                               gathering the paths to the single files.
-        caching_mode: From enum CachingMode in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
+        cache_mode: From enum CachingMode in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                       Specifies if and how caching is done.
         loss_criterion: Loss criterion for training.
         optimizer_function: Object of a Torch optimizer. Passed as a lambda call, e.g.
@@ -54,28 +55,30 @@ class ModelTrainer:
     """
 
     def __init__(
-            self,
-            model_creation_function,
-            data_source_paths,
-            save_path,
-            load_datasets_path=None,
-            cache_path=None,
-            batch_size=1,
-            train_print_frequency=2,
-            epochs=10,
-            dummy_epoch=True,
-            num_workers=10,
-            num_validation_samples=10,
-            num_test_samples=10,
-            data_processing_function=None,
-            data_gather_function=None,
-            looping_strategy=None,
-            caching_mode=td.CachingMode.Both,
-            loss_criterion=None,
-            optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
-            optimizer_path=None,
-            classification_evaluator=None,
-            checkpointing_strategy=CheckpointingStrategy.Best
+        self,
+        model_creation_function,
+        data_source_paths,
+        save_path,
+        load_datasets_path=None,
+        cache_path=None,
+        batch_size: int = 1,
+        train_print_frequency: int = 10,
+        epochs: int = 10,
+        dummy_epoch=True,
+        num_workers: int = 10,
+        num_validation_samples: int = 10,
+        num_test_samples: int = 10,
+        data_processing_function=None,
+        data_gather_function=None,
+        looping_strategy=None,
+        cache_mode=td.CachingMode.Both,
+        loss_criterion=MSELoss(),
+        optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
+        lr_scheduler_function=None,
+        optimizer_path=None,
+        classification_evaluator_function=None,
+        checkpointing_strategy=CheckpointingStrategy.Best,
+        run_eval_step_before_training=False,
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -94,22 +97,28 @@ class ModelTrainer:
         self.data_processing_function = data_processing_function
         self.data_gather_function = data_gather_function
         self.looping_strategy = looping_strategy
-        self.cache_mode = caching_mode
+        self.cache_mode = cache_mode
         self.data_generator = None
         self.test_data_generator = None
         self.model = None
         self.model_creation_function = model_creation_function
+        self.model_name = "Model"
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
 
         self.optimizer_function = optimizer_function
+        self.lr_scheduler_function = lr_scheduler_function
+        self.lr_scheduler = None
         self.optimizer_path = optimizer_path
         self.optimizer = None
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.loss_criterion = loss_criterion
-        self.classification_evaluator = classification_evaluator
         self.checkpointing = checkpointing_strategy
+        self.classification_evaluator_function = classification_evaluator_function
+        self.classification_evaluator = None
+        self.writer = None
+        self.run_eval_step_before_training = run_eval_step_before_training
 
     def __create_datagenerator(self):
         try:
@@ -133,21 +142,57 @@ class ModelTrainer:
             exit()
         return generator
 
+    def __get_model_def(self):
+        model_as_str = self.model_name + ":  \n"
+        if self.model.__class__.__name__ == "DataParallel":
+            m = list(self.model.children())[0]
+        else:
+            m = self.model
+        for c in m.named_children():
+            if len(list(c[1].parameters())) == 0:
+                model_as_str += str(c)
+                model_as_str += "  \n"
+                continue
+            else:
+                # If first parameter of layer is frozen, so is the rest of the layer -> parameters()[0]
+                model_as_str += "~~  " if not list(c[1].parameters())[0].requires_grad else ""
+                model_as_str += str(c)
+                model_as_str += " ~~   \n" if not list(c[1].parameters())[0].requires_grad else "  \n"
+
+        return model_as_str
+
     def __print_info(self):
+        param_count = count_parameters(self.model)
+        sched_str = self.lr_scheduler.__class__.__name__ + f"  \n{self.lr_scheduler.state_dict()}" \
+            if self.lr_scheduler is not None else "None"
         self.logger.info("###########################################")
         self.logger.info(">>> Model Trainer INFO <<<")
         self.logger.info(f"Loss criterion: {self.loss_criterion}")
         self.logger.info(f"Optimizer: {self.optimizer}")
+        self.logger.info(f"LR scheduler: {sched_str}")
         self.logger.info(f"Batch size: {self.batch_size}")
         self.logger.info(f"Model: {self.model}")
-        self.logger.info(f"Parameter count: {count_parameters(self.model)}")
+        self.logger.info(f"Parameter count: {param_count}")
         self.logger.info("###########################################")
+        self.writer.add_text("General/LossCriterion", f"{self.loss_criterion}")
+        self.writer.add_text("General/BatchSize", f"{self.batch_size}")
+        optim_str = str(self.optimizer).replace("\n", "  \n")
+        self.writer.add_text("Optimizer/Optimizer", f"{optim_str}")
+        self.writer.add_text("Optimizer/LRScheduler", f"{sched_str}")
+        self.writer.add_text("Model/Structure", f"{self.__get_model_def()}")
+        self.writer.add_text("Model/ParamCount", f"{param_count}")
+        self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
+        self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
+        dl_info = self.data_processing_function.__self__.__dict__
+        dl_str = '  \n'.join([f"{k}: {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
+        self.writer.add_text("Data/DataLoader", f"{dl_str}")
 
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
         logger.info("Generating Model")
         if self.model is None:
             self.model = self.model_creation_function()
+            self.model_name = self.model.__class__.__name__
 
         if "swt-dgx" in socket.gethostname():
             logger.info("Invoking data parallel model.")
@@ -163,11 +208,17 @@ class ModelTrainer:
             checkpoint = torch.load(self.optimizer_path)
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    def start_training(self):
-        """ Sets up training and logging and starts the train loop
+        if self.lr_scheduler_function is not None:
+            self.lr_scheduler = self.lr_scheduler_function(self.optimizer)
+
+    def start_training(self,):
+        """ Sets up training and logging and starts train loop
         """
         # self.save_path.mkdir(parents=True, exist_ok=True)
         logging_cfg.apply_logging_config(self.save_path)
+        self.writer = SummaryWriter(log_dir=self.save_path)
+
+        self.classification_evaluator = self.classification_evaluator_function(sw=self.writer)
 
         logger = logging.getLogger(__name__)
         logger.info(f"Generating Generator")
@@ -191,14 +242,16 @@ class ModelTrainer:
                     logger.info(f"Fetched {i} batches.")
             logger.info(f"Total number of samples: {len(self.data_generator)}")
 
+        if self.run_eval_step_before_training:
+            logger.info("Running eval before training to see, if any training happens")
+            validation_loss = self.__eval(self.data_generator.get_validation_samples(), 0, 0)
+            self.writer.add_scalar("Validation/Loss", validation_loss, 0)
         logger.info("The Training Will Start Shortly")
         self.__train_loop()
 
         logging.shutdown()
 
     def __train_loop(self):
-        self.writer = SummaryWriter(log_dir=self.save_path)
-
         start_time = time.time()
         eval_step = 0
         step_count = 0
@@ -233,11 +286,16 @@ class ModelTrainer:
                 i += 1
                 step_count += 1
 
-            validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step)
+            validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step, step_count)
             self.writer.add_scalar("Validation/Loss", validation_loss, step_count)
+            if self.lr_scheduler is not None:
+                old_lr = [pg['lr'] for pg in self.optimizer.state_dict()['param_groups']]
+                self.lr_scheduler.step()
+                self.logger.info(f"LR scheduler step; LR: {old_lr} -> "
+                                 f"{[pg['lr'] for pg in self.optimizer.state_dict()['param_groups']]}")
             eval_step += 1
 
-    def __eval(self, data_set, eval_step=0, test_mode=False):
+    def __eval(self, data_set, eval_step=0, step_count=0, test_mode=False):
         """Evaluators must have a commit, print and reset function. commit
             updates the evaluator with the current step,
             print can show all relevant stats and reset resets the internal
@@ -273,7 +331,7 @@ class ModelTrainer:
             self.logger.info(f"{eval_step} Mean Loss on Eval: {loss:8.8f}")
 
             if self.classification_evaluator is not None:
-                self.classification_evaluator.print_metrics()
+                self.classification_evaluator.print_metrics(step_count)
                 self.classification_evaluator.reset()
 
             self.model.train()
@@ -313,7 +371,7 @@ class ModelTrainer:
 
         new_model_state_dict = OrderedDict()
         model_state_dict = checkpoint["model_state_dict"]
-        if socket.gethostname() != "swt-dgx1":
+        if "swt-dgx" not in socket.gethostname():
             for k, v in model_state_dict.items():
                 name = k[7:]  # remove `module.`
                 new_model_state_dict[name] = v
@@ -329,15 +387,15 @@ class ModelTrainer:
     def __batched(self, data_l: list, batch_size: int):
         return DataLoader(data_l, batch_size=batch_size, shuffle=False)
 
-    def inference_on_test_set(self, output_path: Path, checkpoint_path: Path, classification_evaluator):
-        """Start evaluation on a dedicated test set.    
-
+    def inference_on_test_set(self, output_path: Path, checkpoint_path: Path, classification_evaluator_function):
+        """Start evaluation on a dedicated test set. 
         Args:
             output_path: Directory for test outputs.
             classificaton: Evaluator object that should be used for the test run.
         """
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
+        self.classification_evaluator = self.classification_evaluator_function()
 
         logging_cfg.apply_logging_config(save_path, eval=True)
 
@@ -352,7 +410,7 @@ class ModelTrainer:
 
         data_list = data_generator.get_test_samples()
         tmp_evaluator = self.classification_evaluator
-        self.classification_evaluator = classification_evaluator
+        self.classification_evaluator = classification_evaluator_function
         self.__eval(data_list, test_mode=True)
         self.classification_evaluator = tmp_evaluator
         logging.shutdown()

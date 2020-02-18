@@ -44,7 +44,7 @@ class FileSetIterator:
         for idx, i in enumerate(instance):
             assert isinstance(i, tuple), err
             if len(i) == 2:
-                instance[idx] += (dict(), )
+                instance[idx] += (dict(),)
             assert len(instance[idx]) == 3, err
 
     def _get_cache_path_for_file(self, filename):
@@ -319,7 +319,7 @@ class SubSetGenerator:
                     # If the paths were already saved as Windows paths, as in the tests, do nothing
                     # Explicitly not using type() and WindowsPath here, since this Class is not implemented on Linux
                     # -> Check would not work
-                    if str(self.used_filenames[0])[0] != 'Y':
+                    if str(self.used_filenames[0])[0] != 'Y' and str(self.used_filenames[0])[0] != 'X':
                         self.used_filenames = [Path('Y:/') / '/'.join(x.parts[3:]) for x in self.used_filenames]
                 unused_files = self._list_difference(file_paths, self.used_filenames)
         else:
@@ -329,7 +329,7 @@ class SubSetGenerator:
             self.samples, unused_files = self._load_sub_set_from_files(paths_copy)
             self.used_filenames = self._list_difference(paths_copy, unused_files)
             # Recalculate unused_files to restore the original order
-            unused_files = self._list_difference(file_paths, self.used_filenames)  
+            unused_files = self._list_difference(file_paths, self.used_filenames)
         if self.save_file is not None:
             with open(self.save_file, 'wb') as f:
                 pickle.dump([str(fn) for fn in self.used_filenames], f)

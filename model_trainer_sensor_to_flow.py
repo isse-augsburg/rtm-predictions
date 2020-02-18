@@ -13,25 +13,24 @@ from Utils.training_utils import read_cmd_params
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    batch_size = 2048
-    dl = DataloaderImages((149, 117))
+    dl = DataloaderImages((149, 117), skip_indizes=(7, None, 8))
     m = ModelTrainer(
         lambda: DeconvModelEfficient(),
         data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path,
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
-        batch_size=batch_size,
+        batch_size=2048,
         train_print_frequency=10,
         epochs=1000,
         num_workers=75,
-        num_validation_samples=131072,
-        num_test_samples=1048576,
+        num_validation_samples=131072 // 8,
+        num_test_samples=1048576 // 8,
         data_processing_function=dl.get_sensordata_and_flowfront,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
-        classification_evaluator=SensorToFlowfrontEvaluator(),
+        classification_evaluator_function=lambda sw: SensorToFlowfrontEvaluator(summary_writer=sw),
     )
 
     if not args.eval:
