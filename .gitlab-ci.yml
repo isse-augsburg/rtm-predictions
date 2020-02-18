@@ -26,4 +26,4 @@ documentation:
     - pip install -U sphinx
     - cd ./Docs
     - make html
-    - cp -r ./build/html /cfs/share/cache/output_lukas
+    - cp -r ./build/html /cfs/share/cache/website
