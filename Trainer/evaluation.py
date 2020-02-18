@@ -1,3 +1,4 @@
+import itertools
 import logging
 import math
 import os
@@ -138,6 +139,7 @@ class BinaryClassificationEvaluator(Evaluator):
         self.with_text_overlay = with_text_overlay
         print(f"Summary writer in log dir {str(self.save_path)}")
         self.sw = sw
+        plt.set_loglevel('warning')
 
     def commit(self, net_output, label, inputs, aux, *args):
         """Updates the confusion matrix and updates the metrics. 
@@ -200,10 +202,12 @@ class BinaryClassificationEvaluator(Evaluator):
         prec = self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
         recall = self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
         spec = self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+        conf_mat_plot = self.__plot_confusion_matrix(self.confusion_matrix, ["Not OK", "OK"])
         self.sw.add_scalar("Validation/Accuracy", acc, step_count)
         self.sw.add_scalar("Validation/Precision", prec, step_count)
         self.sw.add_scalar("Validation/Recall", recall, step_count)
         self.sw.add_scalar("Validation/Specificity", spec, step_count)
+        self.sw.add_figure("Confusion_Matrix", conf_mat_plot, step_count)
         logger.info(f"Accuracy: {acc:7.4f}, Precision: {prec:7.4f}, Recall: {recall:7.4f}, Specificity: {spec:7.4f}")
         df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
         df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)
@@ -231,6 +235,31 @@ class BinaryClassificationEvaluator(Evaluator):
     @staticmethod
     def __calc_specificity(tp, fp, tn, fn):
         return tn / max((tn + fp), 0.00000001)
+
+    @staticmethod
+    def __plot_confusion_matrix(cm, class_names, normalize=True):
+        plt.rcParams['figure.constrained_layout.use'] = True
+        figure = plt.figure(figsize=(len(class_names) + 1, len(class_names) + 1), dpi=150)
+        plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Oranges)
+        tick_marks = np.arange(len(class_names))
+        plt.xticks(tick_marks, class_names, rotation=45)
+        plt.yticks(tick_marks, class_names)
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+
+        if normalize:
+            plt.colorbar()
+            cm_sum = cm.sum(axis=1)
+            cm_sum = np.maximum(cm_sum, np.full(cm_sum.shape, 0.00000001))
+            cm = np.around(cm.astype('float') / cm_sum[:, np.newaxis], decimals=2)
+
+        # Use white text if squares are dark; otherwise black.
+        threshold = cm.max() / 2.
+        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+            color = "white" if cm[i, j] > threshold else "black"
+            plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
+
+        return figure
 
 
 class FlowFrontPredictionEvaluator(Evaluator):
