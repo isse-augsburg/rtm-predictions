@@ -24,10 +24,6 @@ documentation:
   stage: docs 
   script:
     - pip install -U sphinx
-    - cd ./Docs
-    - make html 
-  artifacts:
-    paths
-    - ./Docs/build/html
-  #only:
-  #  - master 
+    - cd /Docs
+    - make html
+    - cp ./build/html /cfs/share/cache/output_lukas
