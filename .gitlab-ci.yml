@@ -26,5 +26,8 @@ documentation:
     - pip install -U sphinx
     - cd ./Docs
     - make html 
+  artifacts:
+    paths
+    - ./Docs/build/html
   #only:
   #  - master 
