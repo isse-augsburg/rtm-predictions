@@ -396,6 +396,83 @@ class S20DeconvToDrySpotEff2(nn.Module):
         self.lin2 = Linear(256, 1)
 
         self.dropout = nn.Dropout(0.3)
+        # self.bn8 = nn.BatchNorm2d(8)
+        # self.bn512 = nn.BatchNorm2d(512)
+
+        if pretrained == "deconv_weights":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct2', 'ct3', 'ct4',
+                                                               'details'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
+    def forward(self, inputs):
+        frs = inputs.reshape((-1, 1, 5, 4))
+
+        x = F.relu(self.ct1(frs))
+        x = F.relu(self.ct2(x))
+        x = F.relu(self.ct3(x))
+        x = F.relu(self.ct4(x))
+        x = F.relu(self.details(x))
+
+        # Shape: [1, 8, 127, 111]
+        # x = self.bn8(x)
+        x = F.relu(self.c2(x))
+        x = self.maxpool(x)
+        x = F.relu(self.c3(x))
+        x = self.maxpool(x)
+        x = F.relu(self.c4(x))
+        x = self.maxpool(x)
+        x = F.relu(self.c5(x))
+        x = self.maxpool(x)
+        x = F.relu(self.c6(x))
+        x = F.relu(self.c7(x))
+
+        # x = self.bn512(x)
+        x = x.view((x.shape[0], 1024, -1)).contiguous()
+        x = x.mean(-1).contiguous()
+        x = F.relu(self.lin1(x))
+        x = self.dropout(x)
+        x = torch.sigmoid(self.lin2(x))
+
+        return x
+
+
+class S20DeconvToDrySpotEff3(nn.Module):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
+        super(S20DeconvToDrySpotEff3, self).__init__()
+        self.ct1 = ConvTranspose2d(1, 256, 3, stride=2)
+        self.ct2 = ConvTranspose2d(256, 128, 5, stride=2)
+        self.ct3 = ConvTranspose2d(128, 64, 10, stride=2)
+        self.ct4 = ConvTranspose2d(64, 16, 17, stride=2)
+
+        self.details = Conv2d(16, 8, 5)
+        # ^ Pretrained ^
+        self.c2 = Conv2d(8, 32, 13)
+        self.c3 = Conv2d(32, 128, 7)
+        self.c4 = Conv2d(128, 512, 3)
+        self.c5 = Conv2d(512, 512, 3)
+        self.c6 = Conv2d(512, 512, 1)
+
+        self.maxpool = nn.MaxPool2d(2, 2)
+        self.lin1 = Linear(1024, 256)
+        self.lin2 = Linear(256, 1)
+
+        self.dropout = nn.Dropout(0.3)
         self.bn8 = nn.BatchNorm2d(8)
         self.bn512 = nn.BatchNorm2d(512)
 
@@ -440,7 +517,6 @@ class S20DeconvToDrySpotEff2(nn.Module):
         x = F.relu(self.c5(x))
         x = self.maxpool(x)
         x = F.relu(self.c6(x))
-        x = F.relu(self.c7(x))
 
         x = self.bn512(x)
         x = x.view((x.shape[0], 1024, -1)).contiguous()
@@ -450,7 +526,6 @@ class S20DeconvToDrySpotEff2(nn.Module):
         x = torch.sigmoid(self.lin2(x))
 
         return x
-
 
 class SensorDeconvToDryspotEfficient(nn.Module):
     def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):

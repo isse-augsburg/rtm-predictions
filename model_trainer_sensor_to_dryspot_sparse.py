@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import torch
+from torch.optim.lr_scheduler import ExponentialLR
 
 import Resources.training as r
 from Models.erfh5_ConvModel import S20DeconvToDrySpotEff2
@@ -21,17 +22,18 @@ if __name__ == "__main__":
                      save_path=r.save_path,
                      load_datasets_path=r.datasets_dryspots,
                      cache_path=r.cache_path,
-                     batch_size=4096,
+                     batch_size=2048,
                      train_print_frequency=100,
                      epochs=1000,
-                     num_workers=40,
+                     num_workers=75,
                      num_validation_samples=131072,
                      num_test_samples=1048576,
                      data_processing_function=dlds.get_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
-                     optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
-                     classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(summary_writer=sw)
+                     optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
+                     classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(summary_writer=sw),
+                     lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.1),
                      )
 
     if not args.eval:
@@ -41,7 +43,9 @@ if __name__ == "__main__":
                                 checkpoint_path=Path(args.checkpoint_path),
                                 # TODO fix Image creation when handling sensor input
                                 #  reshape etc.
-                                classification_evaluator_function=BinaryClassificationEvaluator(Path(args.eval_path) /
-                                                                                                "eval_on_test_set",
-                                                                                                skip_images=True,
-                                                                                                with_text_overlay=True))
+                                classification_evaluator_function=
+                                lambda sw: BinaryClassificationEvaluator(Path(args.eval_path) /
+                                                                         "eval_on_test_set",
+                                                                         skip_images=True,
+                                                                         with_text_overlay=True,
+                                                                         ))
