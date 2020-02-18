@@ -3,6 +3,7 @@ image: nvcr.io/isse/pytorch_extended:19.12
 stages:
   - lint
   - test
+  - docs
 
 linter:
   stage: lint
@@ -18,3 +19,12 @@ test:
 
   only:
     - master
+
+documentation: 
+  stage: docs 
+  script:
+    - pip install -U sphinx
+    - cd ./Docs
+    - spinx-build -b html 
+  only:
+    - master 
