@@ -24,6 +24,6 @@ documentation:
   stage: docs 
   script:
     - pip install -U sphinx
-    - cd /Docs
+    - cd ./Docs
     - make html
     - cp ./build/html /cfs/share/cache/output_lukas
