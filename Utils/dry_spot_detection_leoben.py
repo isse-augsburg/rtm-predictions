@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
 
-from Utils.img_utils import scale_coords_leoben
+from Utils.data_utils import scale_coords_leoben
 
 
 def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
@@ -150,7 +150,8 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     if len(spot_list_e) < len(spot_list_s):
         spot_list_e.append(len(keys))
 
-    print(ignore_list)
+    if not silent:
+        print(ignore_list)
     if change_meta_file:
         try:
             meta_file = h5py.File(str(file_path).replace("RESULT.erfh5", "meta_data.hdf5"), "r+")

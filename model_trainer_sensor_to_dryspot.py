@@ -7,7 +7,7 @@ import Resources.training as r
 from Models.erfh5_ConvModel import SensorDeconvToDryspotEfficient2
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_dryspot import DataloaderDryspots
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.training_utils import read_cmd_params, CheckpointingStrategy
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     dlds = DataloaderDryspots()
     m = ModelTrainer(lambda: SensorDeconvToDryspotEfficient2(pretrained="deconv_weights",
-                                                             checkpoint_path=r.chkp_S1140_to_ff_retrain_0_base_press,
+                                                             checkpoint_path=r.chkp_S1140_to_ff_0_basepr,
                                                              freeze_nlayers=8),
                      data_source_paths=r.get_data_paths_base_0(),
                      save_path=r.save_path,
@@ -31,10 +31,12 @@ if __name__ == "__main__":
                      data_processing_function=dlds.get_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
-                     optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
+                     optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                      lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
-                     classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(sw=sw),
-                     checkpointing_strategy=CheckpointingStrategy.All
+                     classification_evaluator_function=lambda summary_writer:
+                     BinaryClassificationEvaluator(summary_writer=summary_writer),
+                     checkpointing_strategy=CheckpointingStrategy.All,
+                     run_eval_step_before_training=True
                      )
 
     if not args.eval:
@@ -45,8 +47,8 @@ if __name__ == "__main__":
             checkpoint_path=Path(args.checkpoint_path),
             # TODO fix Image creation when handling sensor input
             #  reshape etc.
-            classification_evaluator=BinaryClassificationEvaluator(Path(args.eval_path) /
-                                                                   "eval_on_test_set",
-                                                                   skip_images=True,
-                                                                   with_text_overlay=True)
+            classification_evaluator_function=BinaryClassificationEvaluator(Path(args.eval_path) /
+                                                                            "eval_on_test_set",
+                                                                            skip_images=True,
+                                                                            with_text_overlay=True)
         )

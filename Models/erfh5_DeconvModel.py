@@ -59,10 +59,10 @@ class S20DeconvModelEfficient(nn.Module):
         self.details2 = Conv2d(8, 1, 3, padding=0)
 
     def forward(self, inputs):
-        fr = inputs.reshape((-1, 1, 38, 30))
-        frs = fr[:, :, 3::8, 3::8]
-
-        k = F.relu(self.ct1(frs))
+        # fr = inputs.reshape((-1, 1, 38, 30))
+        # frs = fr[:, :, 3::8, 3::8]
+        inp = inputs.reshape((-1, 1, 5, 4))
+        k = F.relu(self.ct1(inp))
         k = F.relu(self.ct2(k))
         k = F.relu(self.ct3(k))
         k = F.relu(self.ct4(k))
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     model = S20DeconvModelEfficient()
     print('param count:', count_parameters(model))
     m = model.cuda()
-    em = torch.empty((1, 1140)).cuda()
+    em = torch.empty((1, 20)).cuda()
     out = m(em)
 
     print('end', out.shape)

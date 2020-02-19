@@ -1,31 +1,7 @@
 import logging
+
 import cv2
 import numpy as np
-
-
-def scale_coords_lautern(input_coords):
-    scaled_coords = (input_coords + 23.25) * 10
-    return scaled_coords
-
-
-def scale_coords_leoben(input_coords):
-    scaled_coords = input_coords * 10
-    return scaled_coords
-
-
-def normalize_coords(coords):
-    coords = np.array(coords)
-    max_c = np.max(coords[:, 0])
-    min_c = np.min(coords[:, 0])
-    coords[:, 0] = coords[:, 0] - min_c
-    coords[:, 0] = coords[:, 0] / (max_c - min_c)
-    max_c = np.max(coords[:, 1])
-    min_c = np.min(coords[:, 1])
-    coords[:, 1] = coords[:, 1] - min_c
-    coords[:, 1] = coords[:, 1] / (max_c - min_c)
-    return coords
-
-    # for new data 38 and 30.0
 
 
 def create_np_image(target_shape=(143, 111), norm_coords=None, data=None):

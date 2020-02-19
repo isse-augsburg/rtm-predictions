@@ -82,7 +82,7 @@ def save_img(path, _str, x, index):
 
 
 class SensorToFlowfrontEvaluator(Evaluator):
-    def __init__(self, save_path: Path = None, halving_factor=0, skip_images=True):
+    def __init__(self, save_path: Path = None, sensors_shape=(38, 30), skip_images=True, summary_writer=None):
         super().__init__()
         self.num = 0
         self.save_path = save_path
@@ -91,7 +91,8 @@ class SensorToFlowfrontEvaluator(Evaluator):
             self.im_save_path = save_path / "images"
             if not self.skip_images:
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
-        self.halving_factor = halving_factor
+        self.sensors_shape = sensors_shape
+        self.summary_writer = summary_writer
 
     def commit(self, net_output, label, inputs, aux, *args):
         if self.skip_images:
@@ -102,9 +103,7 @@ class SensorToFlowfrontEvaluator(Evaluator):
         b = np.squeeze(b)
         c = inputs.numpy()
         c = np.squeeze(c)
-        c = c.reshape(38, 30)
-        if self.halving_factor != 0:
-            c = c[::self.halving_factor, ::self.halving_factor]
+        c = c.reshape(self.sensors_shape[0], self.sensors_shape[1])
 
         plt.imsave(self.im_save_path / Path(str(self.num) + "out.jpg"), a)
         plt.imsave(self.im_save_path / Path(str(self.num) + "lab.jpg"), b)
@@ -113,7 +112,7 @@ class SensorToFlowfrontEvaluator(Evaluator):
         self.num += 1
         pass
 
-    def print_metrics(self):
+    def print_metrics(self, step_count):
         pass
 
     def reset(self):
@@ -125,7 +124,7 @@ class BinaryClassificationEvaluator(Evaluator):
     """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
     """
 
-    def __init__(self, save_path: Path = None, skip_images=True, with_text_overlay=False, sw=None):
+    def __init__(self, save_path: Path = None, skip_images=True, with_text_overlay=False, summary_writer=None):
         super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
@@ -137,8 +136,7 @@ class BinaryClassificationEvaluator(Evaluator):
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.num = 0
         self.with_text_overlay = with_text_overlay
-        print(f"Summary writer in log dir {str(self.save_path)}")
-        self.sw = sw
+        self.summary_writer = summary_writer
         plt.set_loglevel('warning')
 
     def commit(self, net_output, label, inputs, aux, *args):
@@ -202,15 +200,16 @@ class BinaryClassificationEvaluator(Evaluator):
         prec = self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
         recall = self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
         spec = self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
-        class_names = ["Not OK", "OK"]
-        conf_mat_rel = self.__plot_confusion_matrix(self.confusion_matrix, class_names, True)
-        conf_mat_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names, False)
-        self.sw.add_scalar("Validation/Accuracy", acc, step_count)
-        self.sw.add_scalar("Validation/Precision", prec, step_count)
-        self.sw.add_scalar("Validation/Recall", recall, step_count)
-        self.sw.add_scalar("Validation/Specificity", spec, step_count)
-        self.sw.add_figure("Confusion_Matrix/Relative", conf_mat_rel, step_count)
-        self.sw.add_figure("Confusion_Matrix/Absolute", conf_mat_abs, step_count)
+        if self.summary_writer is not None:
+            class_names = ["Not OK", "OK"]
+            conf_mat_rel = self.__plot_confusion_matrix(self.confusion_matrix, class_names, True)
+            conf_mat_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names, False)
+            self.summary_writer.add_scalar("Validation/Accuracy", acc, step_count)
+            self.summary_writer.add_scalar("Validation/Precision", prec, step_count)
+            self.summary_writer.add_scalar("Validation/Recall", recall, step_count)
+            self.summary_writer.add_scalar("Validation/Specificity", spec, step_count)
+            self.summary_writer.add_figure("Confusion_Matrix/Relative", conf_mat_rel, step_count)
+            self.summary_writer.add_figure("Confusion_Matrix/Absolute", conf_mat_abs, step_count)
         logger.info(f"Accuracy: {acc:7.4f}, Precision: {prec:7.4f}, Recall: {recall:7.4f}, Specificity: {spec:7.4f}")
         df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
         df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)

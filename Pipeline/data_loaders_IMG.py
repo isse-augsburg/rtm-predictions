@@ -9,26 +9,28 @@ import matplotlib.tri as tri
 import numpy as np
 
 from Pipeline.resampling import get_fixed_number_of_indices
-from Utils.img_utils import flip_array_diag
+from Utils.data_utils import extract_coords_of_mesh_nodes
 # from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
 from Utils.img_utils import (
-    normalize_coords,
     create_np_image,
 )
+from Utils.img_utils import flip_array_diag
 
 
 # This class provides all original functions but tries to improve the performance of consecutive calls
 class DataloaderImages:
     def __init__(self, image_size=(135, 103),
                  ignore_useless_states=True,
-                 sensor_indizes=((0, 1), (0, 1))):
+                 sensor_indizes=((0, 1), (0, 1)),
+                 skip_indizes=(0, None, 1)):
         self.image_size = image_size
         self.coords = None
         self.ff_coords = None
         self.fftriang = None
         self.ignore_useless_states = ignore_useless_states
         self.sensor_indizes = sensor_indizes
+        self.skip_indizes = skip_indizes
 
     def _get_flowfront(self, f, meta_f, states=None):
         """
@@ -39,6 +41,7 @@ class DataloaderImages:
             coords = self._get_coords(f)
             if not states:
                 states = f["post"]["singlestate"]
+            states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
             if meta_f is not None:
                 useless_states = meta_f["useless_states/singlestates"][()]
                 if len(useless_states) == 0:
@@ -112,12 +115,14 @@ class DataloaderImages:
             ]["SENSOR"]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
             # convert barye to bar ( smaller values are more stable while training)
             pressure_array = pressure_array / 100000
-            all_states = f["post"]["singlestate"]
+            states = f["post"]["singlestate"]
         except KeyError:
             return None
 
+        states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
+
         def sensordata_gen():
-            for state in all_states:
+            for state in states:
                 try:
                     s = state.replace("state", "")
                     state_num = int(s)
@@ -133,7 +138,7 @@ class DataloaderImages:
 
         return sensordata_gen()
 
-    def get_sensordata_and_flowfront(self, file):
+    def get_sensordata_and_flowfront(self, file: Path):
         try:
             f = h5py.File(file, "r")
             if self.ignore_useless_states:
@@ -162,16 +167,10 @@ class DataloaderImages:
                      if d is not None and f is not None)
                 or None)
 
-    def _get_coords(self, f):
+    def _get_coords(self, f: h5py.File):
         if self.coords is not None:
             return self.coords
-        coord_as_np_array = f[
-            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"
-        ][()]
-        # Cut off last column (z), since it is filled with 1s anyway
-        _coords = coord_as_np_array[:, :-1]
-
-        _coords = normalize_coords(_coords)
+        _coords = extract_coords_of_mesh_nodes(Path(f.filename))
         self.coords = _coords
         return _coords
 

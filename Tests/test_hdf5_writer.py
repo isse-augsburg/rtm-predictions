@@ -5,7 +5,7 @@ from pathlib import Path
 import h5py
 
 import Resources.testing as resources
-from HDF5DB.hdf5_writer import create_hdf5, write_dict_to_hdf5
+from Utils.hdf5_writer import create_hdf5, write_dict_to_hdf5
 
 
 class TestPyWriter(unittest.TestCase):

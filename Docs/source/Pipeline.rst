@@ -1,6 +1,6 @@
 Pipeline package
 ================
-Main Package of the data pipeline. Contains the base class that provides the data and files with explicit loading functions.  hola hola
+Main Package of the data pipeline. Contains the PyTorch data generator that provides the data and files with explicit loading functions.
 
 Pipeline.data\_gather 
 ----------------------------
@@ -38,17 +38,31 @@ Contains functions for loading images as data.
     :undoc-members:
     :show-inheritance:
 
-Pipeline.erfh5\_pipeline 
+Pipeline.data\_loader\_dryspot
 -------------------------------
-Main file for the data generator.
+Contains the data loader for dryspot detection
 
-.. automodule:: Pipeline.erfh5_pipeline
+
+.. automodule:: Pipeline.data_loader_dryspot
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Pipeline.TorchDataGeneratorUtils.looping\_strategies
+-----------------------------------------------------
+
+.. automodule:: Pipeline.TorchDataGeneratorUtils.looping_strategies
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. automodule:: Pipeline
+Pipeline.TorchDataGeneratorUtils.torch\_internal
+-----------------------------------------------------
+
+.. automodule:: Pipeline.TorchDataGeneratorUtils.torch_internal
     :members:
     :undoc-members:
     :show-inheritance:
+
+

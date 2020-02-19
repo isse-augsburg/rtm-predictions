@@ -1,11 +1,11 @@
 Trainer package
 ===============
-Package for model training related files. 
+Package for files related to model training. 
 
-Trainer.Generic\_Trainer
+Trainer.Model\_Trainer
 ------------------------------
 
-.. automodule:: Trainer.Generic_Trainer
+.. automodule:: Trainer.ModelTrainer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -20,14 +20,6 @@ Evaluation classes must provide three functions even if not all of them have fun
 
 
 .. automodule:: Trainer.evaluation
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: Trainer
     :members:
     :undoc-members:
     :show-inheritance:
