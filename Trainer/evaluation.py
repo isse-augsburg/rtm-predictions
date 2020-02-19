@@ -261,26 +261,3 @@ class BinaryClassificationEvaluator(Evaluator):
             plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
 
         return figure
-
-
-class FlowFrontPredictionEvaluator(Evaluator):
-    def __init__(self, name, save_path="/cfs/home/s/c/schroeni/Data/Eval/"):
-        super().__init__()
-        self.name = name
-        self.save_path = save_path
-        self.im_save_path = save_path / "images"
-        self.im_save_path.mkdir(parents=True, exist_ok=True)
-
-    def commit(self, inputs, label, aux, *args):
-        inputs = np.squeeze(inputs)
-        label = np.squeeze(label)
-        inp = Image.fromarray(np.uint8(inputs * 255))
-        lab = Image.fromarray(np.uint8(label * 255))
-        inp.save(self.im_save_path + "inp_" + str(self.name) + ".bmp")
-        lab.save(self.im_save_path + "lab_" + str(self.name) + ".bmp")
-
-    def print_metrics(self):
-        pass
-
-    def reset(self):
-        pass
