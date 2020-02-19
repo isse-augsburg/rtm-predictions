@@ -61,7 +61,7 @@ class TestEval(unittest.TestCase):
         st.inference_on_test_set(
             self.eval_output_path,
             self.checkpoint,
-            classification_evaluator_function=SensorToFlowfrontEvaluator(
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(
                 self.eval_output_path / "eval_on_test_set",
                 skip_images=False
             )
