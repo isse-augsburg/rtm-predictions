@@ -23,7 +23,6 @@ test:
 documentation: 
   stage: docs 
   script:
-    - pip install -U sphinx
     - cd ./Docs
     - make html
     - cp -r ./build/html /cfs/share/cache/website
