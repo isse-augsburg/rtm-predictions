@@ -38,6 +38,12 @@ def extract_coords_of_mesh_nodes(fn: Path, normalized=True):
     return _coords
 
 
+def get_node_propery_at_states(f: h5py.File, node_property: str, states: list):
+    return [
+        f["post"]["singlestate"][state]["entityresults"]["NODE"][node_property]["ZONE1_set1"]["erfblock"]["res"][()]
+        for state in states]
+
+
 def extract_nearest_mesh_nodes_to_sensors(fn: Path):
     sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"))
     nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False)

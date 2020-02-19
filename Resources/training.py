@@ -56,7 +56,7 @@ chkp_S20_to_ff_basepr_0 = _ij_S20_deconv_conv / "2020-02-14_16-05-28_S_to_FF/che
 
 # data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'
 data_root = _share_path / 'data/RTM/Leoben/sim_output'
-
+nearest_nodes_to_sensors = _share_path / "data/RTM/Leoben/Mesh/nearest_nodes_to_sensors.p"
 
 def get_all_data_paths():
     data_paths = [
