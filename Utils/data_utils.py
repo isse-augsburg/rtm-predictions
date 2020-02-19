@@ -29,7 +29,7 @@ def extract_coords_of_mesh_nodes(fn: Path, normalized=True):
     """
     Extract the coordinates of the mesh nodes as numpy array from a *RESULT.erfh5 file, which exists for every run.
     """
-    with h5py.File(fn) as f:
+    with h5py.File(fn, 'r') as f:
         coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
     # Cut off last column (z), since it is filled with 1s anyway
     _coords = coord_as_np_array[:, :-1]
