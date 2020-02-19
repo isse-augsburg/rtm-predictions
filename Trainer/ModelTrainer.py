@@ -322,11 +322,10 @@ class ModelTrainer:
                 label = label.cpu()
                 data = data.cpu()
                 if self.classification_evaluator is not None:
-                    self.classification_evaluator.commit(output, label, data, auxs)
-                    '''for c in range(output.size()[0]):
+                    for c in range(output.size()[0]):
                         self.classification_evaluator.commit(
                             output[c], label[c], data[c], auxs[c]
-                        )'''
+                        )
 
             loss = loss / count
             self.logger.info(f"{eval_step} Mean Loss on Eval: {loss:8.8f}")
