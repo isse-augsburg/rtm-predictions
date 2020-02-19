@@ -22,7 +22,11 @@ test:
 
 documentation: 
   stage: docs 
+  
   script:
     - cd ./Docs
     - make html
     - cp -r ./build/html /cfs/share/cache/website
+  
+  only:
+    - master
