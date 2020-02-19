@@ -1,5 +1,7 @@
 **Short Guide to the RTM-Predictions Data-Pipeline:**
 
+Note: A complete documentation can be found in `/cfs/share/cache/website/html/index.html` or http://137.250.170.59:8000/
+
 
 * Most of the work is done by the `ModelTrainer` class (defined in `Trainer.ModelTrainer.py`)
 * `ModelTrainer` is the generic base class which takes all necessary parameters for any kind of training
