@@ -52,6 +52,11 @@ class ModelTrainer:
                                   models performance.
         chechpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
+        save_torch_dataset_path (Path): Saves the Dataset to this Path. Use a full path, including a filename. Note that
+            this should only be used with the DataLoaderListLoopingStrategy. This could use very much Space on your
+            drive
+        load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
+            first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
     """
 
     def __init__(
@@ -79,6 +84,8 @@ class ModelTrainer:
         classification_evaluator_function=None,
         checkpointing_strategy=CheckpointingStrategy.Best,
         run_eval_step_before_training=False,
+        save_torch_dataset_path=None,
+        load_torch_dataset_path=None
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -105,7 +112,8 @@ class ModelTrainer:
         self.model_name = "Model"
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
-
+        self.load_torch_dataset_path = load_torch_dataset_path
+        self.save_torch_dataset_path = save_torch_dataset_path
         self.optimizer_function = optimizer_function
         self.lr_scheduler_function = lr_scheduler_function
         self.lr_scheduler = None
@@ -134,7 +142,9 @@ class ModelTrainer:
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 cache_mode=self.cache_mode,
-                looping_strategy=self.looping_strategy
+                looping_strategy=self.looping_strategy,
+                save_torch_dataset_path=self.save_torch_dataset_path,
+                load_torch_dataset_path=self.load_torch_dataset_path
             )
         except Exception:
             logger = logging.getLogger(__name__)

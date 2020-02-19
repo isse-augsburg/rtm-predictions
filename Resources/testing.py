@@ -28,6 +28,7 @@ test_checkpoint = test_src_dir / '2019-12-12_20-27-20_eff_net_cleaned_data' / "c
 data_loader_img_file = test_src_dir / '2019-06-05_15-30-52_0_RESULT.erfh5'
 
 test_eval_output_path = test_out_dir / 'eval'
+test_save_dataset_path = test_out_dir / 'dataset'
 test_training_out_dir = test_out_dir / 'training'
 test_training_datasets_dir = test_out_dir / 'datasets'
 
