@@ -32,7 +32,8 @@ if __name__ == "__main__":
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
-                     classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(summary_writer=sw),
+                     classification_evaluator_function=lambda summary_writer:
+                     BinaryClassificationEvaluator(summary_writer=summary_writer),
                      lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.1),
                      )
 

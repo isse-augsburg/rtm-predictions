@@ -25,7 +25,7 @@ def extract_sensor_coords(fn: Path, indices=((0, 1), (0, 1))):
     return _s_coords
 
 
-def extract_coords_of_mesh_nodes(fn: Path):
+def extract_coords_of_mesh_nodes(fn: Path, normalized=True):
     """
     Extract the coordinates of the mesh nodes as numpy array from a *RESULT.erfh5 file, which exists for every run.
     """
@@ -33,12 +33,14 @@ def extract_coords_of_mesh_nodes(fn: Path):
         coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
     # Cut off last column (z), since it is filled with 1s anyway
     _coords = coord_as_np_array[:, :-1]
+    if normalized:
+        _coords = normalize_coords(_coords)
     return _coords
 
 
 def extract_nearest_mesh_nodes_to_sensors(fn: Path):
     sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"))
-    nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"))
+    nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False)
     dists_indeces = []
     for sensor in sensor_coords:
         dists_indeces.append(spatial.KDTree(nodes_coords).query(sensor))

@@ -138,7 +138,7 @@ class DataloaderImages:
 
         return sensordata_gen()
 
-    def get_sensordata_and_flowfront(self, file):
+    def get_sensordata_and_flowfront(self, file: Path):
         try:
             f = h5py.File(file, "r")
             if self.ignore_useless_states:
@@ -167,10 +167,10 @@ class DataloaderImages:
                      if d is not None and f is not None)
                 or None)
 
-    def _get_coords(self, f):
+    def _get_coords(self, f: h5py.File):
         if self.coords is not None:
             return self.coords
-        _coords = extract_coords_of_mesh_nodes(f)
+        _coords = extract_coords_of_mesh_nodes(Path(f.filename))
         self.coords = _coords
         return _coords
 

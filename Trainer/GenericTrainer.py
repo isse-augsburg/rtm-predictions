@@ -211,7 +211,7 @@ class ModelTrainer:
         logging_cfg.apply_logging_config(self.save_path)
         self.writer = SummaryWriter(log_dir=self.save_path)
 
-        self.classification_evaluator = self.classification_evaluator_function(sw=self.writer)
+        self.classification_evaluator = self.classification_evaluator_function(summary_writer=self.writer)
 
         logger = logging.getLogger(__name__)
         logger.info(f"Generating Generator")
@@ -388,7 +388,7 @@ class ModelTrainer:
         """
         save_path = output_path / "eval_on_test_set"
         save_path.mkdir(parents=True, exist_ok=True)
-        self.classification_evaluator = self.classification_evaluator_function()
+        # self.classification_evaluator = self.classification_evaluator_function(summary_writer=None)
 
         logging_cfg.apply_logging_config(save_path, eval=True)
 
