@@ -13,7 +13,7 @@ def extract_sensor_coords(fn: Path, indices=((0, 1), (0, 1))):
     with fn.open() as f:
         content = f.read()
     sensor_coords = []
-    for triple in re.findall("\d+\.\d+ \d+\.\d+ \d+\.\d+", content):
+    for triple in re.findall(r"\d+\.\d+ \d+\.\d+ \d+\.\d+", content):
         sensor_coords.append([float(e) for e in triple.split(' ')])
     _s_coords = np.array(sensor_coords)
     # Cut off last column (z), since it is filled with 1s anyway
@@ -72,4 +72,5 @@ def normalize_coords(coords):
 
 
 if __name__ == '__main__':
-    extract_nearest_mesh_nodes_to_sensors(Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-23_15-38-08_5000p\0\2019-07-23_15-38-08_0'))
+    extract_nearest_mesh_nodes_to_sensors(
+        Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-23_15-38-08_5000p\0\2019-07-23_15-38-08_0'))

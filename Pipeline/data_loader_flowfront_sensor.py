@@ -16,7 +16,8 @@ class DataloaderFlowfrontSensor:
         self.ignore_useless_states = ignore_useless_states
         self.sensor_indizes = sensor_indizes
         self.skip_indizes = skip_indizes
-        _all_sensors = extract_nearest_mesh_nodes_to_sensors(Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-24_16-32-40_10p\0\2019-07-24_16-32-40_0'))
+        _all_sensors = extract_nearest_mesh_nodes_to_sensors(
+            Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-24_16-32-40_10p\0\2019-07-24_16-32-40_0'))
         _all_sensors = _all_sensors.reshape((38, 30))
         indices_of_sensors = _all_sensors[sensor_indizes[0][0]::sensor_indizes[0][1],
                                           sensor_indizes[1][0]::sensor_indizes[1][1]]
@@ -71,4 +72,5 @@ class DataloaderFlowfrontSensor:
 
 if __name__ == '__main__':
     dl = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
-    dl.get_flowfront_sensor_bool_dryspot(r'Y:\data\RTM\Leoben\sim_output\2019-07-24_16-32-40_10p\0\2019-07-24_16-32-40_0_RESULT.erfh5')
+    dl.get_flowfront_sensor_bool_dryspot(
+        r'Y:\data\RTM\Leoben\sim_output\2019-07-24_16-32-40_10p\0\2019-07-24_16-32-40_0_RESULT.erfh5')
