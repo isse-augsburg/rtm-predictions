@@ -8,6 +8,11 @@ import torch
 
 
 class CheckpointingStrategy(Enum):
+    """
+    Enum for specifying which checkpoints are stored during training.
+    Best: Only the checkpoint with model's best performance is stored.
+    All: All checkpoints are stored.
+    """
     Best = 1
     All = 2
 

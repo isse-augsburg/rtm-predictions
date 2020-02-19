@@ -9,13 +9,13 @@ import matplotlib.tri as tri
 import numpy as np
 
 from Pipeline.resampling import get_fixed_number_of_indices
-from Utils.img_utils import flip_array_diag
+from Utils.data_utils import extract_coords_of_mesh_nodes
 # from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
 from Utils.img_utils import (
-    normalize_coords,
     create_np_image,
 )
+from Utils.img_utils import flip_array_diag
 
 
 # This class provides all original functions but tries to improve the performance of consecutive calls
@@ -138,7 +138,7 @@ class DataloaderImages:
 
         return sensordata_gen()
 
-    def get_sensordata_and_flowfront(self, file):
+    def get_sensordata_and_flowfront(self, file: Path):
         try:
             f = h5py.File(file, "r")
             if self.ignore_useless_states:
@@ -167,16 +167,10 @@ class DataloaderImages:
                      if d is not None and f is not None)
                 or None)
 
-    def _get_coords(self, f):
+    def _get_coords(self, f: h5py.File):
         if self.coords is not None:
             return self.coords
-        coord_as_np_array = f[
-            "post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"
-        ][()]
-        # Cut off last column (z), since it is filled with 1s anyway
-        _coords = coord_as_np_array[:, :-1]
-
-        _coords = normalize_coords(_coords)
+        _coords = extract_coords_of_mesh_nodes(Path(f.filename))
         self.coords = _coords
         return _coords
 

@@ -12,7 +12,7 @@ import Resources.testing as resources
 from Models.erfh5_DeconvModel import DeconvModelEfficient
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImages
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 
 
@@ -54,18 +54,20 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(
+            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
                 self.eval_output_path / "eval_on_test_set",
-                skip_images=False
+                skip_images=False,
+                summary_writer=summary_writer
             )
         )
 
         st.inference_on_test_set(
             self.eval_output_path,
             self.checkpoint,
-            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(
+            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
                 self.eval_output_path / "eval_on_test_set",
-                skip_images=False
+                skip_images=False,
+                summary_writer=summary_writer
             )
         )
 
@@ -96,7 +98,8 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda sw: SensorToFlowfrontEvaluator(summary_writer=sw)
+            classification_evaluator_function=lambda summary_writer:
+            SensorToFlowfrontEvaluator(summary_writer=summary_writer)
         )
         st.start_training()
         dirs = [e for e in self.training_save_path.iterdir() if e.is_dir()]
@@ -174,7 +177,8 @@ class TestEval(unittest.TestCase):
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
             optimizer_path=self.checkpoint,
-            classification_evaluator_function=lambda sw: SensorToFlowfrontEvaluator(summary_writer=sw)
+            classification_evaluator_function=lambda summary_writer:
+            SensorToFlowfrontEvaluator(summary_writer=summary_writer)
         )
         st.start_training()
         after = len(st.optimizer.state.keys())
@@ -197,7 +201,8 @@ class TestEval(unittest.TestCase):
             num_test_samples=self.num_test_samples,
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
-            classification_evaluator_function=lambda sw: SensorToFlowfrontEvaluator(summary_writer=sw)
+            classification_evaluator_function=lambda summary_writer:
+            SensorToFlowfrontEvaluator(summary_writer=summary_writer)
         )
         st.start_training()
         dirs = [e for e in self.eval_output_path.iterdir() if e.is_dir()]

@@ -6,7 +6,7 @@ import Resources.training as r
 from Models.erfh5_DeconvModel import DeconvModelEfficient
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImages
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
 
@@ -30,7 +30,8 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
-        classification_evaluator_function=lambda sw: SensorToFlowfrontEvaluator(summary_writer=sw),
+        classification_evaluator_function=lambda summary_writer:
+        SensorToFlowfrontEvaluator(summary_writer=summary_writer),
     )
 
     if not args.eval:

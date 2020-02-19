@@ -9,7 +9,7 @@ import Resources.testing as resources
 from Models.erfh5_ConvModel import DrySpotModel
 from Pipeline import data_gather as dg
 from Pipeline.data_loader_dryspot import DataloaderDryspots
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 
 
@@ -30,8 +30,10 @@ class TestTrainingDryspotFF(unittest.TestCase):
             data_gather_function=dg.get_filelist_within_folder,
             data_processing_function=dlds.get_flowfront_bool_dryspot,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda sw:
-            BinaryClassificationEvaluator(summary_writer=sw, save_path=self.training_save_path, skip_images=True)
+            classification_evaluator_function=lambda summary_writer:
+            BinaryClassificationEvaluator(summary_writer=summary_writer,
+                                          save_path=self.training_save_path,
+                                          skip_images=True)
         )
 
     def test_training(self):

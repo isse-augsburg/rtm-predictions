@@ -3,6 +3,7 @@ image: nvcr.io/isse/pytorch_extended:19.12
 stages:
   - lint
   - test
+  - docs
 
 linter:
   stage: lint
@@ -16,5 +17,16 @@ test:
   tags:
     - dgx2
 
+  only:
+    - master
+
+documentation: 
+  stage: docs 
+  
+  script:
+    - cd ./Docs
+    - make html
+    - cp -r ./build/html /cfs/share/cache/website
+  
   only:
     - master
