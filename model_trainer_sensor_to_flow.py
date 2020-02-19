@@ -6,7 +6,7 @@ import Resources.training as r
 from Models.erfh5_DeconvModel import DeconvModelEfficient
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImages
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
 
