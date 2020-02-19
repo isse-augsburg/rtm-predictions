@@ -7,7 +7,7 @@ import Resources.training as r
 from Models.erfh5_ConvModel import S20DeconvToDrySpotEff2
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_dryspot import DataloaderDryspots
-from Trainer.GenericTrainer import ModelTrainer
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.training_utils import read_cmd_params
 

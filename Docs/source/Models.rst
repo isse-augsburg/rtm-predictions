@@ -55,3 +55,27 @@ Models.erfh5\_pressuresequence\_CRNN
     :members:
     :undoc-members:
     :show-inheritance:
+
+Model.flow\_front\_to\_fiber\_fraction\_model
+----------------------------------------------
+
+.. automodule:: Models.flow_front_to_fiber_fraction_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Models.custom\_loss
+---------------------
+File for special losses that are not implemented in PyTorch 
+
+.. automodule:: Models.custom_loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Models.model\_utils
+--------------------
+.. automodule:: Models.model_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
