@@ -25,6 +25,8 @@ class TestEval(unittest.TestCase):
         self.eval_output_path = resources.test_eval_output_path
         self.checkpoint = resources.test_checkpoint
         self.training_save_path = resources.test_training_out_dir
+        self.test_save_load_out_dir = resources.test_save_dataset_path
+        self.test_save_load_out_dir.mkdir(exist_ok=True)
         self.num_test_samples = 10
         if self.num_test_samples == 10:
             self.expected_loss = 0.0132
@@ -106,6 +108,53 @@ class TestEval(unittest.TestCase):
             steps = [int(re.findall(r'\d+', x)[0]) for x in re.findall(r'Duration of step.+\d:', content)]
             self.assertEqual(len(set(steps)), len(steps))
 
+    def test_save_load_training(self):
+        num_epochs = 2
+        dl = DataloaderImages((149, 117),
+                              ignore_useless_states=False)
+        st = ModelTrainer(
+            lambda: DeconvModelEfficient(),
+            self.test_src_dir,
+            self.training_save_path,
+            load_datasets_path=self.test_split_dir,
+            cache_path=None,
+            batch_size=16,
+            train_print_frequency=10,
+            epochs=num_epochs,
+            num_workers=4,
+            num_validation_samples=2,
+            num_test_samples=self.num_test_samples,
+            data_processing_function=dl.get_sensordata_and_flowfront,
+            data_gather_function=get_filelist_within_folder_blacklisted,
+            loss_criterion=torch.nn.BCELoss(),
+            classification_evaluator_function=lambda sw: SensorToFlowfrontEvaluator(summary_writer=sw),
+            save_torch_dataset_path=self.test_save_load_out_dir / "dataset_test.pt"
+        )
+        st.start_training()
+
+        num_epochs = 2
+        dl = DataloaderImages((149, 117),
+                              ignore_useless_states=False)
+        st = ModelTrainer(
+            lambda: DeconvModelEfficient(),
+            self.test_src_dir,
+            self.training_save_path,
+            load_datasets_path=self.test_split_dir,
+            cache_path=None,
+            batch_size=16,
+            train_print_frequency=10,
+            epochs=num_epochs,
+            num_workers=4,
+            num_validation_samples=2,
+            num_test_samples=self.num_test_samples,
+            data_processing_function=dl.get_sensordata_and_flowfront,
+            data_gather_function=get_filelist_within_folder_blacklisted,
+            loss_criterion=torch.nn.BCELoss(),
+            classification_evaluator_function=lambda sw: SensorToFlowfrontEvaluator(summary_writer=sw),
+            load_torch_dataset_path=self.test_save_load_out_dir / "dataset_test.pt"
+        )
+        st.start_training()
+
     def test_training_load_optimizer(self):
         dl = DataloaderImages((149, 117),
                               ignore_useless_states=False)
@@ -169,6 +218,8 @@ class TestEval(unittest.TestCase):
             shutil.rmtree(self.eval_output_path)
         if self.training_save_path.exists():
             shutil.rmtree(self.training_save_path)
+        if self.test_save_load_out_dir.exists():
+            shutil.rmtree(self.test_save_load_out_dir)
 
 
 if __name__ == '__main__':
