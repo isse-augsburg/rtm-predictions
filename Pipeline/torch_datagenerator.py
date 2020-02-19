@@ -34,6 +34,10 @@ class LoopingDataGenerator:
         looping_strategy (LoopingStrategy): The strategy for looping samples.
             Defaults to the DataLoaderListLoopingStrategy. You may want to use the NoOpLoopingStrategy if you only
             need a single epoch.
+        save_torch_dataset_path (Path): Saves the Dataset to this Path. Use a full path, including a filename. Note that
+            this should only be used with the DataLoaderListLoopingStrategy.
+        load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
+            first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
     """
 
     def __init__(self,

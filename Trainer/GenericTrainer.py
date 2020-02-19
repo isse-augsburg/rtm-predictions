@@ -45,6 +45,11 @@ class ModelTrainer:
         learning_rate: Learning rate for training.
         classification_evaluator_function: Classification Evaluator for evaluating the
                                   models performance.
+        save_torch_dataset_path (Path): Saves the Dataset to this Path. Use a full path, including a filename. Note that
+            this should only be used with the DataLoaderListLoopingStrategy. This could use very much Space on your
+            drive
+        load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
+            first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
     """
 
     def __init__(
