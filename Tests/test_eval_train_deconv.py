@@ -130,7 +130,8 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
+                summary_writer=summary_writer),
             save_torch_dataset_path=self.test_save_load_out_dir / "dataset_test.pt"
         )
         st.start_training()
@@ -153,7 +154,8 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
+                summary_writer=summary_writer),
             load_torch_dataset_path=self.test_save_load_out_dir / "dataset_test.pt"
         )
         st.start_training()
