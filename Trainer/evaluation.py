@@ -1,10 +1,10 @@
 import itertools
 import logging
-import math
 import os
 from functools import partial
 from multiprocessing.pool import Pool
 from pathlib import Path
+from sklearn.metrics import confusion_matrix
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -97,19 +97,21 @@ class SensorToFlowfrontEvaluator(Evaluator):
     def commit(self, net_output, label, inputs, aux, *args):
         if self.skip_images:
             return
-        a = net_output.numpy()
-        a = np.squeeze(a)
-        b = label.numpy()
-        b = np.squeeze(b)
-        c = inputs.numpy()
-        c = np.squeeze(c)
-        c = c.reshape(self.sensors_shape[0], self.sensors_shape[1])
 
-        plt.imsave(self.im_save_path / Path(str(self.num) + "out.jpg"), a)
-        plt.imsave(self.im_save_path / Path(str(self.num) + "lab.jpg"), b)
-        plt.imsave(self.im_save_path / Path(str(self.num) + "inp.jpg"), c)
+        for sample in range(net_output.size()[0]):
+            a = net_output[sample].numpy()
+            a = np.squeeze(a)
+            b = label[sample].numpy()
+            b = np.squeeze(b)
+            c = inputs[sample].numpy()
+            c = np.squeeze(c)
+            c = c.reshape(self.sensors_shape[0], self.sensors_shape[1])
 
-        self.num += 1
+            plt.imsave(self.im_save_path / Path(str(self.num) + "out.jpg"), a)
+            plt.imsave(self.im_save_path / Path(str(self.num) + "lab.jpg"), b)
+            plt.imsave(self.im_save_path / Path(str(self.num) + "inp.jpg"), c)
+
+            self.num += 1
         pass
 
     def print_metrics(self, step_count):
@@ -146,43 +148,41 @@ class BinaryClassificationEvaluator(Evaluator):
             net_output: single prediction of the model. 
             label: single label for the prediction.
         """
+        net_output = net_output.numpy()
+        invalid = np.argwhere(np.isnan(net_output[:, 0]))
+        if invalid.size > 0:
+            invalid = np.reshape(invalid, (invalid.shape[0]))
+            net_output = np.delete(net_output, invalid, 0)
+            label = np.delete(label, invalid)
 
-        if math.isnan(net_output[0]):
-            return
+        predictions = np.around(net_output[:, 0])
 
-        prediction = np.around(net_output)
-
-        self.confusion_matrix[int(prediction[0].cpu())][int(label[0].cpu())] += 1
-
-        if np.array_equal(prediction, label):
-            if prediction[0] == 1:
-                self.tp += 1
-            else:
-                self.tn += 1
-        else:
-            if prediction[0] == 1:
-                self.fp += 1
-            else:
-                self.fn += 1
+        self.confusion_matrix = np.add(self.confusion_matrix, confusion_matrix(label, predictions))
+        self.tn = self.confusion_matrix[0, 0]
+        self.fp = self.confusion_matrix[0, 1]
+        self.fn = self.confusion_matrix[1, 0]
+        self.tp = self.confusion_matrix[1, 1]
 
         if not self.skip_images:
-            c = inputs.numpy()
-            c = np.squeeze(c)
-            c = c.reshape(143, 111)
-            ipred = int(prediction)
-            ilabel = int(label)
-            if self.with_text_overlay:
-                fig = plt.figure(figsize=(2, 1.55))
-                ax = fig.add_subplot(111)
-                ax.text(45., 75., f'Label={ilabel}\nPred={ipred}', c='red' if ipred != ilabel else 'green')
-                ax.imshow(c)
-                extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-                plt.axis("off")
-                plt.tight_layout()
-                plt.savefig(self.im_save_path / f"{self.num}-pred_{ipred}_label_{ilabel}.jpg", bbox_inches=extent)
-            else:
-                plt.imsave(self.im_save_path / f"{self.num}-pred_{prediction}_label_{label}.jpg", c)
-        self.num += 1
+            for sample in range(predictions.size):
+                c = inputs[sample].numpy()
+                c = np.squeeze(c)
+                c = c.reshape(143, 111)
+                ipred = int(predictions[sample])
+                ilabel = int(label[sample])
+                if self.with_text_overlay:
+                    fig = plt.figure(figsize=(2, 1.55))
+                    ax = fig.add_subplot(111)
+                    ax.text(45., 75., f'Label={ilabel}\nPred={ipred}', c='red' if ipred != ilabel else 'green')
+                    ax.imshow(c)
+                    extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+                    plt.axis("off")
+                    plt.tight_layout()
+                    plt.savefig(self.im_save_path / f"{self.num}-pred_{ipred}_label_{ilabel}.jpg", bbox_inches=extent)
+                else:
+                    plt.imsave(self.im_save_path / f"{self.num}-pred_{predictions[sample]}_label_{label[sample]}.jpg", c)
+
+        self.num += predictions.size
 
     def print_metrics(self, step_count=0):
         """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall,
@@ -242,20 +242,21 @@ class BinaryClassificationEvaluator(Evaluator):
     def __plot_confusion_matrix(cm, class_names, normalize=True):
         plt.rcParams['figure.constrained_layout.use'] = True
         figure = plt.figure(figsize=(len(class_names) + 1, len(class_names) + 1), dpi=150)
-        plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Oranges)
-        tick_marks = np.arange(len(class_names))
-        plt.xticks(tick_marks, class_names, rotation=45)
-        plt.yticks(tick_marks, class_names)
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
 
         if normalize:
             cm_sum = cm.sum(axis=1)
             cm_sum = np.maximum(cm_sum, np.full(cm_sum.shape, 0.00000001))
             cm = np.around(cm.astype('float') / cm_sum[:, np.newaxis], decimals=2)
 
-        # Use white text if squares are dark; otherwise black.
-        threshold = cm.max() / 2.
+        plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Oranges, vmin=0, vmax=np.sum(cm, 1).max())
+        tick_marks = np.arange(len(class_names))
+        plt.xticks(tick_marks, class_names, rotation=45)
+        plt.yticks(tick_marks, class_names)
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+
+        # Use white text if squares are dark; otherwise black
+        threshold = 0.5 * np.sum(cm, 1).max()
         for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
             color = "white" if cm[i, j] > threshold else "black"
             plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
