@@ -1,6 +1,5 @@
 import logging
 import pickle
-from pathlib import Path
 
 import h5py
 import numpy as np
@@ -22,8 +21,9 @@ class DataloaderFlowfrontSensor:
             _all_sensors = pickle.load(open(r.nearest_nodes_to_sensors, "rb"))
         else:
             _all_sensors = extract_nearest_mesh_nodes_to_sensors(
-                Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-24_16-32-40_10p\0\2019-07-24_16-32-40_0'))
+                r.data_root / "2019-07-24_16-32-40_10p/0/2019-07-24_16-32-40_0")
             _all_sensors = _all_sensors.reshape((38, 30))
+        self.mean, self.std = pickle.load(open(r.mean_std_20_sensors, "rb"))
         indices_of_sensors = _all_sensors[sensor_indizes[0][0]::sensor_indizes[0][1],
                                           sensor_indizes[1][0]::sensor_indizes[1][1]]
         self.indeces_of_sensors = indices_of_sensors.flatten()
@@ -53,13 +53,15 @@ class DataloaderFlowfrontSensor:
             for velocity, filling, state in zip(velocities, fillings, states):
                 if self.ignore_useless_states and len(useless_states) > 0 and state == f'state{useless_states[0]:012d}':
                     break
-                sensor_values = np.ceil(filling[self.indeces_of_sensors])
+                binary_ff_sensor_values = np.ceil(filling[self.indeces_of_sensors])
                 velocities_at_sensors = velocity[self.indeces_of_sensors]
                 abs_velocities_at_sensors = np.linalg.norm(velocities_at_sensors, axis=1)
+                standardized_velocities = (abs_velocities_at_sensors - self.mean) / self.std
+                values = binary_ff_sensor_values * standardized_velocities
                 label = 0
                 if int(str(state).replace("state", "0")) in set_of_states:
                     label = 1
-                instances.append((sensor_values, label))
+                instances.append((values, label))
             f.close()
             meta_file.close()
             return instances
