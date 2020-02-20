@@ -34,6 +34,10 @@ class LoopingDataGenerator:
         looping_strategy (LoopingStrategy): The strategy for looping samples.
             Defaults to the DataLoaderListLoopingStrategy. You may want to use the NoOpLoopingStrategy if you only
             need a single epoch.
+        save_torch_dataset_path (Path): Saves the Dataset to this Path. Use a full path, including a filename. Note that
+            this should only be used with the DataLoaderListLoopingStrategy.
+        load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
+            first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
     """
 
     def __init__(self,
@@ -48,7 +52,9 @@ class LoopingDataGenerator:
                  num_workers=0,
                  cache_path=None,
                  cache_mode=CachingMode.Both,
-                 looping_strategy: LoopingStrategy = None
+                 looping_strategy: LoopingStrategy = None,
+                 save_torch_dataset_path=None,
+                 load_torch_dataset_path=None
                  ):
         self.logger = logging.getLogger(__name__)
 
@@ -57,6 +63,11 @@ class LoopingDataGenerator:
         self.store_samples = True
         self.cache_path = cache_path
         self.cache_mode = cache_mode
+
+        self.load_torch_dataset_path = load_torch_dataset_path
+        self.save_torch_dataset_path = save_torch_dataset_path
+        self.saved = False
+        self.loaded = False
 
         if looping_strategy is None:
             looping_strategy = DataLoaderListLoopingStrategy(batch_size)
@@ -93,6 +104,12 @@ class LoopingDataGenerator:
         return paths
 
     def __iter__(self):
+        if not self.loaded and self.load_torch_dataset_path is not None:
+            self.looping_strategy = torch.load(self.load_torch_dataset_path)
+            self.first = False
+            self.saved = True
+            self.loaded = True
+
         if self.first:
             # By choosing drop_last=False we may get up to num_workers*(batch_size-1) short batches in the first epoch.
             # The behaviour in the second depends on the used LoopingStrategy, but by default we will only see one short
@@ -108,7 +125,12 @@ class LoopingDataGenerator:
             iterator = map(store_batch, dataloader)
             self.first = False
         else:
+            if not self.saved and self.save_torch_dataset_path is not None:
+                torch.save(self.looping_strategy, self.save_torch_dataset_path)
+                self.saved = True
+
             iterator = self.looping_strategy.get_new_iterator()
+
         return map(tuple, iterator)
 
     def __len__(self):
