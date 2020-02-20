@@ -180,7 +180,8 @@ class BinaryClassificationEvaluator(Evaluator):
                     plt.tight_layout()
                     plt.savefig(self.im_save_path / f"{self.num}-pred_{ipred}_label_{ilabel}.jpg", bbox_inches=extent)
                 else:
-                    plt.imsave(self.im_save_path / f"{self.num}-pred_{predictions[sample]}_label_{label[sample]}.jpg", c)
+                    plt.imsave(self.im_save_path / f"{self.num}-pred_{predictions[sample]}_label_{label[sample]}.jpg",
+                               c)
 
         self.num += predictions.size
 
