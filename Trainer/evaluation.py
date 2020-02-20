@@ -157,7 +157,7 @@ class BinaryClassificationEvaluator(Evaluator):
 
         predictions = np.around(net_output[:, 0])
 
-        self.confusion_matrix = np.add(self.confusion_matrix, confusion_matrix(label, predictions))
+        self.confusion_matrix = np.add(self.confusion_matrix, confusion_matrix(label, predictions, labels=[0, 1]))
         self.tn = self.confusion_matrix[0, 0]
         self.fp = self.confusion_matrix[0, 1]
         self.fn = self.confusion_matrix[1, 0]
