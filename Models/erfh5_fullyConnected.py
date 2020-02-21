@@ -59,7 +59,7 @@ class S20DryspotModelFCWide(nn.Module):
         self.fc3 = nn.Linear(2048, 1)
 
     def forward(self, _input):
-        out = F.relu(self.fc(_input))
+        out = F.leaky_relu(self.fc(_input))
         out = F.relu(self.fc2(out))
         out = torch.sigmoid(self.fc3(out))
         return out

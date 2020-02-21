@@ -17,15 +17,23 @@ class DataloaderFlowfrontSensor:
         self.ignore_useless_states = ignore_useless_states
         self.sensor_indizes = sensor_indizes
         self.skip_indizes = skip_indizes
+        self.mean = None
+        self.std = None
+        self.indeces_of_sensors = None
+        self.load_ff_sensors()
+
+    def load_ff_sensors(self):
         if r.nearest_nodes_to_sensors.is_file():
-            _all_sensors = pickle.load(open(r.nearest_nodes_to_sensors, "rb"))
+            with open(r.nearest_nodes_to_sensors, "rb") as nearest_nodes:
+                _all_sensors = pickle.load(nearest_nodes)
         else:
             _all_sensors = extract_nearest_mesh_nodes_to_sensors(
                 r.data_root / "2019-07-24_16-32-40_10p/0/2019-07-24_16-32-40_0")
             _all_sensors = _all_sensors.reshape((38, 30))
-        self.mean, self.std = pickle.load(open(r.mean_std_20_sensors, "rb"))
-        indices_of_sensors = _all_sensors[sensor_indizes[0][0]::sensor_indizes[0][1],
-                                          sensor_indizes[1][0]::sensor_indizes[1][1]]
+        with open(r.mean_std_20_sensors, "rb") as mean_std:
+            self.mean, self.std = pickle.load(mean_std)
+        indices_of_sensors = _all_sensors[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
+                                          self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
         self.indeces_of_sensors = indices_of_sensors.flatten()
 
     def get_flowfront_sensor_bool_dryspot(self, filename):
@@ -67,7 +75,6 @@ class DataloaderFlowfrontSensor:
             return instances
         except KeyError:
             logger = logging.getLogger()
-
             logger.warning(f'Warning: {filename}')
             f.close()
             meta_file.close()

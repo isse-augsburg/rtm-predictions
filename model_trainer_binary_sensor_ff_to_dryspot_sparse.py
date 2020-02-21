@@ -25,12 +25,14 @@ if __name__ == "__main__":
                      num_workers=75,
                      num_validation_samples=131072,
                      num_test_samples=1048576,
-                     data_processing_function=dlds.get_sensor_bool_dryspot,
+                     data_processing_function=dlds.get_flowfront_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                      classification_evaluator_function=lambda summary_writer:
                      BinaryClassificationEvaluator(summary_writer=summary_writer),
+                     save_torch_dataset_path=r.datasets_dryspots_torch / Path(__file__).stem,
+                     load_torch_dataset_path=r.datasets_dryspots_torch / Path(__file__).stem,
                      # lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.1),
                      )
 

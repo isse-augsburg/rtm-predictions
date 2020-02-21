@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 
@@ -75,6 +76,14 @@ def normalize_coords(coords):
     coords[:, 1] = coords[:, 1] - min_c
     coords[:, 1] = coords[:, 1] / (max_c - min_c)
     return coords
+
+
+def change_win_to_unix_path_if_needed(_str):
+    if os.name == "unix" and _str.startswith("Y:"):
+        _str = _str.replace("\\", "/").replace("Y:", "/cfs/share")
+    if os.name == "unix" and _str.startswith("X:"):
+        _str = _str.replace("\\", "/").replace("X:", "/cfs/home")
+    return _str
 
 
 if __name__ == '__main__':

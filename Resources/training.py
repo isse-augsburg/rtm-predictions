@@ -27,37 +27,37 @@ _ij_S1140_deconv_conv = _ijcai / "S1140_to_DS_deconv_conv"
 _ij_S20_deconv_conv = _ijcai / "S20_to_DS_deconv_conv"
 
 datasets_dryspots = _share_path / 'data/RTM/Leoben/reference_datasets/dryspot_detection'
+datasets_dryspots_torch = _share_path / 'data/RTM/Leoben/reference_datasets_torch'
+chkp = "checkpoint.pth"
 
-
-chkp_S1140_to_ff_deconv = _results / '4_three_week_run/2019-09-25_16-42-53/checkpoint.pth'
-chkp_S1140_to_ff_eff = _results / '2019-12-12_20-27-20_eff_net_cleaned_data/checkpoint.pth'
+chkp_S1140_to_ff_deconv = _results / "4_three_week_run/2019-09-25_16-42-53" / chkp
+chkp_S1140_to_ff_eff = _results / "2019-12-12_20-27-20_eff_net_cleaned_data" / chkp
 # chkp_S1140_transferred_dry_spot = _ij_deconv_conv / '2019-12-13_17-15-26_transfer_eff_net_dryspot/checkpoint.pth'
 # Mixed up data sets in different training phases:
 # chkp_99_5_acc_retrained = _results / '2019-12-20_16-35-22_99.5_acc/checkpoint.pth'
 chkp_S1140_to_ff_correct_data = _ij_S1140_deconv_conv / \
-    '2020-01-18_12-34-13_S1140_to_ff_bs1024_best_loss' / \
-    'checkpoint.pth'
+    '2020-01-18_12-34-13_S1140_to_ff_bs1024_best_loss' / chkp
 chkp_S1140_to_ff_retrain_mixed_press = _ij_S1140_deconv_conv / \
     "0_new_split_mixed_ground_pressure/" \
-    "2020-02-03_17-19-34_S1140_to_ff_retrain/checkpoint.pth"
+    "2020-02-03_17-19-34_S1140_to_ff_retrain" / chkp
 zero_basepr = _ij_S1140_deconv_conv / "1_new_split_0_ground_pressure"
-chkp_S1140_to_ff_0_basepr = zero_basepr / "2020-02-07_13-55-43_S1140_to_ff_base_0/checkpoint.pth"
-chkp_S1140_to_ds_0_basepr_frozen = zero_basepr / "2020-02-12_11-23-35_S1140_to_ds_base_0_frozen/checkpoint.pth"
-chkp_S1140_to_ds_frozen = _ij_S1140_deconv_conv / "2020-01-21_09-32-50_S1140_to_DS_frozen_bad_chkp/checkpoint.pth"
+chkp_S1140_to_ff_0_basepr = zero_basepr / "2020-02-07_13-55-43_S1140_to_ff_base_0" / chkp
+chkp_S1140_to_ds_0_basepr_frozen = zero_basepr / "2020-02-12_11-23-35_S1140_to_ds_base_0_frozen" / chkp
+chkp_S1140_to_ds_frozen = _ij_S1140_deconv_conv / "2020-01-21_09-32-50_S1140_to_DS_frozen_bad_chkp" / chkp
 chkp_S1140_to_ds_frozen_deeper_convnet = _ij_S1140_deconv_conv / \
-    "2020-01-22_16-44-26_S1140_to_DS_frozen_deeper_convnet" / \
-    "checkpoint.pth"
+    "2020-01-22_16-44-26_S1140_to_DS_frozen_deeper_convnet" / chkp
 chkp_S1140_to_ds_frozen_deeper_convnet2 = _ij_S1140_deconv_conv / \
     "2020-01-22_16-44-26_S1140_to_DS_frozen_deeper_convnet" / \
     "checkpoint_best_val_loss.pth"
 
 chkp_S20_to_ff = _output_stiebesi / "2020-01-10_15-09-30/checkpoint0_2055val.pth"
-chkp_S20_to_ff_basepr_0 = _ij_S20_deconv_conv / "2020-02-14_16-05-28_S_to_FF/checkpoint.pth"
+chkp_S20_to_ff_basepr_0 = _ij_S20_deconv_conv / "2020-02-14_16-05-28_S_to_FF" / chkp
 
 # data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'
 data_root = _share_path / 'data/RTM/Leoben/sim_output'
 nearest_nodes_to_sensors = _share_path / "data/RTM/Leoben/Mesh/nearest_nodes_to_sensors.p"
 mean_std_20_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_20_sensors.p"
+
 
 def get_all_data_paths():
     data_paths = [
