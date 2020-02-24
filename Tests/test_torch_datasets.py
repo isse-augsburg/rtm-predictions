@@ -71,6 +71,9 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             logging.shutdown()
 
     def test_load_train_set_only(self):
+        """ Check if the splits are produced the same way if only the training set is loaded and if the the
+            loaded_* flags are set correctly.
+        """
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
             m = self.create_trainer_and_start(Path(tempdir), self.torch_dataset_resources / "train_only")
             self.assertTrue(m.data_generator.loaded_train_set)
