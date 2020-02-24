@@ -10,9 +10,6 @@ linter:
   script:
     - flake8 --max-line-length=120 --ignore=W291,W503,W504 .
 
-#  only:
-#    - master
-
 test:
   stage: test
   script:
@@ -21,8 +18,8 @@ test:
   tags:
     - dgx2
 
-#  only:
-#    - master
+  only:
+    - master
 
 documentation: 
   stage: docs 
