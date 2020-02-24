@@ -17,15 +17,14 @@ from Utils.data_utils import change_win_to_unix_path_if_needed
 
 class TestSaveDatasetsTorch(unittest.TestCase):
     def setUp(self) -> None:
-        self.torch_dataset_resources = test_resources.test_src_dir / self.__class__.__name__
+        self.torch_dataset_resources = test_resources.torch_datasets
 
     def create_trainer_and_start(self, out_path, load_torch_dataset_path, epochs=1):
         dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
         m = ModelTrainer(lambda: S20DryspotModelFCWide(),
                          data_source_paths=tr_resources.get_data_paths_debug(),
                          save_path=out_path,
-                         #load_datasets_path=None,
-                         load_datasets_path=self.torch_dataset_resources / "reference_datasets" / "unix",
+                         load_datasets_path=self.torch_dataset_resources / "reference_datasets",
                          cache_path=None,
                          num_validation_samples=8,
                          num_test_samples=8,
@@ -54,7 +53,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
 
     def test_save_train_val_test_sets(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsSaving") as tempdir:
-            out_path = Path("/tmp/bla")
+            out_path = Path(tempdir)
             m = self.create_trainer_and_start(out_path, out_path / Path(__file__).stem, epochs=2)
             self.assertTrue((out_path / Path(__file__).stem / "train_set_torch.p").is_file())
             self.assertTrue((out_path / Path(__file__).stem / "val_set_torch.p").is_file())

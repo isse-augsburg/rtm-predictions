@@ -103,6 +103,8 @@ class LoopingDataGenerator:
             self.load_datasets()
 
     def try_loading_torch_datasets(self):
+        if self.load_torch_dataset_path is None:
+            return
         if (self.load_torch_dataset_path / "train_set_torch.p").is_file():
             self.logger.info(f"Loading training set from {self.load_torch_dataset_path}.")
             self.looping_strategy = torch.load(self.load_torch_dataset_path / "train_set_torch.p")
