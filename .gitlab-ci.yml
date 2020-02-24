@@ -15,8 +15,8 @@ test:
   script:
 #    - python3 -m unittest discover -s Tests -t Tests
     - python3 -m unittest Tests.test_torch_datagenerator.TestSaveDatasetsTorch
-  tags:
-    - dgx2
+#  tags:
+#    - dgx2
 
 #  only:
 #    - master

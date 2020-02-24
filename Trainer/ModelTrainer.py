@@ -1,5 +1,6 @@
 import logging
 import socket
+import sys
 import time
 from collections import OrderedDict
 from datetime import datetime
@@ -385,6 +386,7 @@ class ModelTrainer:
         model_state_dict = checkpoint["model_state_dict"]
         if "swt-dgx" not in socket.gethostname():
             for k, v in model_state_dict.items():
+                sys.stderr.write(k)
                 if k.startswith("module"):
                     k = k[7:]  # remove `module.`
                 new_model_state_dict[k] = v
