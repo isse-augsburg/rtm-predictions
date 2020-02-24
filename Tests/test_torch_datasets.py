@@ -91,8 +91,8 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.assertFalse(m.data_generator.loaded_val_set)
             self.assertTrue(m.data_generator.loaded_test_set)
             with open(self.torch_dataset_resources / "all/test_set_torch.p", "rb") as f:
-                saved_val_set = torch.load(f)
-            self.compare_old_new_dataset(saved_val_set, m.data_generator.get_test_samples())
+                saved_test_set = torch.load(f)
+            self.compare_old_new_dataset(saved_test_set, m.data_generator.get_test_samples())
             logging.shutdown()
 
     def test_load_train_and_val_set_only(self):
