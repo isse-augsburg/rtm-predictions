@@ -190,7 +190,8 @@ class LoopingDataGenerator:
         """
         if self.saved_val_samples is None:
             self.saved_val_samples = self.val_set_generator.get_samples()
-            torch.save(self.saved_val_samples, self.save_torch_dataset_path / "val_set_torch.p")
+            if self.save_torch_dataset_path is not None:
+                torch.save(self.saved_val_samples, self.save_torch_dataset_path / "val_set_torch.p")
         return self.saved_val_samples
 
     def get_test_samples(self):
@@ -198,5 +199,6 @@ class LoopingDataGenerator:
         """
         if self.saved_test_samples is None:
             self.saved_test_samples = self.test_set_generator.get_samples()
-            torch.save(self.saved_test_samples, self.save_torch_dataset_path / "test_set_torch.p")
+            if self.save_torch_dataset_path is not None:
+                torch.save(self.saved_test_samples, self.save_torch_dataset_path / "test_set_torch.p")
         return self.saved_test_samples
