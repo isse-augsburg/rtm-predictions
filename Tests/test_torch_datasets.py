@@ -54,7 +54,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
 
     def test_save_train_val_test_sets(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsSaving") as tempdir:
-            out_path = Path(tempdir)
+            out_path = Path("/cfs/home/s/t/stiebesi/delete_me/bla/testest")
             m = self.create_trainer_and_start(out_path, out_path / Path(__file__).stem, epochs=2)
             self.assertTrue((out_path / Path(__file__).stem / "train_set_torch.p").is_file())
             self.assertTrue((out_path / Path(__file__).stem / "val_set_torch.p").is_file())
