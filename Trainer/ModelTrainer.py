@@ -206,19 +206,20 @@ class ModelTrainer:
             self.model = self.model_creation_function()
             self.model_name = self.model.__class__.__name__
 
-        if "swt-dgx" in socket.gethostname():
-            logger.info("Invoking data parallel model.")
-            self.model = nn.DataParallel(self.model).to("cuda:0")
-        else:
-            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+            if "swt-dgx" in socket.gethostname():
+                logger.info("Invoking data parallel model.")
+                self.model = nn.DataParallel(self.model).to("cuda:0")
+            else:
+                self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        if self.optimizer_path is None:
-            self.optimizer = self.optimizer_function(self.model.parameters())
-        else:
-            self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
-            self.optimizer = self.optimizer_function(self.model.parameters())
-            checkpoint = torch.load(self.optimizer_path)
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if self.optimizer is None:
+            if self.optimizer_path is None:
+                self.optimizer = self.optimizer_function(self.model.parameters())
+            else:
+                self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
+                self.optimizer = self.optimizer_function(self.model.parameters())
+                checkpoint = torch.load(self.optimizer_path)
+                self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
         if self.lr_scheduler_function is not None:
             self.lr_scheduler = self.lr_scheduler_function(self.optimizer)

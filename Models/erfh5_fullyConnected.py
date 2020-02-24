@@ -48,12 +48,12 @@ class S1140DryspotModelFCWide(nn.Module):
         return out
 
 
+# self.fc = nn.Linear(input_dim, 1024)
+# self.fc2 = nn.Linear(1024, 256)
+# self.fc3 = nn.Linear(256, 1)
 class S20DryspotModelFCWide(nn.Module):
     def __init__(self, input_dim=20):
         super(S20DryspotModelFCWide, self).__init__()
-        # self.fc = nn.Linear(input_dim, 1024)
-        # self.fc2 = nn.Linear(1024, 256)
-        # self.fc3 = nn.Linear(256, 1)
         self.fc = nn.Linear(input_dim, 4096)
         self.fc2 = nn.Linear(4096, 2048)
         self.fc3 = nn.Linear(2048, 1)
