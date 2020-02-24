@@ -1,9 +1,9 @@
 image: nvcr.io/isse/pytorch_extended:19.12
 
 stages:
-  - lint
+#  - lint
   - test
-  - docs
+#  - docs
 
 linter:
   stage: lint
