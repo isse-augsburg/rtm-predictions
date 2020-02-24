@@ -10,14 +10,14 @@ linter:
   script:
     - flake8 --max-line-length=120 --ignore=W291,W503,W504 .
 
-  only:
-    - master
+#  only:
+#    - master
 
 test:
   stage: test
   script:
-#    - python3 -m unittest discover -s Tests -t Tests
-    - python3 -m unittest Tests.test_torch_datasets.TestSaveDatasetsTorch
+    - python3 -m unittest discover -s Tests -t Tests
+#    - python3 -m unittest Tests.test_torch_datasets.TestSaveDatasetsTorch
 #  tags:
 #    - dgx2
 

@@ -258,6 +258,3 @@ class TestLoopingDatagenerator(unittest.TestCase):
             files_in_splits = sum((files for _, files in splits), [])
             self.assertCountEqual(map(str, self.test_set.erf_files), files_in_splits,
                                   msg="Combining splits should result in the original file set!")
-
-
-
