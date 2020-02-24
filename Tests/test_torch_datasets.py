@@ -91,9 +91,9 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertFalse(m.data_generator.loaded_val_set)
             self.assertTrue(m.data_generator.loaded_test_set)
-            with open(self.torch_dataset_resources / "all/val_set_torch.p", "rb") as f:
+            with open(self.torch_dataset_resources / "all/test_set_torch.p", "rb") as f:
                 saved_val_set = torch.load(f)
-            self.compare_old_new_dataset(saved_val_set, m.data_generator.get_validation_samples())
+            self.compare_old_new_dataset(saved_val_set, m.data_generator.get_test_samples())
             logging.shutdown()
 
     def test_load_train_and_val_set_only(self):
@@ -102,9 +102,9 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertTrue(m.data_generator.loaded_val_set)
             self.assertFalse(m.data_generator.loaded_test_set)
-            with open(self.torch_dataset_resources / "all/test_set_torch.p", "rb") as f:
-                saved_test_set = torch.load(f)
-            self.compare_old_new_dataset(saved_test_set, m.data_generator.get_test_samples())
+            with open(self.torch_dataset_resources / "all/val_set_torch.p", "rb") as f:
+                saved_val_set = torch.load(f)
+            self.compare_old_new_dataset(saved_val_set, m.data_generator.get_validation_samples())
             logging.shutdown()
 
     def test_load_val_and_test_set_only(self):
