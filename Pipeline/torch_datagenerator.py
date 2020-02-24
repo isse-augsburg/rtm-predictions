@@ -75,7 +75,8 @@ class LoopingDataGenerator:
 
         self.load_torch_dataset_path = load_torch_dataset_path
         self.save_torch_dataset_path = save_torch_dataset_path
-        self.save_torch_dataset_path.mkdir(parents=True, exist_ok=True)
+        if self.save_torch_dataset_path is not None:
+            self.save_torch_dataset_path.mkdir(parents=True, exist_ok=True)
         self.saved = False
         self.loaded = False
         self.saved_test_samples = None
