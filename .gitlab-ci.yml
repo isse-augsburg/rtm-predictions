@@ -17,7 +17,7 @@ test:
   stage: test
   script:
 #    - python3 -m unittest discover -s Tests -t Tests
-    - python3 -m unittest Tests.test_torch_datasets.TestSaveDatasetsTorch
+    - python3 -m unittest Tests.test_torch_datasets.TestSaveDatasetsTorch.test_load_train_and_test_set_only
 #  tags:
 #    - dgx2
 

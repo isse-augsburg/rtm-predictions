@@ -1,4 +1,5 @@
 import logging
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -43,6 +44,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         return m
 
     def compare_old_new_dataset(self, old_data: list, new_data: list):
+        sys.stderr.write(f"{old_data}, {new_data}")
         for i in range(len(old_data)):
             odata, olabel, osourcepath = old_data[i]
             ndata, nlabel, nsourcepath = new_data[i]
