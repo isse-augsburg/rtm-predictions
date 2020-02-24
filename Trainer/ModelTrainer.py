@@ -12,6 +12,7 @@ from torch.nn import MSELoss
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+import Resources.training as r
 from Pipeline import torch_datagenerator as td
 from Utils import logging_cfg
 from Utils.eval_utils import eval_preparation
@@ -62,7 +63,7 @@ class ModelTrainer:
     def __init__(
         self,
         model_creation_function,
-        data_source_paths,
+        data_source_paths: list,
         save_path,
         load_datasets_path=None,
         cache_path=None,
@@ -204,19 +205,20 @@ class ModelTrainer:
             self.model = self.model_creation_function()
             self.model_name = self.model.__class__.__name__
 
-        if "swt-dgx" in socket.gethostname():
-            logger.info("Invoking data parallel model.")
-            self.model = nn.DataParallel(self.model).to("cuda:0")
-        else:
-            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+            if "swt-dgx" in socket.gethostname():
+                logger.info("Invoking data parallel model.")
+                self.model = nn.DataParallel(self.model).to("cuda:0")
+            else:
+                self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        if self.optimizer_path is None:
-            self.optimizer = self.optimizer_function(self.model.parameters())
-        else:
-            self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
-            self.optimizer = self.optimizer_function(self.model.parameters())
-            checkpoint = torch.load(self.optimizer_path)
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if self.optimizer is None:
+            if self.optimizer_path is None:
+                self.optimizer = self.optimizer_function(self.model.parameters())
+            else:
+                self.logger.info(f'Loading optimizer state from {self.optimizer_path}')
+                self.optimizer = self.optimizer_function(self.model.parameters())
+                checkpoint = torch.load(self.optimizer_path)
+                self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
         if self.lr_scheduler_function is not None:
             self.lr_scheduler = self.lr_scheduler_function(self.optimizer)
@@ -233,6 +235,8 @@ class ModelTrainer:
         logger.info(f"Generating Generator")
 
         self.data_generator = self.__create_datagenerator()
+        if self.data_generator.loaded_train_set:
+            self.dummy_epoch = False
 
         logger.info("Saving code and generating SLURM script for later evaluation")
         eval_preparation(self.save_path)
@@ -353,7 +357,7 @@ class ModelTrainer:
 
             return loss
 
-    def __save_checkpoint(self, eval_step, loss, fn="checkpoint.pth"):
+    def __save_checkpoint(self, eval_step, loss, fn=r.chkp):
         torch.save(
             {
                 "epoch": eval_step,
@@ -371,7 +375,7 @@ class ModelTrainer:
         https://pytorch.org/tutorials/beginner/saving_loading_models.html
 
         Args:
-            path (string): Path to the stored checkpoint.
+            path (Path): Path to the stored checkpoint.
         """
         if torch.cuda.is_available():
             checkpoint = torch.load(path)
@@ -382,8 +386,9 @@ class ModelTrainer:
         model_state_dict = checkpoint["model_state_dict"]
         if "swt-dgx" not in socket.gethostname():
             for k, v in model_state_dict.items():
-                name = k[7:]  # remove `module.`
-                new_model_state_dict[name] = v
+                if k.startswith("module"):
+                    k = k[7:]  # remove `module.`
+                new_model_state_dict[k] = v
             self.model.load_state_dict(new_model_state_dict)
         else:
             self.model.load_state_dict(model_state_dict)
@@ -396,15 +401,21 @@ class ModelTrainer:
     def __batched(self, data_l: list, batch_size: int):
         return DataLoader(data_l, batch_size=batch_size, shuffle=False)
 
-    def inference_on_test_set(self, output_path: Path, checkpoint_path: Path, classification_evaluator_function):
+    def inference_on_test_set(self,
+                              output_path: Path = None,
+                              checkpoint_path: Path = None,
+                              classification_evaluator_function=None):
         """Start evaluation on a dedicated test set. 
         Args:
             output_path: Directory for test outputs.
-            classificaton: Evaluator object that should be used for the test run.
+            checkpoint_path : ...
+            classification_evaluator_function: lambda with Evaluator object that should be used for the test run.
         """
-        save_path = output_path / "eval_on_test_set"
-        save_path.mkdir(parents=True, exist_ok=True)
-        # self.classification_evaluator = self.classification_evaluator_function(summary_writer=None)
+        if output_path is not None:
+            save_path = output_path / "eval_on_test_set"
+            save_path.mkdir(parents=True, exist_ok=True)
+        else:
+            save_path = self.save_path
 
         logging_cfg.apply_logging_config(save_path, eval=True)
 
@@ -415,11 +426,13 @@ class ModelTrainer:
         logger.info("Generating Test Generator")
         data_generator = self.__create_datagenerator()
         logger.info("Loading Checkpoint")
-        self.__load_checkpoint(checkpoint_path)
+        if checkpoint_path is not None:
+            self.__load_checkpoint(checkpoint_path)
+        else:
+            self.__load_checkpoint(self.save_path / r.chkp)
 
         data_list = data_generator.get_test_samples()
-        tmp_evaluator = self.classification_evaluator
-        self.classification_evaluator = classification_evaluator_function(summary_writer=None)
+        if classification_evaluator_function is not None:
+            self.classification_evaluator = classification_evaluator_function(summary_writer=None)
         self.__eval(data_list, test_mode=True)
-        self.classification_evaluator = tmp_evaluator
         logging.shutdown()

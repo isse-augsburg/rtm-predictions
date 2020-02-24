@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 
@@ -38,6 +39,12 @@ def extract_coords_of_mesh_nodes(fn: Path, normalized=True):
     return _coords
 
 
+def get_node_propery_at_states(f: h5py.File, node_property: str, states: list):
+    return [
+        f["post"]["singlestate"][state]["entityresults"]["NODE"][node_property]["ZONE1_set1"]["erfblock"]["res"][()]
+        for state in states]
+
+
 def extract_nearest_mesh_nodes_to_sensors(fn: Path):
     sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"))
     nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False)
@@ -69,6 +76,14 @@ def normalize_coords(coords):
     coords[:, 1] = coords[:, 1] - min_c
     coords[:, 1] = coords[:, 1] / (max_c - min_c)
     return coords
+
+
+def change_win_to_unix_path_if_needed(_str):
+    if os.name == "unix" and _str.startswith("Y:"):
+        _str = _str.replace("\\", "/").replace("Y:", "/cfs/share")
+    if os.name == "unix" and _str.startswith("X:"):
+        _str = _str.replace("\\", "/").replace("X:", "/cfs/home")
+    return _str
 
 
 if __name__ == '__main__':

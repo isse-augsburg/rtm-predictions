@@ -58,6 +58,15 @@ class LoopingDataGenerator:
                  ):
         self.logger = logging.getLogger(__name__)
 
+        self.data_paths = data_paths
+        self.gather_data = gather_data
+        self.load_data = load_data
+
+        self.num_validation_samples = num_validation_samples
+        self.num_test_samples = num_test_samples
+        self.split_load_path = split_load_path
+        self.split_save_path = split_save_path
+
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.store_samples = True
@@ -66,34 +75,79 @@ class LoopingDataGenerator:
 
         self.load_torch_dataset_path = load_torch_dataset_path
         self.save_torch_dataset_path = save_torch_dataset_path
+        if self.save_torch_dataset_path is not None:
+            self.save_torch_dataset_path.mkdir(parents=True, exist_ok=True)
         self.saved = False
         self.loaded = False
+        self.saved_test_samples = None
+        self.saved_val_samples = None
 
         if looping_strategy is None:
             looping_strategy = DataLoaderListLoopingStrategy(batch_size)
         self.looping_strategy = looping_strategy
+        self.first = True
+        self.val_set_generator = None
+        self.test_set_generator = None
+        self.file_iterable = None
+
+        self.loaded_train_set = False
+        self.loaded_val_set = False
+        self.loaded_test_set = False
+
+        self.try_loading_torch_datasets()
+
+        if self.loaded_train_set and self.loaded_val_set and self.loaded_test_set:
+            self.logger.info(f"Loaded all data sets from tensors.")
+            self.loaded = True
+            self.saved = True
+        else:
+            self.load_datasets()
+
+    def try_loading_torch_datasets(self):
+        if self.load_torch_dataset_path is None:
+            return
+        if (self.load_torch_dataset_path / "train_set_torch.p").is_file():
+            self.logger.info(f"Loading training set - torch - from {self.load_torch_dataset_path}.")
+            self.looping_strategy = torch.load(self.load_torch_dataset_path / "train_set_torch.p")
+            self.loaded_train_set = True
+            self.logger.info(f"Done.")
+            with open(self.split_save_path / "training_set.p", "wb") as f:
+                pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.looping_strategy]))), f)
+        if (self.load_torch_dataset_path / "val_set_torch.p").is_file():
+            self.logger.info(f"Loading validation set - torch - from {self.load_torch_dataset_path}.")
+            self.saved_val_samples = torch.load(self.load_torch_dataset_path / "val_set_torch.p")
+            self.loaded_val_set = True
+            with open(self.split_save_path / "validation_set.p", "wb") as f:
+                pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_val_samples]))), f)
+        if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
+            self.logger.info(f"Loading test set - torch - from {self.load_torch_dataset_path}.")
+            self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
+            self.loaded_test_set = True
+            with open(self.split_save_path / "test_set.p", "wb") as f:
+                pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
+
+    def load_datasets(self):
         self.logger.debug(f"Using {type(self.looping_strategy).__name__} for looping samples across epochs.")
 
-        self.logger.info(f"Collecting files from {len(data_paths)} directories")
-        all_files = self._discover_files(data_paths, gather_data)
+        self.logger.info(f"Collecting files from {len(self.data_paths)} directories")
+        all_files = self._discover_files(self.data_paths, self.gather_data)
 
         self.logger.info("Getting validation and test data splits.")
-        self.eval_set_generator = SubSetGenerator(load_data, "validation_set", num_validation_samples,
-                                                  load_path=split_load_path, save_path=split_save_path)
-        self.test_set_generator = SubSetGenerator(load_data, "test_set", num_test_samples,
-                                                  load_path=split_load_path, save_path=split_save_path)
-        remaining_files = self.eval_set_generator.prepare_subset(all_files)
+        # if self.saved_val_samples is None or self.saved_test_samples is None:
+        self.val_set_generator = SubSetGenerator(self.load_data, "validation_set", self.num_validation_samples,
+                                                 load_path=self.split_load_path, save_path=self.split_save_path)
+        self.test_set_generator = SubSetGenerator(self.load_data, "test_set", self.num_test_samples,
+                                                  load_path=self.split_load_path, save_path=self.split_save_path)
+        remaining_files = self.val_set_generator.prepare_subset(all_files)
         remaining_files = self.test_set_generator.prepare_subset(remaining_files)
-        if split_save_path is not None:
-            filename = split_save_path / "training_set.p"
+        if self.split_save_path is not None:
+            filename = self.split_save_path / "training_set.p"
             with open(filename, 'wb') as f:
                 pickle.dump([str(fn) for fn in remaining_files], f)
-        self.logger.info(f"{len(remaining_files)} remaining files will be loaded using {num_workers} workers.")
-        self.file_iterable = FileSetIterable(remaining_files, load_data,
-                                             cache_path=cache_path, cache_mode=cache_mode)
-
+        self.logger.info(f"{len(remaining_files)} remaining files will be loaded using {self.num_workers} workers.")
+        self.file_iterable = FileSetIterable(remaining_files, self.load_data,
+                                             cache_path=self.cache_path, cache_mode=self.cache_mode)
         self.logger.info("Data generator initialization is done.")
-        self.first = True
 
     def _discover_files(self, data_paths, gather_data):
         self.logger.info(f"Gathering files from {len(data_paths)} paths...")
@@ -104,13 +158,7 @@ class LoopingDataGenerator:
         return paths
 
     def __iter__(self):
-        if not self.loaded and self.load_torch_dataset_path is not None:
-            self.looping_strategy = torch.load(self.load_torch_dataset_path)
-            self.first = False
-            self.saved = True
-            self.loaded = True
-
-        if self.first:
+        if self.first and not self.loaded_train_set:
             # By choosing drop_last=False we may get up to num_workers*(batch_size-1) short batches in the first epoch.
             # The behaviour in the second depends on the used LoopingStrategy, but by default we will only see one short
             # sample in the following epochs
@@ -126,7 +174,8 @@ class LoopingDataGenerator:
             self.first = False
         else:
             if not self.saved and self.save_torch_dataset_path is not None:
-                torch.save(self.looping_strategy, self.save_torch_dataset_path)
+                if not (self.save_torch_dataset_path / "train_set_torch.p").is_file():
+                    torch.save(self.looping_strategy, self.save_torch_dataset_path / "train_set_torch.p")
                 self.saved = True
 
             iterator = self.looping_strategy.get_new_iterator()
@@ -139,9 +188,17 @@ class LoopingDataGenerator:
     def get_validation_samples(self):
         """ Get the set of validation samples
         """
-        return self.eval_set_generator.get_samples()
+        if self.saved_val_samples is None:
+            self.saved_val_samples = self.val_set_generator.get_samples()
+            if self.save_torch_dataset_path is not None:
+                torch.save(self.saved_val_samples, self.save_torch_dataset_path / "val_set_torch.p")
+        return self.saved_val_samples
 
     def get_test_samples(self):
         """ Get the set of test samples
         """
-        return self.test_set_generator.get_samples()
+        if self.saved_test_samples is None:
+            self.saved_test_samples = self.test_set_generator.get_samples()
+            if self.save_torch_dataset_path is not None:
+                torch.save(self.saved_test_samples, self.save_torch_dataset_path / "test_set_torch.p")
+        return self.saved_test_samples
