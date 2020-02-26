@@ -251,7 +251,7 @@ class BinaryClassificationEvaluator(Evaluator):
         if norm == 'class':
             cm = np.around(normalize(cm, norm='l1', axis=1), decimals=2)
         elif norm == 'all':
-            cm = np.around(cm / (cm.sum() + 1e-8), decimals=2)
+            cm = np.around(cm / max(cm.sum(), 1e-8), decimals=2)
 
         plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Oranges, vmin=0, vmax=np.sum(cm, 1).max())
         tick_marks = np.arange(len(class_names))
