@@ -15,7 +15,7 @@ import Pipeline.TorchDataGeneratorUtils.looping_strategies as ls
 import Pipeline.TorchDataGeneratorUtils.torch_internal as ti
 import Pipeline.data_gather as dg
 import Pipeline.torch_datagenerator as td
-import Resources.testing as resources
+import Resources.testing as test_resources
 from Utils.natural_sorting import natural_sort_key
 
 logger = logging.getLogger()
@@ -27,7 +27,7 @@ logger.addHandler(stream_handler)
 class _TestSetInfo:
     def __init__(self, run_name="2019-07-11_15-14-48", num_runs=100):
         self.run_name = run_name
-        self.p = resources.test_pipeline_dir / f"{self.run_name}_{num_runs}p"
+        self.p = test_resources.test_pipeline_dir / f"{self.run_name}_{num_runs}p"
         self.paths = [self.p]
         self.erf_files = [self.p / f'{i}/{self.run_name}_{i}_RESULT.erfh5' for i in range(100)]
         self._num_samples = None

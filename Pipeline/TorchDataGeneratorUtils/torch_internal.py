@@ -10,6 +10,7 @@ from queue import Queue
 import numpy as np
 import torch
 
+from Utils.data_utils import change_win_to_unix_path_if_needed
 from Utils.natural_sorting import natural_sort_key
 
 
@@ -347,4 +348,5 @@ class SubSetGenerator:
                                f"Call {type(self).__name__}.prepare_subset first.")
         if self.samples is None:  # Use this as a sort of lazy property
             self.samples, _ = self._load_sub_set_from_files(self.used_filenames)
+        self.samples = [change_win_to_unix_path_if_needed(p) for p in self.samples]
         return self.samples

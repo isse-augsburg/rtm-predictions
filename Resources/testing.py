@@ -9,15 +9,16 @@ def running_in_docker():
 
 
 test_src_dir = Path(r'/cfs/home/s/t/stiebesi/code/tests/test_data')
-
+torch_datasets = test_src_dir / "TestSaveDatasetsTorch" / "unix"
 if running_in_docker():
     test_out_dir = Path('/cache')
 else:
     test_out_dir = Path(f'/cfs/share/cache/output_{getpass.getuser()}/tests')
 
-if getpass.getuser() == 'stiebesi':
+if os.name == "nt":
     test_out_dir = Path(r'C:\Users\stiebesi\CACHE\test_output')
     test_src_dir = Path(r'X:\s\t\stiebesi\code\tests\test_data')
+    torch_datasets = test_src_dir / "TestSaveDatasetsTorch" / "win"
 
 test_training_src_dir = test_src_dir
 test_pipeline_dir = test_src_dir
