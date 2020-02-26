@@ -5,6 +5,7 @@ from functools import partial
 from multiprocessing.pool import Pool
 from pathlib import Path
 from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import normalize
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -123,7 +124,7 @@ class SensorToFlowfrontEvaluator(Evaluator):
 
 
 class BinaryClassificationEvaluator(Evaluator):
-    """Evaluator specifically for binary classification. Calculates common metrices and a confusion matrix.
+    """Evaluator specifically for binary classification. Calculates common metrics and a confusion matrix.
     """
 
     def __init__(self, save_path: Path = None, skip_images=True, with_text_overlay=False, summary_writer=None):
@@ -145,8 +146,8 @@ class BinaryClassificationEvaluator(Evaluator):
         """Updates the confusion matrix and updates the metrics. 
 
         Args: 
-            net_output: single prediction of the model. 
-            label: single label for the prediction.
+            net_output: predictions of the model
+            label: associated labels
         """
         net_output = net_output.numpy()
         invalid = np.argwhere(np.isnan(net_output[:, 0]))
@@ -197,20 +198,23 @@ class BinaryClassificationEvaluator(Evaluator):
             str(self.tn),
             str(self.fn)
         )
-        acc = self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
-        prec = self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
-        recall = self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
-        spec = self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+
         if self.summary_writer is not None:
+            acc = self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+            prec = self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+            recall = self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+            spec = self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
             class_names = ["Not OK", "OK"]
-            conf_mat_rel = self.__plot_confusion_matrix(self.confusion_matrix, class_names, True)
-            conf_mat_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names, False)
+            conf_mat_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names)
+            conf_mat_classnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'class')
+            conf_mat_allnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'all')
             self.summary_writer.add_scalar("Validation/Accuracy", acc, step_count)
             self.summary_writer.add_scalar("Validation/Precision", prec, step_count)
             self.summary_writer.add_scalar("Validation/Recall", recall, step_count)
             self.summary_writer.add_scalar("Validation/Specificity", spec, step_count)
-            self.summary_writer.add_figure("Confusion_Matrix/Relative", conf_mat_rel, step_count)
             self.summary_writer.add_figure("Confusion_Matrix/Absolute", conf_mat_abs, step_count)
+            self.summary_writer.add_figure("Confusion_Matrix/Normalized_overall", conf_mat_allnorm, step_count)
+            self.summary_writer.add_figure("Confusion_Matrix/Normalized_by_class", conf_mat_classnorm, step_count)
         logger.info(f"Accuracy: {acc:7.4f}, Precision: {prec:7.4f}, Recall: {recall:7.4f}, Specificity: {spec:7.4f}")
         df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
         df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)
@@ -225,29 +229,29 @@ class BinaryClassificationEvaluator(Evaluator):
 
     @staticmethod
     def __calc_accuracy(tp, fp, tn, fn):
-        return (tp + tn) / max((tp + tn + fp + fn), 0.00000001)
+        return (tp + tn) / max((tp + tn + fp + fn), 1e-8)
 
     @staticmethod
     def __calc_precision(tp, fp, tn, fn):
-        return tp / max((tp + fp), 0.00000001)
+        return tp / max((tp + fp), 1e-8)
 
     @staticmethod
     def __calc_recall(tp, fp, tn, fn):
-        return tp / max((tp + fn), 0.00000001)
+        return tp / max((tp + fn), 1e-8)
 
     @staticmethod
     def __calc_specificity(tp, fp, tn, fn):
-        return tn / max((tn + fp), 0.00000001)
+        return tn / max((tn + fp), 1e-8)
 
     @staticmethod
-    def __plot_confusion_matrix(cm, class_names, normalize=True):
+    def __plot_confusion_matrix(cm, class_names, norm=''):
         plt.rcParams['figure.constrained_layout.use'] = True
         figure = plt.figure(figsize=(len(class_names) + 1, len(class_names) + 1), dpi=150)
 
-        if normalize:
-            cm_sum = cm.sum(axis=1)
-            cm_sum = np.maximum(cm_sum, np.full(cm_sum.shape, 0.00000001))
-            cm = np.around(cm.astype('float') / cm_sum[:, np.newaxis], decimals=2)
+        if norm == 'class':
+            cm = np.around(normalize(cm, norm='l1', axis=1), decimals=2)
+        elif norm == 'all':
+            cm = np.around(cm / (cm.sum() + 1e-8), decimals=2)
 
         plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Oranges, vmin=0, vmax=np.sum(cm, 1).max())
         tick_marks = np.arange(len(class_names))
