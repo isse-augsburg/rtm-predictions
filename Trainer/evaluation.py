@@ -130,6 +130,7 @@ class BinaryClassificationEvaluator(Evaluator):
     def __init__(self, save_path: Path = None, skip_images=True, with_text_overlay=False, summary_writer=None):
         super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
+        self.accuracy, self.precision, self.recall, self.specificity = 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
         self.save_path = save_path
         self.skip_images = skip_images
@@ -143,7 +144,7 @@ class BinaryClassificationEvaluator(Evaluator):
         plt.set_loglevel('warning')
 
     def commit(self, net_output, label, inputs, aux, *args):
-        """Updates the confusion matrix and updates the metrics. 
+        """Updates the confusion matrix.
 
         Args: 
             net_output: predictions of the model
@@ -159,10 +160,6 @@ class BinaryClassificationEvaluator(Evaluator):
         predictions = np.around(net_output[:, 0])
 
         self.confusion_matrix = np.add(self.confusion_matrix, confusion_matrix(label, predictions, labels=[0, 1]))
-        self.tn = self.confusion_matrix[0, 0]
-        self.fp = self.confusion_matrix[0, 1]
-        self.fn = self.confusion_matrix[1, 0]
-        self.tp = self.confusion_matrix[1, 1]
 
         if not self.skip_images:
             for sample in range(predictions.size):
@@ -190,58 +187,46 @@ class BinaryClassificationEvaluator(Evaluator):
         """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall,
         Specificity and the confusion matrix.
         """
+        self.__update_metrics()
+
         logger = logging.getLogger(__name__)
-        logger.info(
-            "True positives: %s, False positives: %s, True negatives: %s, False negatives: %s",
-            str(self.tp),
-            str(self.fp),
-            str(self.tn),
-            str(self.fn)
-        )
+        logger.info(f"True positives: {self.tp}, False positives: {self.fp}, True negatives: {self.tn}, "
+                    f"False negatives: {self.fn}")
 
         if self.summary_writer is not None:
-            acc = self.__calc_accuracy(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
-            prec = self.__calc_precision(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
-            recall = self.__calc_recall(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
-            spec = self.__calc_specificity(tp=self.tp, fp=self.fp, tn=self.tn, fn=self.fn)
+            self.summary_writer.add_scalar("Validation/Accuracy", self.accuracy, step_count)
+            self.summary_writer.add_scalar("Validation/Precision", self.precision, step_count)
+            self.summary_writer.add_scalar("Validation/Recall", self.recall, step_count)
+            self.summary_writer.add_scalar("Validation/Specificity", self.specificity, step_count)
             class_names = ["Not OK", "OK"]
             conf_mat_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names)
             conf_mat_classnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'class')
             conf_mat_allnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'all')
-            self.summary_writer.add_scalar("Validation/Accuracy", acc, step_count)
-            self.summary_writer.add_scalar("Validation/Precision", prec, step_count)
-            self.summary_writer.add_scalar("Validation/Recall", recall, step_count)
-            self.summary_writer.add_scalar("Validation/Specificity", spec, step_count)
             self.summary_writer.add_figure("Confusion_Matrix/Absolute", conf_mat_abs, step_count)
             self.summary_writer.add_figure("Confusion_Matrix/Normalized_overall", conf_mat_allnorm, step_count)
             self.summary_writer.add_figure("Confusion_Matrix/Normalized_by_class", conf_mat_classnorm, step_count)
-        logger.info(f"Accuracy: {acc:7.4f}, Precision: {prec:7.4f}, Recall: {recall:7.4f}, Specificity: {spec:7.4f}")
+
+        logger.info(f"Accuracy: {self.accuracy:7.4f}, Precision: {self.precision:7.4f}, Recall: {self.recall:7.4f}, "
+                    f"Specificity: {self.specificity:7.4f}")
         df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
         df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)
         logger.info(f'Confusion matrix:\n{df}')
 
+    def __update_metrics(self):
+        self.tn = self.confusion_matrix[0, 0]
+        self.fp = self.confusion_matrix[0, 1]
+        self.fn = self.confusion_matrix[1, 0]
+        self.tp = self.confusion_matrix[1, 1]
+        self.accuracy = (self.tp + self.tn) / max((self.tp + self.tn + self.fp + self.fn), 1e-8)
+        self.precision = self.tp / max((self.tp + self.fp), 1e-8)
+        self.recall = self.tp / max((self.tp + self.fn), 1e-8)
+        self.specificity = self.tn / max((self.tn + self.fp), 1e-8)
+
     def reset(self):
         """Resets the internal counters for the next evaluation loop. 
         """
-
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
-
-    @staticmethod
-    def __calc_accuracy(tp, fp, tn, fn):
-        return (tp + tn) / max((tp + tn + fp + fn), 1e-8)
-
-    @staticmethod
-    def __calc_precision(tp, fp, tn, fn):
-        return tp / max((tp + fp), 1e-8)
-
-    @staticmethod
-    def __calc_recall(tp, fp, tn, fn):
-        return tp / max((tp + fn), 1e-8)
-
-    @staticmethod
-    def __calc_specificity(tp, fp, tn, fn):
-        return tn / max((tn + fp), 1e-8)
 
     @staticmethod
     def __plot_confusion_matrix(cm, class_names, norm=''):
