@@ -3,7 +3,7 @@ import logging
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn import Conv2d, ConvTranspose2d, Linear, MSELoss
+from torch.nn import Conv2d, ConvTranspose2d, Linear
 
 from Models.model_utils import load_model_layers_from_path
 from Utils.training_utils import count_parameters
@@ -308,6 +308,76 @@ class SensorDeconvToDryspot2(nn.Module):
             else:
                 continue
         self.load_state_dict(new_model_state_dict, strict=False)
+
+
+class S80DeconvToDrySpotEff(nn.Module):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0): # Could be 7
+        super(S80DeconvToDrySpotEff, self).__init__()
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
+        self.ct5 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.ct6 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
+
+        self.c1 = Conv2d(8, 32, 11, stride=2)
+        self.ck = Conv2d(32, 32, 3, padding=0)
+        self.cj = Conv2d(32, 1, 3, padding=0)
+
+        self.cc2 = Conv2d(1, 16, 21)
+        self.cc3 = Conv2d(16, 64, 13)
+        self.cc4 = Conv2d(64, 256, 5)
+        self.cc5 = Conv2d(256, 512, 3)
+        self.cc6 = Conv2d(512, 1024, 1)
+
+        self.maxpool = nn.MaxPool2d(2, 2)
+        self.dropout = nn.Dropout(.3)
+        self.lin1 = nn.Linear(1024 * 3, 512)
+        self.lin3 = nn.Linear(512, 1)
+
+        if pretrained == "deconv_weights":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct3', 'ct5', 'ct6', 'c1', 'ck', 'cj'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
+    def forward(self, inputs):
+        inputs = inputs.reshape((-1, 1, 10, 8))
+        x = F.relu(self.ct1(inputs))
+        x = F.relu(self.ct3(x))
+        x = F.relu(self.ct5(x))
+        x = F.relu(self.ct6(x))
+
+        x = F.relu(self.c1(x))
+        x = F.relu(self.ck(x))
+        x = F.relu(self.cj(x))
+        ###
+        x = F.relu(self.maxpool(self.cc2(x)))
+        x = F.relu(self.maxpool(self.cc3(x)))
+        x = F.relu(self.maxpool(self.cc4(x)))
+        x = F.relu(self.cc5(x))
+        x = F.relu(self.cc6(x))
+        x = x.view((x.shape[0], 3 * 1024, -1)).contiguous()
+        x = x.mean(-1).contiguous()
+        x = self.dropout(x)
+        x = F.relu(self.lin1(x))
+        x = self.dropout(x)
+        # x = F.relu(self.lin2(x))
+        # x = self.dropout(x)
+        x = torch.sigmoid(self.lin3(x))
+        return x
 
 
 class S20DeconvToDrySpotEff(nn.Module):
@@ -727,21 +797,13 @@ class S20Channel4toDrySpot(nn.Module):
 
 
 if __name__ == "__main__":
-    model = S20Channel4toDrySpot()
-    m = model.cuda()
+    model = S80DeconvToDrySpotEff(freeze_nlayers=7)
     print('param count:', count_parameters(model))
-    # em = torch.empty((1, 1140)).cuda()
-    em = torch.randn((64, 20, 4)).cuda()
-    label = torch.randn((64, 1)).cuda()
-    optimizer = torch.optim.Adam(m.parameters())
-    loss_crit = MSELoss()
-    optimizer.zero_grad()
+    m = model.cuda()
+    em = torch.randn((1, 80)).cuda()
     out = m(em)
 
-    loss = loss_crit(out, label)
-    loss.backward()
-    optimizer.step()
-    print(out.shape)
+    print('end', out.shape)
 
     # # torch.tensor(np.arange(1., 1141.)).reshape((38, 30))[1::8, 1::8]
     # # Look up in PAM RTM or plot

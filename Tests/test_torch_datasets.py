@@ -36,8 +36,6 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                          classification_evaluator_function=lambda summary_writer:
                          BinaryClassificationEvaluator(summary_writer=summary_writer),
-                         save_torch_dataset_path=out_path / Path(__file__).stem,
-                         load_torch_dataset_path=load_torch_dataset_path,
                          )
         m.start_training()
         return m
