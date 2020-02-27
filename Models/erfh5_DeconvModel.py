@@ -59,8 +59,6 @@ class S20DeconvModelEfficient(nn.Module):
         self.details2 = Conv2d(8, 1, 3, padding=0)
 
     def forward(self, inputs):
-        # fr = inputs.reshape((-1, 1, 38, 30))
-        # frs = fr[:, :, 3::8, 3::8]
         inp = inputs.reshape((-1, 1, 5, 4))
         k = F.relu(self.ct1(inp))
         k = F.relu(self.ct2(k))
@@ -70,6 +68,33 @@ class S20DeconvModelEfficient(nn.Module):
         k = F.relu(self.details(k))
         k = torch.sigmoid(self.details2(k))
         return torch.squeeze(k, dim=1)
+
+
+class S80DeconvModelEfficient(nn.Module):
+    def __init__(self):
+        super(S80DeconvModelEfficient, self).__init__()
+
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
+        self.ct5 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.ct6 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
+
+        self.c1 = Conv2d(8, 32, 11, stride=2)
+        self.ck = Conv2d(32, 32, 3, padding=0)
+        self.cj = Conv2d(32, 1, 3, padding=0)
+
+    def forward(self, inputs):
+        inp = inputs.reshape((-1, 1, 10, 8))
+        x = F.relu(self.ct1(inp))
+        x = F.relu(self.ct3(x))
+        x = F.relu(self.ct5(x))
+        x = F.relu(self.ct6(x))
+
+        x = F.relu(self.c1(x))
+        x = F.relu(self.ck(x))
+        x = torch.sigmoid(self.cj(x))
+
+        return torch.squeeze(x, dim=1)
 
 
 class DeconvModelEfficient(nn.Module):
@@ -258,10 +283,10 @@ if __name__ == "__main__":
     # model = SensorDeconvToDryspot()
     # model = DeconvModelEfficientBn()
     # model = DeconvModelEfficient()
-    model = S20DeconvModelEfficient()
+    model = S80DeconvModelEfficient()
     print('param count:', count_parameters(model))
     m = model.cuda()
-    em = torch.empty((1, 20)).cuda()
+    em = torch.empty((1, 80)).cuda()
     out = m(em)
 
     print('end', out.shape)

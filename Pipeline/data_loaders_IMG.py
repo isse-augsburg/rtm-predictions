@@ -32,7 +32,7 @@ class DataloaderImages:
         self.sensor_indizes = sensor_indizes
         self.skip_indizes = skip_indizes
 
-    def _get_flowfront(self, f, meta_f, states=None):
+    def _get_flowfront(self, f: h5py.File, meta_f: h5py.File, states=None):
         """
         Load the flow front for the given states or all available states if states is None
         """
@@ -170,9 +170,8 @@ class DataloaderImages:
     def _get_coords(self, f: h5py.File):
         if self.coords is not None:
             return self.coords
-        _coords = extract_coords_of_mesh_nodes(Path(f.filename))
-        self.coords = _coords
-        return _coords
+        self.coords = extract_coords_of_mesh_nodes(Path(f.filename))
+        return self.coords
 
 
 class DataloaderImageSequences(DataloaderImages):

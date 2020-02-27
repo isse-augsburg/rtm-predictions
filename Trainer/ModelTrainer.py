@@ -15,6 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 import Resources.training as r
 from Pipeline import torch_datagenerator as td
 from Utils import logging_cfg
+from Utils.data_utils import handle_torch_caching
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
 
@@ -85,8 +86,7 @@ class ModelTrainer:
         classification_evaluator_function=None,
         checkpointing_strategy=CheckpointingStrategy.Best,
         run_eval_step_before_training=False,
-        save_torch_dataset_path=None,
-        load_torch_dataset_path=None
+        dont_care_num_samples=False
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -113,8 +113,12 @@ class ModelTrainer:
         self.model_name = "Model"
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
-        self.load_torch_dataset_path = load_torch_dataset_path
-        self.save_torch_dataset_path = save_torch_dataset_path
+
+        load_and_save_path = handle_torch_caching(self.data_processing_function)
+
+        self.load_torch_dataset_path = load_and_save_path
+        self.save_torch_dataset_path = load_and_save_path
+
         self.optimizer_function = optimizer_function
         self.lr_scheduler_function = lr_scheduler_function
         self.lr_scheduler = None
@@ -128,8 +132,9 @@ class ModelTrainer:
         self.classification_evaluator = None
         self.writer = None
         self.run_eval_step_before_training = run_eval_step_before_training
+        self.dont_care_num_samples = dont_care_num_samples
 
-    def __create_datagenerator(self):
+    def __create_datagenerator(self, test_mode=False):
         try:
             generator = td.LoopingDataGenerator(
                 self.data_source_paths,
@@ -145,7 +150,9 @@ class ModelTrainer:
                 cache_mode=self.cache_mode,
                 looping_strategy=self.looping_strategy,
                 save_torch_dataset_path=self.save_torch_dataset_path,
-                load_torch_dataset_path=self.load_torch_dataset_path
+                load_torch_dataset_path=self.load_torch_dataset_path,
+                dont_care_num_samples=self.dont_care_num_samples,
+                test_mode=test_mode
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -195,6 +202,7 @@ class ModelTrainer:
         self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
         self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
         dl_info = self.data_processing_function.__self__.__dict__
+        dl_info["data_processing_function"] = self.data_processing_function.__name__
         dl_str = '  \n'.join([f"{k}: {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
         self.writer.add_text("Data/DataLoader", f"{dl_str}")
 
@@ -424,7 +432,7 @@ class ModelTrainer:
         self.__create_model_and_optimizer()
 
         logger.info("Generating Test Generator")
-        data_generator = self.__create_datagenerator()
+        data_generator = self.__create_datagenerator(test_mode=True)
         logger.info("Loading Checkpoint")
         if checkpoint_path is not None:
             self.__load_checkpoint(checkpoint_path)
@@ -434,5 +442,6 @@ class ModelTrainer:
         data_list = data_generator.get_test_samples()
         if classification_evaluator_function is not None:
             self.classification_evaluator = classification_evaluator_function(summary_writer=None)
+        logger.info("Starting inference")
         self.__eval(data_list, test_mode=True)
         logging.shutdown()

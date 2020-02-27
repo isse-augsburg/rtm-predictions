@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 import re
 from pathlib import Path
@@ -5,6 +7,35 @@ from pathlib import Path
 import h5py
 import numpy as np
 from scipy import spatial
+
+import Resources.training as r
+
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
+
+def handle_torch_caching(processing_function):
+    data_loader_info = processing_function.__self__.__dict__
+    data_loader_info["data_processing_function"] = processing_function.__name__
+    data_loader_info["data_loader_name"] = processing_function.__self__.__class__.__name__
+    data_loader_hash = hashlib.md5(str(data_loader_info).encode("utf-8")).hexdigest()
+    load_and_save_path = r.datasets_dryspots_torch / data_loader_hash
+    load_and_save_path.mkdir(exist_ok=True)
+
+    if (r.datasets_dryspots_torch / "info.json").is_file():
+        with open(r.datasets_dryspots_torch / "info.json", "r") as f:
+            data = json.load(f)
+    else:
+        data = {}
+    data.update({data_loader_hash: data_loader_info})
+    with open(r.datasets_dryspots_torch / "info.json", "w") as f:
+        json.dump(data, f, cls=NumpyEncoder)
+
+    return load_and_save_path
 
 
 def extract_sensor_coords(fn: Path, indices=((0, 1), (0, 1))):

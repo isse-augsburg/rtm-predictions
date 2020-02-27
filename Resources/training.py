@@ -20,7 +20,7 @@ else:
     cache_path = None
 
 _stiebesi_home = _home / 's/t/stiebesi'
-_output_stiebesi = _share_path / Path('cache/output_stiebesi')
+output_stiebesi = _share_path / Path('cache/output_stiebesi')
 _results = _stiebesi_home / 'results'
 _ijcai = _results / 'IJCAI_PRICAI_20_FlowFrontNet'
 _ij_S1140_deconv_conv = _ijcai / "S1140_to_DS_deconv_conv"
@@ -50,7 +50,7 @@ chkp_S1140_to_ds_frozen_deeper_convnet2 = _ij_S1140_deconv_conv / \
     "2020-01-22_16-44-26_S1140_to_DS_frozen_deeper_convnet" / \
     "checkpoint_best_val_loss.pth"
 
-chkp_S20_to_ff = _output_stiebesi / "2020-01-10_15-09-30/checkpoint0_2055val.pth"
+chkp_S20_to_ff = output_stiebesi / "2020-01-10_15-09-30/checkpoint0_2055val.pth"
 chkp_S20_to_ff_basepr_0 = _ij_S20_deconv_conv / "2020-02-14_16-05-28_S_to_FF" / chkp
 
 # data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'

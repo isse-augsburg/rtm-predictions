@@ -3,7 +3,7 @@ import logging
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn import Conv2d, ConvTranspose2d, Linear
+from torch.nn import Conv2d, ConvTranspose2d, Linear, MSELoss
 
 from Models.model_utils import load_model_layers_from_path
 from Utils.training_utils import count_parameters
@@ -693,26 +693,64 @@ class SensorDeconvToDryspotEfficient2(nn.Module):
         return x
 
 
+class S20Channel4toDrySpot(nn.Module):
+    def __init__(self):
+        super(S20Channel4toDrySpot, self).__init__()
+        self.c1 = Conv2d(4, 16, 3, stride=1)
+        self.c2 = Conv2d(16, 64, 1, stride=1)
+        self.c3 = Conv2d(64, 256, 1, stride=1)
+        self.c4 = Conv2d(256, 512, 1, stride=1)
+        self.c5 = Conv2d(512, 1024, 1, stride=1)
+        self.c6 = Conv2d(1024, 2048, 1, stride=1)
+
+        self.fc1 = nn.Linear(2048, 512)
+        self.fc2 = nn.Linear(512, 1)
+
+    def forward(self, _inputs):
+        _inputs = _inputs.contiguous()
+        x = _inputs.permute(0, 2, 1).reshape((-1, 4, 5, 4))
+        x = x.contiguous()
+        x = F.relu(self.c1(x))
+        x = F.relu(self.c2(x))
+        x = F.relu(self.c3(x))
+        x = F.relu(self.c4(x))
+        x = F.relu(self.c5(x))
+        x = F.relu(self.c6(x)).contiguous()
+
+        x = x.view((x.shape[0], 2048, -1)).contiguous()
+        x = x.mean(-1).contiguous()
+
+        x = F.relu(self.fc1(x))
+        x = torch.sigmoid(self.fc2(x))
+
+        return x
+
+
 if __name__ == "__main__":
-    # model = DrySpotModel()
-    model = S20DeconvToDrySpotEff2(freeze_nlayers=5)
+    model = S20Channel4toDrySpot()
     m = model.cuda()
     print('param count:', count_parameters(model))
-    print(m.state_dict().keys())
-
-    # Img:
-    # em = torch.empty((1, 143, 111)).cuda()
-    em = torch.empty((1, 20)).cuda()
-    # fr[:, :, 1::8, 1::8]
-    # How to get the numbers of used sensors:
-    # torch.tensor(np.arange(1., 1141.)).reshape((38, 30))[1::8, 1::8]
-    # Look up in PAM RTM or plot
-    # for 1::8, 1::8
-    # tensor([[  32.,   40.,   48.,   56.],
-    #         [ 272.,  280.,  288.,  296.],
-    #         [ 512.,  520.,  528.,  536.],
-    #         [ 752.,  760.,  768.,  776.],
-    #         [ 992., 1000., 1008., 1016.]], dtype=torch.float64)
+    # em = torch.empty((1, 1140)).cuda()
+    em = torch.randn((64, 20, 4)).cuda()
+    label = torch.randn((64, 1)).cuda()
+    optimizer = torch.optim.Adam(m.parameters())
+    loss_crit = MSELoss()
+    optimizer.zero_grad()
     out = m(em)
 
+    loss = loss_crit(out, label)
+    loss.backward()
+    optimizer.step()
     print(out.shape)
+
+    # # torch.tensor(np.arange(1., 1141.)).reshape((38, 30))[1::8, 1::8]
+    # # Look up in PAM RTM or plot
+    # # for 1::8, 1::8
+    # # tensor([[  32.,   40.,   48.,   56.],
+    # #         [ 272.,  280.,  288.,  296.],
+    # #         [ 512.,  520.,  528.,  536.],
+    # #         [ 752.,  760.,  768.,  776.],
+    # #         [ 992., 1000., 1008., 1016.]], dtype=torch.float64)
+    # out = m(em)
+    #
+    # print(out.shape)
