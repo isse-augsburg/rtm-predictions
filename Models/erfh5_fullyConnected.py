@@ -65,11 +65,46 @@ class S20DryspotModelFCWide(nn.Module):
         return out
 
 
+class S80DryspotModelFCWide(nn.Module):
+    def __init__(self, input_dim=80):
+        super(S80DryspotModelFCWide, self).__init__()
+        self.fc = nn.Linear(input_dim, 4096)
+        self.fc2 = nn.Linear(4096, 2048)
+        self.fc3 = nn.Linear(2048, 1)
+
+    def forward(self, _input):
+        out = F.leaky_relu(self.fc(_input))
+        out = F.relu(self.fc2(out))
+        out = torch.sigmoid(self.fc3(out))
+        return out
+
+
+class S20DSModelFC4ChannelsFlatten(nn.Module):
+    def __init__(self, input_dim=20 * 4):
+        """
+        This Model makes not sense, it was originally meant to be used as a baseline against the
+        20 Pressuresensor network and the 20 Sensor FF/Vel. Network. But flattening the channels makes no sense,
+        because the channels are meant to preserve the local information at certain time stamps.
+        """
+        super(S20DSModelFC4ChannelsFlatten, self).__init__()
+        self.fc = nn.Linear(input_dim, 4096)
+        self.fc2 = nn.Linear(4096, 2048)
+        self.fc3 = nn.Linear(2048, 1)
+
+    def forward(self, _input):
+        _input = _input.view((-1, _input.shape[1] * _input.shape[2]))
+        out = F.leaky_relu(self.fc(_input))
+        out = F.relu(self.fc2(out))
+        out = torch.sigmoid(self.fc3(out))
+        return out
+
+
 if __name__ == "__main__":
-    model = S1140DryspotModelFCWide()
+    model = S20DSModelFC4ChannelsFlatten()
     m = model.cuda()
     print('param count:', count_parameters(model))
-    em = torch.empty((1, 1140)).cuda()
+    # em = torch.empty((1, 1140)).cuda()
+    em = torch.empty((64, 20, 4)).cuda()
     out = m(em)
 
     print(out.shape)

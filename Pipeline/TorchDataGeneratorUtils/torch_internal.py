@@ -39,9 +39,7 @@ class FileSetIterator:
         err = '''The data loader seems to return instances in the wrong format. 
                 The required format is [(data_1, label1, [aux_1]), ... , 
                 (data_n, label_n, [aux_n])] or None.'''
-        assert isinstance(
-            instance, list
-        ), err
+        assert isinstance(instance, list), err
         for idx, i in enumerate(instance):
             assert isinstance(i, tuple), err
             if len(i) == 2:
@@ -264,13 +262,20 @@ class SubSetGenerator:
         save_path (Path): A path for saving the used splits
     """
 
-    def __init__(self, load_data, subset_name, num_samples, load_path=None, save_path=None):
+    def __init__(self,
+                 load_data,
+                 subset_name: str,
+                 num_samples: int,
+                 load_path=None,
+                 save_path=None,
+                 dont_care_num_samples=False):
         self.logger = logging.getLogger(__name__)
         self.load_data = load_data
         self.num_samples = num_samples
 
         self.save_dir = save_path
         self.load_dir = load_path
+        self.dont_care_num_samples = dont_care_num_samples
 
         filename = f"{subset_name}.p"
         self.load_file = None
@@ -295,11 +300,17 @@ class SubSetGenerator:
     def _load_sub_set_from_files(self, file_paths):
         self.logger.debug(f"Loading samples for {self.subset_name}")
         sample_iterator = FileSetIterator(file_paths, self.load_data)
-        try:
-            subset = [next(sample_iterator) for _ in range(self.num_samples)]
-        except StopIteration:
-            raise ValueError(f"Not enough samples to create subset {self.subset_name}")
-
+        subset = []
+        for i in range(self.num_samples):
+            try:
+                subset.append(next(sample_iterator))
+            except StopIteration:
+                if self.dont_care_num_samples:
+                    self.logger.debug(f"DONT CARE Not enough samples to create subset {self.subset_name}:"
+                                      f"Could create {len(subset)} of {self.num_samples} samples")
+                    break
+                else:
+                    raise ValueError(f"Not enough samples to create subset {self.subset_name}")
         return subset, sample_iterator.get_remaining_files()
 
     def prepare_subset(self, file_paths):
