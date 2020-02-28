@@ -311,7 +311,7 @@ class SensorDeconvToDryspot2(nn.Module):
 
 
 class S80DeconvToDrySpotEff(nn.Module):
-    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0): # Could be 7
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):  # Could be 7
         super(S80DeconvToDrySpotEff, self).__init__()
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
