@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 import Resources.training as r
-from Models.erfh5_DeconvModel import S80DeconvModelEfficient
+from Models.erfh5_DeconvModel import S80DeconvModelEfficient2
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImages
 from Trainer.ModelTrainer import ModelTrainer
@@ -13,11 +13,11 @@ from Utils.training_utils import read_cmd_params
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    dl = DataloaderImages(image_size=(106, 90),
+    dl = DataloaderImages(image_size=(112, 96),
                           sensor_indizes=((1, 4), (1, 4)))
 
     m = ModelTrainer(
-        lambda: S80DeconvModelEfficient(),
+        lambda: S80DeconvModelEfficient2(),
         data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path,
         load_datasets_path=r.datasets_dryspots,
