@@ -23,6 +23,7 @@ def handle_torch_caching(processing_function):
     data_loader_info["data_processing_function"] = processing_function.__name__
     data_loader_info["data_loader_name"] = processing_function.__self__.__class__.__name__
     data_loader_hash = hashlib.md5(str(data_loader_info).encode("utf-8")).hexdigest()
+    print(data_loader_hash)
     load_and_save_path = r.datasets_dryspots_torch / data_loader_hash
     load_and_save_path.mkdir(exist_ok=True)
 
