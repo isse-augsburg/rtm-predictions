@@ -145,7 +145,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.assertEqual(old_paths, new_paths)
             logging.shutdown()
 
-    def tearDown(self) -> None:
-        logging.shutdown()
-        if self.load_and_save_path.exists():
-            shutil.rmtree(self.load_and_save_path)
+    # def tearDown(self) -> None:
+    #     logging.shutdown()
+    #     if self.load_and_save_path.exists():
+    #         shutil.rmtree(self.load_and_save_path)
