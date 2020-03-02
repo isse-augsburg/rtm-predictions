@@ -380,6 +380,80 @@ class S80DeconvToDrySpotEff(nn.Module):
         return x
 
 
+class S80Deconv2ToDrySpotEff(nn.Module):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):  # Could be 9
+        super(S80Deconv2ToDrySpotEff, self).__init__()
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
+        self.ct5 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.ct6 = ConvTranspose2d(32, 16, 17, stride=2, padding=0)
+        self.ctr = ConvTranspose2d(16, 8, 19, stride=1, padding=0)
+
+        self.c1 = Conv2d(8, 32, 11, stride=2, padding=1)
+        self.cu = Conv2d(32, 64, 7, stride=1, padding=1)
+        self.ck = Conv2d(64, 32, 3, padding=0)
+        self.cj = Conv2d(32, 1, 3, padding=0)
+
+        self.cc2 = Conv2d(1, 16, 21)
+        self.cc3 = Conv2d(16, 64, 13)
+        self.cc4 = Conv2d(64, 256, 5)
+        self.cc5 = Conv2d(256, 512, 3)
+        self.cc6 = Conv2d(512, 1024, 1)
+
+        self.maxpool = nn.MaxPool2d(2, 2)
+        self.dropout = nn.Dropout(.3)
+        self.lin1 = nn.Linear(1024 * 2, 512)
+        self.lin3 = nn.Linear(512, 1)
+
+        if pretrained == "deconv_weights":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct3', 'ct5', 'ct6', 'ctr',
+                                                               'c1', 'cu', 'ck', 'cj'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
+    def forward(self, inputs):
+        inputs = inputs.reshape((-1, 1, 10, 8))
+        x = F.relu(self.ct1(inputs))
+        x = F.relu(self.ct3(x))
+        x = F.relu(self.ct5(x))
+        x = F.relu(self.ct6(x))
+        x = F.relu(self.ctr(x))
+
+        x = F.relu(self.c1(x))
+        x = F.relu(self.cu(x))
+        x = F.relu(self.ck(x))
+        x = F.relu(self.cj(x))
+        ###
+        x = F.relu(self.maxpool(self.cc2(x)))
+        x = F.relu(self.maxpool(self.cc3(x)))
+        x = F.relu(self.maxpool(self.cc4(x)))
+
+        x = F.relu(self.maxpool(self.cc5(x)))
+        x = F.relu(self.cc6(x))
+        x = x.view((x.shape[0], 2 * 1024, -1)).contiguous()
+        x = x.mean(-1).contiguous()
+        x = self.dropout(x)
+        x = F.relu(self.lin1(x))
+        x = self.dropout(x)
+        x = torch.sigmoid(self.lin3(x))
+        return x
+
+
 class S20DeconvToDrySpotEff(nn.Module):
     def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
         super(S20DeconvToDrySpotEff, self).__init__()
@@ -797,7 +871,7 @@ class S20Channel4toDrySpot(nn.Module):
 
 
 if __name__ == "__main__":
-    model = S80DeconvToDrySpotEff(freeze_nlayers=7)
+    model = S80Deconv2ToDrySpotEff(freeze_nlayers=9)
     print('param count:', count_parameters(model))
     m = model.cuda()
     em = torch.randn((1, 80)).cuda()

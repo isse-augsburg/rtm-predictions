@@ -54,6 +54,7 @@ chkp_S1140_to_ds_frozen_deeper_convnet2 = _ij_S1140_deconv_conv / \
 chkp_S20_to_ff = output_stiebesi / "2020-01-10_15-09-30/checkpoint0_2055val.pth"
 chkp_S20_to_ff_basepr_0 = _ij_S20_deconv_conv / "2020-02-14_16-05-28_S_to_FF" / chkp
 chkp_S80_to_ff = _ij_S80_deconv_conv / "2020-02-26_17-12-48_deconv_first_try" / chkp
+chkp_S80_to_ff2 = _ij_S80_deconv_conv / "2020-02-28_12-07-38_deconv_second_try" / chkp
 
 # data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'
 data_root = _share_path / 'data/RTM/Leoben/sim_output'
