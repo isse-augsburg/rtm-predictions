@@ -114,7 +114,8 @@ class ModelTrainer:
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
 
-        load_and_save_path = handle_torch_caching(self.data_processing_function)
+        load_and_save_path, data_loader_hash = handle_torch_caching(self.data_processing_function)
+        self.data_loader_hash = data_loader_hash
 
         self.load_torch_dataset_path = load_and_save_path
         self.save_torch_dataset_path = load_and_save_path

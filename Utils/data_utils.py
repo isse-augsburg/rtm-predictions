@@ -37,7 +37,7 @@ def handle_torch_caching(processing_function):
     with open(r.datasets_dryspots_torch / "info.json", "w") as f:
         json.dump(data, f, cls=NumpyEncoder)
 
-    return load_and_save_path
+    return load_and_save_path, data_loader_hash
 
 
 def extract_sensor_coords(fn: Path, indices=((0, 1), (0, 1))):

@@ -21,9 +21,6 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         self.torch_dataset_resources = test_resources.torch_datasets
         self.torch_all_datasets = self.torch_dataset_resources / "all"
         self.reference_datasets_torch = tr_resources.datasets_dryspots_torch
-        # Hash of the dataloader and datalprocessing_function of these tests
-        self.reference_hash = "71cf3ef38ca8a742922d7cf6bb8ac2a0"
-        self.load_and_save_path = self.reference_datasets_torch / self.reference_hash
 
     def create_trainer_and_start(self, out_path, epochs=1):
         dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
@@ -64,11 +61,10 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsSaving") as tempdir:
             out_path = Path(tempdir)
             m = self.create_trainer_and_start(out_path, epochs=2)
-
-            self.assertTrue((self.load_and_save_path / "train_set_torch.p").is_file())
-            self.assertTrue((self.load_and_save_path / "val_set_torch.p").is_file())
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch.p").is_file())
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
             m.inference_on_test_set()
-            self.assertTrue((self.load_and_save_path / "test_set_torch.p").is_file())
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "test_set_torch.p").is_file())
             logging.shutdown()
 
     def test_load_all_data_sets(self):
