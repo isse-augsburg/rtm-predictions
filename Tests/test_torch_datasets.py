@@ -147,4 +147,5 @@ class TestSaveDatasetsTorch(unittest.TestCase):
 
     def tearDown(self) -> None:
         logging.shutdown()
-        shutil.rmtree(self.load_and_save_path)
+        if self.load_and_save_path.exists():
+            shutil.rmtree(self.load_and_save_path)
