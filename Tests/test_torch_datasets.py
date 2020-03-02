@@ -40,7 +40,6 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          classification_evaluator_function=lambda summary_writer:
                          BinaryClassificationEvaluator(summary_writer=summary_writer),
                          )
-        m.start_training()
         return m
 
     def compare_old_new_dataset(self, old_data: list, new_data: list):
@@ -52,15 +51,16 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             osourcepath = change_win_to_unix_path_if_needed(osourcepath["sourcefile"])
             self.assertEqual(osourcepath, nsourcepath["sourcefile"])
 
-    def copy_list_of_files_to_load_and_save_path(self, files: list):
-        self.load_and_save_path.mkdir(exist_ok=True)
+    def copy_list_of_files_to_load_and_save_path(self, files: list, load_and_save_path: Path):
+        load_and_save_path.mkdir(exist_ok=True)
         for file in files:
-            shutil.copy(file, self.load_and_save_path)
+            shutil.copy(file, load_and_save_path)
 
     def test_save_train_val_test_sets(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsSaving") as tempdir:
             out_path = Path(tempdir)
             m = self.create_trainer_and_start(out_path, epochs=2)
+            m.start_training()
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch.p").is_file())
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
             m.inference_on_test_set()
@@ -68,11 +68,13 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             logging.shutdown()
 
     def test_load_all_data_sets(self):
-        self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch.p",
-                                                       self.torch_all_datasets / "val_set_torch.p",
-                                                       self.torch_all_datasets / "test_set_torch.p"])
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
             m = self.create_trainer_and_start(Path(tempdir))
+            self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch.p",
+                                                           self.torch_all_datasets / "val_set_torch.p",
+                                                           self.torch_all_datasets / "test_set_torch.p"],
+                                                          self.reference_datasets_torch / m.data_loader_hash)
+            m.start_training()
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertTrue(m.data_generator.loaded_val_set)
             self.assertTrue(m.data_generator.loaded_train_set)

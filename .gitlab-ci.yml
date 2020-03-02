@@ -15,6 +15,7 @@ test:
   script:
 #    - python3 -m unittest discover -s Tests -t Tests
     - python3 -m unittest Tests.test_torch_datasets.TestSaveDatasetsTorch.test_save_train_val_test_sets
+    - python3 -m unittest Tests.test_torch_datasets.TestSaveDatasetsTorch.test_load_all_data_sets
 
   tags:
     - dgx2
