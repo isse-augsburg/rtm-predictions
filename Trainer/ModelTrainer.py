@@ -21,10 +21,7 @@ from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
 
 try:
-    from apex.parallel import DistributedDataParallel as DDP
-    from apex.fp16_utils import *
-    from apex import amp, optimizers
-    from apex.multi_tensor_apply import multi_tensor_applier
+    from apex import amp
 except ImportError:
     if os.name != "nt":
         raise ImportError("Please install apex from https://www.github.com/nvidia/apex for mixed precision.")
@@ -127,7 +124,8 @@ class ModelTrainer:
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
 
-        load_and_save_path, data_loader_hash = handle_torch_caching(self.data_processing_function, self.data_source_paths)
+        load_and_save_path, data_loader_hash = handle_torch_caching(
+            self.data_processing_function, self.data_source_paths)
         self.data_loader_hash = data_loader_hash
 
         self.load_torch_dataset_path = load_and_save_path

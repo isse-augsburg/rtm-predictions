@@ -101,7 +101,7 @@ class S80DeconvModelEfficient(nn.Module):
 
 
 class S80DeconvModelEfficient2(nn.Module):
-    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0, round_at: float=None):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0, round_at: float = None):
         super(S80DeconvModelEfficient2, self).__init__()
 
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
