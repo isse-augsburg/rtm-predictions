@@ -33,7 +33,8 @@ if __name__ == "__main__":
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
         classification_evaluator_function=lambda summary_writer:
-        SensorToFlowfrontEvaluator(summary_writer=summary_writer)
+        SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+        use_mixed_precision=True
     )
 
     if not args.eval:
@@ -45,6 +46,6 @@ if __name__ == "__main__":
             lambda summary_writer: SensorToFlowfrontEvaluator(
                 Path(args.eval_path) / "eval_on_test_set",
                 skip_images=False,
-                sensors_shape=(5, 4)
+                sensors_shape=(10, 8)
             ),
         )

@@ -1,8 +1,11 @@
+import logging
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import ConvTranspose2d, Conv2d, Linear
 
+from Models.model_utils import load_model_layers_from_path
 from Utils.training_utils import count_parameters
 
 
@@ -98,7 +101,7 @@ class S80DeconvModelEfficient(nn.Module):
 
 
 class S80DeconvModelEfficient2(nn.Module):
-    def __init__(self):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0, round_at: float=None):
         super(S80DeconvModelEfficient2, self).__init__()
 
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
@@ -112,6 +115,29 @@ class S80DeconvModelEfficient2(nn.Module):
         self.ck = Conv2d(64, 32, 3, padding=0)
         self.cj = Conv2d(32, 1, 3, padding=0)
 
+        self.round_at = round_at
+
+        if pretrained == "all":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct3', 'ct5', 'ct6', 'ctr',
+                                                               'c1', 'cu', 'ck', 'cj'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
     def forward(self, inputs):
         inp = inputs.reshape((-1, 1, 10, 8))
         x = F.relu(self.ct1(inp))
@@ -121,11 +147,12 @@ class S80DeconvModelEfficient2(nn.Module):
         x = F.relu(self.ctr(x))
 
         x = F.relu(self.c1(x))
-        print(x.shape)
         x = F.relu(self.cu(x))
-        print(x.shape)
         x = F.relu(self.ck(x))
         x = torch.sigmoid(self.cj(x))
+        if self.round_at is not None:
+            x = x.masked_fill((x >= self.round_at), 1.)
+            x = x.masked_fill((x < self.round_at), 0.)
 
         return torch.squeeze(x, dim=1)
 

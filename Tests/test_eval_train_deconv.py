@@ -111,7 +111,6 @@ class TestEval(unittest.TestCase):
             steps = [int(re.findall(r'\d+', x)[0]) for x in re.findall(r'Duration of step.+\d:', content)]
             self.assertEqual(len(set(steps)), len(steps))
 
-    @unittest.skip
     def test_save_load_training(self):
         num_epochs = 2
         dl = DataloaderImages((149, 117),

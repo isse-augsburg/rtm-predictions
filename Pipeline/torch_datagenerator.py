@@ -117,8 +117,8 @@ class LoopingDataGenerator:
             self.loaded_test_set = True
             with open(self.split_save_path / "test_set.p", "wb") as f:
                 pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
-            if self.test_mode:
-                return
+        if self.test_mode:
+            return
         if (self.load_torch_dataset_path / "train_set_torch.p").is_file():
             self.logger.info(f"Loading training set - torch - from {self.load_torch_dataset_path}.")
             self.looping_strategy = torch.load(self.load_torch_dataset_path / "train_set_torch.p")

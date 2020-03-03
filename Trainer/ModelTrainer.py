@@ -1,4 +1,5 @@
 import logging
+import os
 import socket
 import time
 from collections import OrderedDict
@@ -18,6 +19,17 @@ from Utils import logging_cfg
 from Utils.data_utils import handle_torch_caching
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
+
+try:
+    from apex.parallel import DistributedDataParallel as DDP
+    from apex.fp16_utils import *
+    from apex import amp, optimizers
+    from apex.multi_tensor_apply import multi_tensor_applier
+except ImportError:
+    if os.name != "nt":
+        raise ImportError("Please install apex from https://www.github.com/nvidia/apex for mixed precision.")
+    else:
+        print("Currently no support for apex on windows. Continuing ...")
 
 
 class ModelTrainer:
@@ -86,7 +98,8 @@ class ModelTrainer:
         classification_evaluator_function=None,
         checkpointing_strategy=CheckpointingStrategy.Best,
         run_eval_step_before_training=False,
-        dont_care_num_samples=False
+        dont_care_num_samples=False,
+        use_mixed_precision=False,
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -114,7 +127,7 @@ class ModelTrainer:
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
 
-        load_and_save_path, data_loader_hash = handle_torch_caching(self.data_processing_function)
+        load_and_save_path, data_loader_hash = handle_torch_caching(self.data_processing_function, self.data_source_paths)
         self.data_loader_hash = data_loader_hash
 
         self.load_torch_dataset_path = load_and_save_path
@@ -134,6 +147,8 @@ class ModelTrainer:
         self.writer = None
         self.run_eval_step_before_training = run_eval_step_before_training
         self.dont_care_num_samples = dont_care_num_samples
+
+        self.use_mixed_precision = use_mixed_precision
 
     def __create_datagenerator(self, test_mode=False):
         try:
@@ -195,6 +210,7 @@ class ModelTrainer:
         self.logger.info("###########################################")
         self.writer.add_text("General/LossCriterion", f"{self.loss_criterion}")
         self.writer.add_text("General/BatchSize", f"{self.batch_size}")
+        self.writer.add_text("General/MixedPrecision", f"{self.use_mixed_precision}")
         optim_str = str(self.optimizer).replace("\n", "  \n")
         self.writer.add_text("Optimizer/Optimizer", f"{optim_str}")
         self.writer.add_text("Optimizer/LRScheduler", f"{sched_str}")
@@ -231,6 +247,9 @@ class ModelTrainer:
 
         if self.lr_scheduler_function is not None:
             self.lr_scheduler = self.lr_scheduler_function(self.optimizer)
+
+        if self.use_mixed_precision:
+            self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level="O1")
 
     def start_training(self,):
         """ Sets up training and logging and starts train loop
@@ -290,7 +309,11 @@ class ModelTrainer:
 
                 loss = self.loss_criterion(outputs, label)
                 self.writer.add_scalar("Training/Loss", loss.item(), step_count)
-                loss.backward()
+                if not self.use_mixed_precision:
+                    loss.backward()
+                else:
+                    with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                        scaled_loss.backward()
                 self.optimizer.step()
                 if i % self.train_print_frequency == 0 and i != 0:
                     time_delta = time.time() - start_time
