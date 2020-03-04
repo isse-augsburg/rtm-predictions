@@ -39,11 +39,12 @@ if __name__ == "__main__":
 
     output_path = r.chkp_S80_to_ff2.parent
     m.inference_on_test_set(
-        output_path,
+        output_path / "eval_on_test_set_rounded.5",
         r.chkp_S80_to_ff2,
         lambda summary_writer: SensorToFlowfrontEvaluator(
-            output_path / "eval_on_test_set_rounded",
+            output_path / "eval_on_test_set_rounded.5",
             skip_images=False,
-            sensors_shape=(10, 8)
+            sensors_shape=(10, 8),
+            print_n_images=5000
         ),
     )

@@ -4,13 +4,13 @@ import os
 from functools import partial
 from multiprocessing.pool import Pool
 from pathlib import Path
-from sklearn.metrics import confusion_matrix
-from sklearn.preprocessing import normalize
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 from PIL import Image
+from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import normalize
 
 """ 
 >>>> PLEASE NOTE: <<<<
@@ -83,7 +83,11 @@ def save_img(path, _str, x, index):
 
 
 class SensorToFlowfrontEvaluator(Evaluator):
-    def __init__(self, save_path: Path = None, sensors_shape=(38, 30), skip_images=True, summary_writer=None):
+    def __init__(self, save_path: Path = None,
+                 sensors_shape=(38, 30),
+                 skip_images=True,
+                 summary_writer=None,
+                 print_n_images=-1):
         super().__init__()
         self.num = 0
         self.save_path = save_path
@@ -94,12 +98,15 @@ class SensorToFlowfrontEvaluator(Evaluator):
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.sensors_shape = sensors_shape
         self.summary_writer = summary_writer
+        self.print_n_images = print_n_images
 
     def commit(self, net_output, label, inputs, aux, *args):
         if self.skip_images:
             return
 
         for sample in range(net_output.size()[0]):
+            if self.num == self.print_n_images:
+                break
             a = net_output[sample].numpy()
             a = np.squeeze(a)
             b = label[sample].numpy()
