@@ -112,7 +112,7 @@ class TestEval(unittest.TestCase):
             self.assertEqual(len(set(steps)), len(steps))
 
     @unittest.skipIf(os.name == 'nt', "Apex not working on windows")
-    def test_training(self):
+    def test_training_apex(self):
         num_epochs = 2
         dl = DataloaderImages((149, 117),
                               ignore_useless_states=False)
