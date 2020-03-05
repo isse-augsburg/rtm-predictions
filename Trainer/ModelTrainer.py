@@ -224,10 +224,31 @@ class ModelTrainer:
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
         logger.info("Generating Model")
-        if self.model is None:
-            self.model = self.model_creation_function()
-            self.model_name = self.model.__class__.__name__
+        if not self.use_mixed_precision:
+            if self.model is None:
+                self.model = self.model_creation_function()
+                self.model_name = self.model.__class__.__name__
 
+                if "swt-dgx" in socket.gethostname():
+                    logger.info("Invoking data parallel model.")
+                    self.model = nn.DataParallel(self.model).to("cuda:0")
+                else:
+                    self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
+
+            self.create_optimizer_and_lr_scheduler()
+        else:
+            if self.model is None:
+                self.model = self.model_creation_function()
+                self.model_name = self.model.__class__.__name__
+
+            self.create_optimizer_and_lr_scheduler()
+            self.model = self.model.cuda()
+            self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level="O1")
+            if "swt-dgx" in socket.gethostname():
+                logger.info("Invoking data parallel model.")
+                self.model = nn.DataParallel(self.model).to("cuda:0")
+
+    def create_optimizer_and_lr_scheduler(self):
         if self.optimizer is None:
             if self.optimizer_path is None:
                 self.optimizer = self.optimizer_function(self.model.parameters())
@@ -236,19 +257,8 @@ class ModelTrainer:
                 self.optimizer = self.optimizer_function(self.model.parameters())
                 checkpoint = torch.load(self.optimizer_path)
                 self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
         if self.lr_scheduler_function is not None:
             self.lr_scheduler = self.lr_scheduler_function(self.optimizer)
-
-        if self.use_mixed_precision:
-            self.model = self.model.cuda()
-            self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level="O1")
-
-        if "swt-dgx" in socket.gethostname():
-            logger.info("Invoking data parallel model.")
-            self.model = nn.DataParallel(self.model).to("cuda:0")
-        else:
-            self.model = self.model.to("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def start_training(self,):
         """ Sets up training and logging and starts train loop

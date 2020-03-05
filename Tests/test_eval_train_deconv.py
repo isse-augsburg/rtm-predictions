@@ -111,6 +111,40 @@ class TestEval(unittest.TestCase):
             steps = [int(re.findall(r'\d+', x)[0]) for x in re.findall(r'Duration of step.+\d:', content)]
             self.assertEqual(len(set(steps)), len(steps))
 
+    @unittest.skip("Need to update nvidia driver to enable apex again.")
+    def test_training_apex(self):
+        num_epochs = 2
+        dl = DataloaderImages((149, 117),
+                              ignore_useless_states=False)
+        st = ModelTrainer(
+            lambda: DeconvModelEfficient(),
+            self.test_src_dir,
+            self.training_save_path,
+            load_datasets_path=self.test_split_dir,
+            cache_path=None,
+            batch_size=16,
+            train_print_frequency=10,
+            epochs=num_epochs,
+            num_workers=4,
+            num_validation_samples=2,
+            num_test_samples=self.num_test_samples,
+            data_processing_function=dl.get_sensordata_and_flowfront,
+            data_gather_function=get_filelist_within_folder_blacklisted,
+            loss_criterion=torch.nn.BCELoss(),
+            classification_evaluator_function=lambda summary_writer:
+            SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+            use_mixed_precision=True
+        )
+        st.start_training()
+        dirs = [e for e in self.training_save_path.iterdir() if e.is_dir()]
+        with open(dirs[0] / 'output.log') as f:
+            content = f.read()
+            epochs = re.findall('Mean Loss on Eval', content)
+            self.assertEqual(num_epochs, len(epochs))
+            # Check if steps are growing / if there are doubled steps in the output
+            steps = [int(re.findall(r'\d+', x)[0]) for x in re.findall(r'Duration of step.+\d:', content)]
+            self.assertEqual(len(set(steps)), len(steps))
+
     def test_save_load_training(self):
         num_epochs = 2
         dl = DataloaderImages((149, 117),
@@ -182,7 +216,7 @@ class TestEval(unittest.TestCase):
         )
         st.start_training()
         after = len(st.optimizer.state.keys())
-        # Optimizer has now more than 0 states, therefore was loaded
+        """ Optimizer has now more than 0 states, therefore was loaded """
         self.assertGreater(after, 0)
 
     def test_eval_preparation(self):
@@ -214,6 +248,8 @@ class TestEval(unittest.TestCase):
             lines = f.read().splitlines()
             tokens = lines[-1].split()
             self.assertEqual(dirs[0], Path(tokens[-3]))
+        st.writer.flush()
+        st.writer.close()
 
     def tearDown(self) -> None:
         logging.shutdown()
