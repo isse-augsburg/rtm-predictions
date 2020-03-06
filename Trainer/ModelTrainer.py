@@ -125,7 +125,7 @@ class ModelTrainer:
         self.best_loss = np.finfo(float).max
 
         load_and_save_path, data_loader_hash = handle_torch_caching(
-            self.data_processing_function, self.data_source_paths)
+            self.data_processing_function, self.data_source_paths, self.load_datasets_path)
         self.data_loader_hash = data_loader_hash
 
         self.load_torch_dataset_path = load_and_save_path

@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import pickle
 import re
 from pathlib import Path
 
@@ -18,11 +19,25 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def handle_torch_caching(processing_function, data_source_paths):
+def handle_torch_caching(processing_function, data_source_paths, train_test_split_path):
+    """
+    If the train test split is not set, the same has will be used all the time, thus, the same split from the first
+    split will be loaded, so make sure to delete the hash if you change the train / test split.
+    """
     data_loader_info = processing_function.__self__.__dict__
     data_loader_info["data_processing_function"] = processing_function.__name__
     data_loader_info["data_loader_name"] = processing_function.__self__.__class__.__name__
     data_loader_info["data_source_paths"] = [str(p) for p in data_source_paths]
+    if train_test_split_path is not None:
+        train_set = pickle.load(open(train_test_split_path / "training_set.p"))
+        test_set = pickle.load(open(train_test_split_path / "test_set.p"))
+        val_set = pickle.load(open(train_test_split_path / "val_set.p"))
+        data_loader_info["data_split_paths"] = {}
+        data_loader_info["data_split_paths"]["train"] = train_set
+        data_loader_info["data_split_paths"]["test"] = test_set
+        data_loader_info["data_split_paths"]["validation"] = val_set
+    else:
+        data_loader_info["data_split_paths"] = {}
     data_loader_str = str(data_loader_info).encode("utf-8")
     data_loader_hash = hashlib.md5(data_loader_str).hexdigest()
     load_and_save_path = r.datasets_dryspots_torch / data_loader_hash
