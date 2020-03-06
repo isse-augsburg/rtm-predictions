@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import torch
-from torch.optim.lr_scheduler import ExponentialLR
 
 import Resources.training as r
 from Models.erfh5_ConvModel import S80Deconv2ToDrySpotEff
@@ -25,7 +24,7 @@ if __name__ == "__main__":
         save_path=r.save_path,
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
-        batch_size=8192,
+        batch_size=2048,
         train_print_frequency=100,
         epochs=1000,
         num_workers=75,
@@ -37,7 +36,7 @@ if __name__ == "__main__":
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
         classification_evaluator_function=lambda summary_writer:
         BinaryClassificationEvaluator(summary_writer=summary_writer),
-        lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.8),
+        # lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.8),
     )
 
     if not args.eval:

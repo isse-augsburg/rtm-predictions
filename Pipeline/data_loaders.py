@@ -177,25 +177,3 @@ def get_single_states_and_fillings(filename):
     single_states = [(data, data) for data in flat_fillings]
 
     return single_states
-
-
-if __name__ == "__main__":
-    # files = get_filelist_within_folder([
-    #   '/run/user/1002/gvfs/smb-share:server=137.250.170.56,
-    #   share=share/data/RTM/Lautern/output/with_shapes/
-    #   2019-04-23_13-00-58_200p/'])
-    # for f in files:
-    #  r = get_sensordata_and_flowfront(f)
-    #  if r is not None:
-    #   print(len(r))
-
-    """ folders = get_folders_within_folder('/cfs/home/s/c/schroeni/Git/
-    tu-kaiserslautern-data/Images/')
-    for folder in folders:
-        instances = get_image_state_sequence(folder)
-        if instances is None:
-            print("None")
-        else:
-            print(np.shape(instances[0][0]))
-
-    """

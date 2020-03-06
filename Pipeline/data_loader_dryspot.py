@@ -19,7 +19,7 @@ class DataloaderDryspots:
 
     def get_flowfront_bool_dryspot(self, filename, states=None):
         """
-        Load the flow front for the given states or all available states if states is None
+        Load the flow front for the all states or given states. Returns a bool label for dryspots.
         """
         f = h5py.File(filename, 'r')
         meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')

@@ -140,7 +140,7 @@ class DataloaderImages:
 
     def get_sensordata_and_flowfront(self, file: Path):
         try:
-            f = h5py.File(file, "r")
+            result_f = h5py.File(file, "r")
             if self.ignore_useless_states:
                 meta_f = h5py.File(str(file).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
             else:
@@ -150,21 +150,20 @@ class DataloaderImages:
             logger.error(f"Error: File not found: {file} (or meta_data.hdf5)")
             return None
 
-        fillings = self._get_flowfront(f, meta_f)
+        fillings = self._get_flowfront(result_f, meta_f)
         if not fillings:
             return None
 
-        sensor_data = self._get_sensordata(f)
+        sensor_data = self._get_sensordata(result_f)
         if not sensor_data:
             return None
 
         # Return only tuples without None values and if we get no data at all, return None
         # `if not None in t` does not work here because numpy does some weird stuff on
         # such comparisons
-        return (list((d,
-                      f,
-                      {"state": s}) for d, f, s in zip(sensor_data, fillings, f["post"]["singlestate"])
-                     if d is not None and f is not None)
+        return (list((data, filling, {"state": state}) for data, filling, state in
+                     zip(sensor_data, fillings, result_f["post"]["singlestate"])
+                     if data is not None and filling is not None)
                 or None)
 
     def _get_coords(self, f: h5py.File):

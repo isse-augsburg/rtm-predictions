@@ -526,7 +526,7 @@ class S20DeconvToDrySpotEff(nn.Module):
 
 
 class S20DeconvToDrySpotEff2(nn.Module):
-    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0, round_at: float = None):
         super(S20DeconvToDrySpotEff2, self).__init__()
         self.ct1 = ConvTranspose2d(1, 256, 3, stride=2)
         self.ct2 = ConvTranspose2d(256, 128, 5, stride=2)
@@ -549,6 +549,7 @@ class S20DeconvToDrySpotEff2(nn.Module):
         self.dropout = nn.Dropout(0.3)
         # self.bn8 = nn.BatchNorm2d(8)
         # self.bn512 = nn.BatchNorm2d(512)
+        self.round_at = round_at
 
         if pretrained == "deconv_weights":
             logger = logging.getLogger(__name__)
@@ -579,6 +580,10 @@ class S20DeconvToDrySpotEff2(nn.Module):
         x = F.relu(self.ct3(x))
         x = F.relu(self.ct4(x))
         x = F.relu(self.details(x))
+
+        if self.round_at is not None:
+            x = x.masked_fill((x >= self.round_at), 1.)
+            x = x.masked_fill((x < self.round_at), 0.)
 
         # Shape: [1, 8, 127, 111]
         # x = self.bn8(x)

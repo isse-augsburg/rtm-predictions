@@ -214,6 +214,8 @@ class ModelTrainer:
         self.writer.add_text("Optimizer/LRScheduler", f"{sched_str}")
         self.writer.add_text("Model/Structure", f"{self.__get_model_def()}")
         self.writer.add_text("Model/ParamCount", f"{param_count}")
+        if hasattr(self.model, "round_at") and self.model.round_at is not None:
+            self.writer.add_text("Model/Threshold", f"{self.model.round_at}")
         self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
         self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
         dl_info = self.data_processing_function.__self__.__dict__

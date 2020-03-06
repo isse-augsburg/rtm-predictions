@@ -17,7 +17,8 @@ if __name__ == "__main__":
     dlds = DataloaderDryspots(sensor_indizes=((1, 8), (1, 8)))
     m = ModelTrainer(lambda: S20DeconvToDrySpotEff2(pretrained="deconv_weights",
                                                     checkpoint_path=r.chkp_S20_to_ff_basepr_0,
-                                                    freeze_nlayers=5),
+                                                    freeze_nlayers=5,
+                                                    round_at=0.8),
                      data_source_paths=r.get_data_paths_base_0(),
                      save_path=r.save_path,
                      load_datasets_path=r.datasets_dryspots,
@@ -34,7 +35,7 @@ if __name__ == "__main__":
                      optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                      classification_evaluator_function=lambda summary_writer:
                      BinaryClassificationEvaluator(summary_writer=summary_writer),
-                     lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.1),
+                     lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
                      )
 
     if not args.eval:
