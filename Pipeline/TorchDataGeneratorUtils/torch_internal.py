@@ -103,6 +103,13 @@ class FileSetIterator:
                 # Add filepath to every sample
                 for i in instance:
                     i[2]["sourcefile"] = str(fn)
+                # These lines were probably responsible for continued crashing of trainings
+                # Maybe since the index was added, the filenames could not be compressed anymore (torch-internally)
+                # More ram was used. Need to find a fix for this since the index information is very valuable in
+                # evaluation mode.
+                # for i, sample in enumerate(instance):
+                #     sample[2]["sourcefile"] = str(fn)
+                #     sample[2]["n"] = i
                 s_path = None
                 if self.cache_path is not None:
                     s_path = self._get_cache_path_for_file(fn)
@@ -345,6 +352,7 @@ class SubSetGenerator:
         if self.save_file is not None:
             with open(self.save_file, 'wb') as f:
                 pickle.dump([str(fn) for fn in self.used_filenames], f)
+                print(self.used_filenames)
         return unused_files
 
     def get_samples(self):

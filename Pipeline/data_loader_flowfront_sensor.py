@@ -39,7 +39,7 @@ class DataloaderFlowfrontSensor:
             _all_sensors = extract_nearest_mesh_nodes_to_sensors(
                 r.data_root / "2019-07-24_16-32-40_10p/0/2019-07-24_16-32-40_0")
             _all_sensors = _all_sensors.reshape((38, 30))
-        with open(r.mean_std_20_sensors, "rb") as mean_std:
+        with open(r.mean_std_20_flowfront_sensors, "rb") as mean_std:
             self.mean, self.std = pickle.load(mean_std)
         indices_of_sensors = _all_sensors[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
                                           self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
