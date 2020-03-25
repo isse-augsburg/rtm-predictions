@@ -1,4 +1,3 @@
-import shutil
 import unittest
 
 import Resources.testing as resources
@@ -9,7 +8,7 @@ class TestDrySpotDetectionLeoben(unittest.TestCase):
     def setUp(self):
         self.p = resources.test_pipeline_dir / 'dry_spots'
         self.output = resources.test_out_dir / 'output_dry_spots'
-        self.silent = True
+        self.silent = False
 
     def test_dry_spots(self):
         first_occurrences = [203, 69, 31, 108, 37, 171, 185, 117, 208, 71, 108]
@@ -19,7 +18,8 @@ class TestDrySpotDetectionLeoben(unittest.TestCase):
             index = int(entry.parent.stem)
             output_dir.mkdir(parents=True, exist_ok=True)
             Xi, Yi, triang, xi, yi = create_triangle_mesh(entry)
-            spot_list_s, spot_list_e, deltas_prob = dry_spot_analysis(entry, triang, Xi, Yi, xi, yi, silent=self.silent)
+            spot_list_s, spot_list_e, deltas_prob = dry_spot_analysis(entry, triang, Xi, Yi, xi, yi, silent=self.silent,
+                                                                      output_dir_imgs=output_dir, save_flowfront_img=True)
             if len(spot_list_s) == 0:
                 if not self.silent:
                     print(f'Wrong index: should be {first_occurrences[index]}, is {spot_list_s}, '
@@ -28,5 +28,5 @@ class TestDrySpotDetectionLeoben(unittest.TestCase):
             first_occurr = spot_list_s[0]
             self.assertAlmostEqual(first_occurr, first_occurrences[index], delta=4)
 
-    def tearDown(self):
-        shutil.rmtree(self.output)
+    # def tearDown(self):
+    #     shutil.rmtree(self.output)

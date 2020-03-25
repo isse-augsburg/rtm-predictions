@@ -5,6 +5,7 @@ import shutil
 import sys
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import metrics
@@ -129,25 +130,28 @@ def count_correct_labels_and_predictions(input_file: Path,
     return fpr, tpr
 
 
-def plot_labels_and_predictions_per_run(input_file: Path, output_dir: Path, num_runs=10):
+def plot_labels_and_predictions_per_run(modelname, input_file: Path, output_dir: Path, num_runs=10):
     output_dir.mkdir(exist_ok=True)
     np.set_printoptions(precision=3, suppress=True)
     with open(input_file, "rb") as f:
         _dict = pickle.load(f)
-    for k in list(_dict.keys())[:num_runs]:
+    for i, k in enumerate(list(_dict.keys())[:num_runs]):
         one_run = _dict[k]
         pred_label = np.asarray([one_run[k] for k in one_run], dtype=float)
         predictions = pred_label[:, 0]
         labels = pred_label[:, 1]
-        plt.plot(range(len(labels)), predictions, label="predictions")
+        plt.plot(range(len(labels)), predictions, label="prediction")
         plt.plot(range(len(labels)), labels, label="label")
         plt.xlabel("Steps")
-        plt.ylabel("Dryspot")
-        plt.ylim((-0.2, 1.2))
+        plt.ylabel("Dry Spot")
+        plt.ylim((-0.1, 1.1))
         run_name = k.split('/')[-1:][0]
-        plt.title(run_name)
+        plt.title(f"{modelname} - Run {i + 1}")
         plt.legend()
-        plt.savefig(output_dir / f"{run_name}.png")
+        plt.tight_layout()
+        if i == 7 or i == 8:
+            plt.savefig(output_dir / f"{modelname.replace(' ', '_')}_run_{i+1}.png")
+        # plt.show()
         plt.close()
 
 
@@ -178,11 +182,31 @@ def get_fpr_tpr_thresholds_for_all_vals(input_file: Path):
     return metrics.roc_curve(y_true=_all[:,1], y_score=_all[:,0])
 
 
-def get_all_vals_for_overall_roc_curve():
+def get_roc_curves_1140_sensors():
     fpr_1140, tpr_1140, thresholds_1140 = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p")
     fpr_1140d, tpr_1140d, thresholds_1140d = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S1140_densenet_baseline.parent / "advanced_eval/predictions_per_run.p")
+    plt.plot(fpr_1140, tpr_1140,
+             color='darkorange',
+             label=f"1140 Sensors Deconv/Conv\nAUC: {metrics.auc(fpr_1140, tpr_1140):.4f}",
+             )
+    plt.plot(fpr_1140d, tpr_1140d,
+             color='green',
+             label=f"1140 Sensors Dense\nAUC: {metrics.auc(fpr_1140d, tpr_1140d):.4f}",
+             linestyle="-.")
+
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.ylabel("True positive rate")
+    plt.xlabel("False positive rate")
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(tr_resources.plots_output / "ROC_curves_1140.png")
+    # plt.show()
+    plt.close()
+
+
+def get_roc_curves_80_sensors():
     fpr_80, tpr_80, thresholds_80 = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p")
     fpr_80_no_pixel_thres, tpr_80_no_pixel_thres, thresholds_80_no_pixel_thres = get_fpr_tpr_thresholds_for_all_vals(
@@ -190,28 +214,104 @@ def get_all_vals_for_overall_roc_curve():
     fpr_80d, tpr_80d, thresholds_80d = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S80_densenet_baseline.parent / "advanced_eval/predictions_per_run.p")
 
-    plt.plot(fpr_1140, tpr_1140, color='darkorange', label=f"1140 Sensors Deconv/Conv; AUC: {metrics.auc(fpr_1140, tpr_1140):.4f}")
-    plt.plot(fpr_1140d, tpr_1140d, color='green', label=f"1140 Sensors Dense; AUC: {metrics.auc(fpr_1140d, tpr_1140d):.4f}")
-    plt.plot(fpr_80, tpr_80, color='red', label=f"80 Sensors Deconv/Conv - pixel thresholding at 0.8; AUC: {metrics.auc(fpr_80, tpr_80):.4f}")
-    plt.plot(fpr_80_no_pixel_thres, tpr_80_no_pixel_thres, color='black',
-             label=f"80 Sensors Deconv/Conv - no pixel thresholding; "
-                   f"AUC: {metrics.auc(fpr_80_no_pixel_thres, tpr_80_no_pixel_thres):.4f}")
-    plt.plot(fpr_80d, tpr_80d, color='brown', label=f"80 Sensors Dense; AUC: {metrics.auc(fpr_80d, tpr_80d):.4f}")
+    plt.plot(fpr_80, tpr_80,
+             color='red',
+             label=f"80 Sensors Deconv/Conv *\nAUC: {metrics.auc(fpr_80, tpr_80):.4f}",
+             )
+    plt.plot(fpr_80_no_pixel_thres, tpr_80_no_pixel_thres,
+             color='black',
+             label=f"80 Sensors Deconv/Conv\n"
+                   f"AUC: {metrics.auc(fpr_80_no_pixel_thres, tpr_80_no_pixel_thres):.4f}",
+             linestyle="-.")
+    plt.plot(fpr_80d, tpr_80d,
+             color='brown',
+             label=f"80 Sensors Dense\nAUC: {metrics.auc(fpr_80d, tpr_80d):.4f}",
+             linestyle=":")
+
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
     plt.ylabel("True positive rate")
     plt.xlabel("False positive rate")
     plt.legend(loc="lower right")
-    plt.savefig(tr_resources.plots_output / "ROC_curves_1140_dc_80_dc_80_dense.png")
+    plt.tight_layout()
+    plt.savefig(tr_resources.plots_output / "ROC_curves_80.png")
+    # plt.show()
+    plt.close()
+
+
+def plot_trainings():
+    import pandas as pd
+    th_training = pd.read_csv(tr_resources.plots_output/ "data" / "run-2020-03-04_10-41-02_th_0.8_best-tag-Training_Loss.csv")
+    th_validation = pd.read_csv(tr_resources.plots_output/ "data" / "run-2020-03-04_10-41-02_th_0.8_best-tag-Validation_Loss.csv")
+    no_th_validation= pd.read_csv(tr_resources.plots_output/ "data" / "run-trials_2020-03-05_11-27-46_best_chkp_no_threshold-tag-Validation_Loss.csv")
+    no_th_training= pd.read_csv(tr_resources.plots_output/ "data" / "run-trials_2020-03-05_11-27-46_best_chkp_no_threshold-tag-Training_Loss.csv")
+    time_steps_no_th = no_th_training["Wall time"] - no_th_training["Wall time"][0]
+    time_steps_th = th_training["Wall time"] - th_training["Wall time"][0]
+    plt.plot(np.asarray(time_steps_no_th), np.asarray(no_th_training["Value"]), label="Not thresholded")
+    plt.plot(np.asarray(time_steps_th), np.asarray(th_training["Value"]), label="Thresholded at .8")
+    plt.legend()
+    plt.ylabel("Training Loss")
+    plt.xlabel("Time in Seconds")
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(tr_resources.plots_output / "Training_loss.png")
+    # plt.show()
+    plt.close()
+    time_steps_no_th_v = no_th_validation["Wall time"] - no_th_validation["Wall time"][0]
+    time_steps_th_v = th_validation["Wall time"] - th_validation["Wall time"][0]
+    plt.plot(np.asarray(time_steps_no_th_v), np.asarray(no_th_validation["Value"]), label="Not thresholded")
+    plt.plot(np.asarray(time_steps_th_v), np.asarray(th_validation["Value"]), label="Thresholded at .8")
+    plt.ylabel("Validation Loss")
+    plt.xlabel("Time in Seconds")
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(tr_resources.plots_output / "Validation_loss.png")
+    # plt.show()
+    plt.close()
+    # no_th_validation["Value"].plot(label="Validation Loss - Not thresholded")
+    # th_validation["Value"].plot(label="Validation Loss - Thresholded at .8")
+    # plt.legend()
+    # plt.grid()
+    # plt.xlim((-0.1, 4.1))
+    # plt.show()
+    # plt.close()
+
+
 
 
 if __name__ == '__main__':
-    get_all_vals_for_overall_roc_curve()
+    font = {
+        'family': 'normal',
+        # 'weight': 'bold',
+        'size': 16
+    }
+    matplotlib.rc('font', **font)
+
+    # plot_trainings()
+    # exit()
+    #
+    # get_roc_curves_1140_sensors()
+    # get_roc_curves_80_sensors()
+    # exit()
+    # get_roc_values_for_different_lengths_of_dryspot_runs()
+
+    plot_labels_and_predictions_per_run(
+        "S80 Pixel Threshold",
+        tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p",
+        output_dir=tr_resources.plots_output
+    )
+    plot_labels_and_predictions_per_run(
+        "S1140",
+        tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p",
+        output_dir=tr_resources.plots_output
+    )
+
+    plot_labels_and_predictions_per_run(
+        "S80",
+        tr_resources.chkp_S80_to_ds_no_thres.parent / "advanced_eval/predictions_per_run.p",
+        output_dir=tr_resources.plots_output
+    )
     exit()
-    get_roc_values_for_different_lengths_of_dryspot_runs()
-    # plot_labels_and_predictions_per_run(
-    #     tr_resources.chkp_S80_densenet_baseline.parent / "advanced_eval/predictions_per_run.p",
-    #     output_dir=tr_resources.chkp_S80_densenet_baseline.parent / "advanced_eval/pred_vs_label_plots"
-    # )
 
     # count_correct_labels_and_predictions(
     #     tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p", PROB_THRES=.5)
@@ -222,10 +322,12 @@ if __name__ == '__main__':
     #     )
 
     # exit()
+    fn2 = "consecutive_len_rates_no_overlap.p"
+    fn1 = "consecutive_len_rates_overlap.p"
     fn = "consecutive_len_rates_no_overlap_different_thres.p"
-    with open(fn, "rb") as f:
+    with open(fn2, "rb") as f:
         rates = pickle.load(f)
-    fpr, tpr, thresholds = zip(*rates[::2])
+    fpr, tpr, thresholds = zip(*rates[:-1:])
     _fpr = [x[1] for x in fpr]
     _tpr = [x[1] for x in tpr]
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
@@ -234,7 +336,7 @@ if __name__ == '__main__':
     plt.ylabel("True positive rate")
     plt.xlabel("False positive rate")
     for i, txt in enumerate(thresholds):
-        plt.annotate(f"{txt:.2f}" if type(txt) == float else f"{txt}", (_fpr[i], _tpr[i]))
+        plt.annotate(f"{txt}" if type(txt) == int else f"{txt:.2f}", (_fpr[i], _tpr[i]))
     plt.grid()
     plt.title(fn)
     plt.show()
