@@ -182,6 +182,8 @@ def get_fpr_tpr_thresholds_for_all_vals(input_file: Path):
     return metrics.roc_curve(y_true=_all[:,1], y_score=_all[:,0])
 
 
+
+
 def get_roc_curves_1140_sensors():
     fpr_1140, tpr_1140, thresholds_1140 = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p")
@@ -276,7 +278,42 @@ def plot_trainings():
     # plt.show()
     # plt.close()
 
+def __calc_ccc(x, y):
+    x_mean = np.nanmean(x)
+    y_mean = np.nanmean(y)
 
+    covariance = np.nanmean((x - x_mean) * (y - y_mean))
+
+    x_var = 1.0 / (len(x) - 1) * np.nansum((x - x_mean) ** 2)  # Make it consistent with Matlab's nanvar (division by len(x)-1, not len(x)))
+    y_var = 1.0 / (len(y) - 1) * np.nansum((y - y_mean) ** 2)
+
+    CCC = (2 * covariance) / (x_var + y_var + (x_mean - y_mean) ** 2)
+
+    return CCC
+
+
+
+def calc_ccc_mean(path):
+    CCCs = []
+    with open(path, "rb") as f:
+        _dict = pickle.load(f)
+        for k in list(_dict.keys()):
+            pred_label = [np.array(list(_dict[k].values()))]
+            _all = np.concatenate(pred_label)
+            CCC = __calc_ccc(_all[:,0], _all[:,1])
+            CCCs.append(CCC)
+        return CCCs, np.mean(CCCs)
+ 
+def calc_ccc_global(path):
+    pred_label = []
+    with open(path, "rb") as f:
+        _dict = pickle.load(f)
+        for k in list(_dict.keys()):
+            pred_label.append(np.array(list(_dict[k].values())))
+        _all = np.concatenate(pred_label)
+        CCC = __calc_ccc(_all[:,0], _all[:,1])
+        return CCC
+        
 
 
 if __name__ == '__main__':
