@@ -569,6 +569,15 @@ class S20DeconvToDrySpotEff2(nn.Module):
             incomp = self.load_state_dict(weights, strict=False)
             logger.debug(f'All layers: {self.state_dict().keys()}')
             logger.debug(f'Loaded weights but the following: {incomp}')
+        if pretrained == "all":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct2', 'ct3', 'ct4',
+                                                               'details', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7',
+                                                               'lin1', 'lin2'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
 
         if freeze_nlayers == 0:
             return

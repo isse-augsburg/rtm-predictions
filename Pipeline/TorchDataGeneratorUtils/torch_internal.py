@@ -352,7 +352,6 @@ class SubSetGenerator:
         if self.save_file is not None:
             with open(self.save_file, 'wb') as f:
                 pickle.dump([str(fn) for fn in self.used_filenames], f)
-                print(self.used_filenames)
         return unused_files
 
     def get_samples(self):

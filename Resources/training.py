@@ -54,9 +54,16 @@ chkp_S1140_to_ds_frozen_deeper_convnet2 = _ij_S1140_deconv_conv / \
     "2020-01-22_16-44-26_S1140_to_DS_frozen_deeper_convnet" / \
     "checkpoint_best_val_loss.pth"
 chkp_S1140_densenet_baseline = _ij_densenet_baselines / "2020-01-17_09-41-19_S1140_to_DS_densenet_32768bs" / chkp
+chkp_S1140_densenet_baseline_full_trainingset = _ij_densenet_baselines / \
+                               "2020-03-26_16-51-56_S1140_to_DS_densenet_32768bs_full_training" / chkp
 
+chkp_S20_densenet_baseline = _ij_densenet_baselines / "2020-01-17_12-03-17_S20_to_DS_densenet_wide_32768bs" / chkp
+chkp_S20_densenet_baseline_full_trainingset = _ij_densenet_baselines / \
+                             "2020-03-26_16-39-42_S20_to_DS_densenet_32768bs_full_training_set" / chkp
 chkp_S20_to_ff = output_stiebesi / "2020-01-10_15-09-30/checkpoint0_2055val.pth"
 chkp_S20_to_ff_basepr_0 = _ij_S20_deconv_conv / "2020-02-14_16-05-28_S_to_FF" / chkp
+chkp_S20_to_ds = _ij_S20_deconv_conv / "2020-02-18_08-34-18_S_to_DS" / chkp
+chkp_S20_to_ds_retrain = _ij_S20_deconv_conv / "2020-03-27_12-21-34_retrain_s_to_ds" / chkp
 
 chkp_S80_densenet_baseline = _ij_densenet_baselines / "2020-02-26_14-05-01_S80_to_DS_densenet_wide_32768bs" / chkp
 chkp_S80_to_ff = _ij_S80_deconv_conv / "2020-02-26_17-12-48_deconv_first_try" / chkp

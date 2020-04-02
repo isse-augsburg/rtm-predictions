@@ -478,8 +478,10 @@ class ModelTrainer:
         data_generator = self.__create_datagenerator(test_mode=True)
         logger.info("Loading Checkpoint")
         if checkpoint_path is not None:
+            logger.info(f"Loading Checkpoint: {checkpoint_path}")
             self.__load_checkpoint(checkpoint_path)
         else:
+            logger.info(f"Loading Checkpoint: {self.save_path / r.chkp}")
             self.__load_checkpoint(self.save_path / r.chkp)
 
         data_list = data_generator.get_test_samples()

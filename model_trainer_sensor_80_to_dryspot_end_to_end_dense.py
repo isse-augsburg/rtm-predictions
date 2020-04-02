@@ -39,8 +39,6 @@ if __name__ == "__main__":
         m.inference_on_test_set(
             output_path=Path(args.eval_path),
             checkpoint_path=Path(args.checkpoint_path),
-            # TODO fix Image creation when handling sensor input
-            #  reshape etc.
             classification_evaluator_function=lambda summary_writer: BinaryClassificationEvaluator(
                 Path(args.eval_path) / "eval_on_test_set",
                 skip_images=True,

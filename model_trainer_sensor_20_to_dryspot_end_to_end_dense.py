@@ -21,7 +21,7 @@ if __name__ == "__main__":
                      cache_path=r.cache_path,
                      batch_size=32768,
                      train_print_frequency=100,
-                     epochs=1000,
+                     epochs=100,
                      num_workers=75,
                      num_validation_samples=131072,
                      num_test_samples=1048576,
@@ -30,8 +30,7 @@ if __name__ == "__main__":
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                      classification_evaluator_function=lambda summary_writer:
-                     BinaryClassificationEvaluator(summary_writer=summary_writer),
-                     # lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
+                     BinaryClassificationEvaluator(summary_writer=summary_writer)
                      )
 
     if not args.eval:
@@ -40,9 +39,7 @@ if __name__ == "__main__":
         m.inference_on_test_set(
             output_path=Path(args.eval_path),
             checkpoint_path=Path(args.checkpoint_path),
-            # TODO fix Image creation when handling sensor input
-            #  reshape etc.
-            classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(
+            classification_evaluator_function=lambda summary_writer: BinaryClassificationEvaluator(
                 Path(args.eval_path) / "eval_on_test_set",
                 skip_images=True,
                 with_text_overlay=True)

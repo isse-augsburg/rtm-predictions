@@ -3,12 +3,15 @@ import os
 import pickle
 import shutil
 import sys
+from functools import partial
+from multiprocessing.pool import Pool
 from pathlib import Path
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import metrics
+from sklearn.metrics import accuracy_score
 
 import Resources.training as tr_resources
 
@@ -155,6 +158,39 @@ def plot_labels_and_predictions_per_run(modelname, input_file: Path, output_dir:
         plt.close()
 
 
+def plot_labels_and_predictions_of_three_models_per_run(names: list, input_files: list, output_dir: Path, num_runs=10):
+    output_dir.mkdir(exist_ok=True)
+    np.set_printoptions(precision=3, suppress=True)
+    data_dicts = []
+    for input_file in input_files:
+        with open(input_file, "rb") as f:
+            data_dicts.append(pickle.load(f))
+    for i, k in enumerate(list(data_dicts[0].keys())[:num_runs][7:9]):
+        one_run_mod0 = data_dicts[0][k]
+        one_run_mod1 = data_dicts[1][k]
+        one_run_mod2 = data_dicts[2][k]
+        labels = np.asarray([one_run_mod0[k] for k in one_run_mod0], dtype=float)[:, 1]
+        predictions0 = np.asarray([one_run_mod0[k] for k in one_run_mod0], dtype=float)[:, 0]
+        predictions1 = np.asarray([one_run_mod1[k] for k in one_run_mod1], dtype=float)[:, 0]
+        predictions2 = np.asarray([one_run_mod2[k] for k in one_run_mod2], dtype=float)[:, 0]
+
+        plt.plot(range(len(labels)), predictions1, label=f"Pred. {names[1]}", linestyle='-.')
+        plt.plot(range(len(labels)), predictions2, label=f"Pred. {names[2]}", linestyle='--')
+        plt.plot(range(len(labels)), predictions0, label=f"Pred. {names[0]}", linestyle=':')
+        plt.plot(range(len(labels)), labels, label="Label")
+        plt.xlabel("Steps")
+        plt.ylabel("Dry Spot")
+        plt.ylim((-0.1, 1.1))
+        run_name = k.split('/')[-1:][0]
+        plt.title(f"All Models - Run {i + 8}")
+        plt.legend()
+        plt.tight_layout()
+        # if i == 7 or i == 8:
+        plt.savefig(output_dir / f"run_{i+8}.png")
+        # plt.show()
+        plt.close()
+
+
 def get_roc_values_for_different_lengths_of_dryspot_runs():
     print(tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p")
     rates = []
@@ -171,6 +207,12 @@ def get_roc_values_for_different_lengths_of_dryspot_runs():
         rates.append((fpr, tpr, i))
     pickle.dump(rates, open("consecutive_len_rates_no_overlap_different_thres.p", "wb"))
 
+def wrapper_acc(y_score, y_true, thresh):
+    score = np.where(y_score > thresh, 1, 0)
+    acc = accuracy_score(y_true, score)
+    acc_thresh = (acc, thresh)
+    return acc_thresh
+
 
 def get_fpr_tpr_thresholds_for_all_vals(input_file: Path):
     with open(input_file, "rb") as f:
@@ -179,23 +221,38 @@ def get_fpr_tpr_thresholds_for_all_vals(input_file: Path):
     for k in list(_dict.keys()):
         pred_label.append(np.array(list(_dict[k].values())))
     _all = np.concatenate(pred_label)
-    return metrics.roc_curve(y_true=_all[:,1], y_score=_all[:,0])
+    y_true = _all[:,1]
+    y_score = _all[:,0]
+    fpr, tpr, thresholds = metrics.roc_curve(y_true=y_true, y_score=y_score)
+    with Pool() as p:
+        accs_threshs = p.map(partial(wrapper_acc, y_score, y_true), np.arange(0., 1, 0.01))
+
+    accs, threshs = zip(*accs_threshs)
+    max_acc = np.array(accs).max()
+    index = np.array(accs).argmax()
+    return fpr, tpr, thresholds, (max_acc, threshs[index], accs)
 
 
+def get_roc_curve_and_max_acc(p: Path):
+    fpr, tpr, thresholds, (max_acc, thresh_max_acc, accs) = get_fpr_tpr_thresholds_for_all_vals(p)
+    print(max_acc, thresh_max_acc)
+    # with open("max_acc_thresh_accs_1140.p", "wb") as f:
+    #     pickle.dump((max_acc, thresh_max_acc, accs), f)
 
 
 def get_roc_curves_1140_sensors():
-    fpr_1140, tpr_1140, thresholds_1140 = get_fpr_tpr_thresholds_for_all_vals(
+    fpr_1140, tpr_1140, thresholds_1140, _ = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p")
-    fpr_1140d, tpr_1140d, thresholds_1140d = get_fpr_tpr_thresholds_for_all_vals(
-        tr_resources.chkp_S1140_densenet_baseline.parent / "advanced_eval/predictions_per_run.p")
+
+    fpr_1140d, tpr_1140d, thresholds_1140d, _ = get_fpr_tpr_thresholds_for_all_vals(
+        tr_resources.chkp_S1140_densenet_baseline_full_trainingset.parent / "advanced_eval/predictions_per_run.p")
     plt.plot(fpr_1140, tpr_1140,
              color='darkorange',
              label=f"1140 Sensors Deconv/Conv\nAUC: {metrics.auc(fpr_1140, tpr_1140):.4f}",
              )
     plt.plot(fpr_1140d, tpr_1140d,
              color='green',
-             label=f"1140 Sensors Dense\nAUC: {metrics.auc(fpr_1140d, tpr_1140d):.4f}",
+             label=f"1140 Sensors Feed Forward\nAUC: {metrics.auc(fpr_1140d, tpr_1140d):.4f}",
              linestyle="-.")
 
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
@@ -209,11 +266,11 @@ def get_roc_curves_1140_sensors():
 
 
 def get_roc_curves_80_sensors():
-    fpr_80, tpr_80, thresholds_80 = get_fpr_tpr_thresholds_for_all_vals(
+    fpr_80, tpr_80, thresholds_80, _ = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p")
-    fpr_80_no_pixel_thres, tpr_80_no_pixel_thres, thresholds_80_no_pixel_thres = get_fpr_tpr_thresholds_for_all_vals(
+    fpr_80_no_pixel_thres, tpr_80_no_pixel_thres, thresholds_80_no_pixel_thres, _ = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S80_to_ds_no_thres.parent / "advanced_eval/predictions_per_run.p")
-    fpr_80d, tpr_80d, thresholds_80d = get_fpr_tpr_thresholds_for_all_vals(
+    fpr_80d, tpr_80d, thresholds_80d, _ = get_fpr_tpr_thresholds_for_all_vals(
         tr_resources.chkp_S80_densenet_baseline.parent / "advanced_eval/predictions_per_run.p")
 
     plt.plot(fpr_80, tpr_80,
@@ -227,7 +284,7 @@ def get_roc_curves_80_sensors():
              linestyle="-.")
     plt.plot(fpr_80d, tpr_80d,
              color='brown',
-             label=f"80 Sensors Dense\nAUC: {metrics.auc(fpr_80d, tpr_80d):.4f}",
+             label=f"80 Sensors Feed Forward\nAUC: {metrics.auc(fpr_80d, tpr_80d):.4f}",
              linestyle=":")
 
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
@@ -301,6 +358,8 @@ def calc_ccc_mean(path):
             pred_label = [np.array(list(_dict[k].values()))]
             _all = np.concatenate(pred_label)
             CCC = __calc_ccc(_all[:,0], _all[:,1])
+            if CCC == 0:
+                print('x')
             CCCs.append(CCC)
         return CCCs, np.mean(CCCs)
  
@@ -315,6 +374,25 @@ def calc_ccc_global(path):
         return CCC
         
 
+def print_rel_conf_matrix_at_certain_threshold(input_file: Path, threshold: float):
+    np.set_printoptions(precision=2)
+    with open(input_file, "rb") as f:
+        _dict = pickle.load(f)
+    pred_label = []
+    for k in list(_dict.keys()):
+        pred_label.append(np.array(list(_dict[k].values())))
+    _all = np.concatenate(pred_label)
+    y_true = _all[:, 1]
+    y_score = _all[:, 0]
+    print(input_file.parent.parent.stem, f"Threshold: {threshold}")
+    yy_score = np.where(y_score > threshold, 1, 0)
+    cm = metrics.confusion_matrix(y_true, yy_score, normalize="all")
+    print(cm * 100)
+    print("Ref: Threshold 0.5")
+    y_score = np.where(y_score > .5, 1, 0)
+    cm = metrics.confusion_matrix(y_true, y_score, normalize="all")
+    print(cm * 100)
+
 
 if __name__ == '__main__':
     font = {
@@ -323,32 +401,77 @@ if __name__ == '__main__':
         'size': 16
     }
     matplotlib.rc('font', **font)
+    plot_labels_and_predictions_of_three_models_per_run(
+        ["S80 Pixel Threshold", "S1140", "S80"],
+        [tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p",
+        tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p",
+        tr_resources.chkp_S80_to_ds_no_thres.parent / "advanced_eval/predictions_per_run.p"],
+        output_dir=tr_resources.plots_output
+    )
+    # plot_labels_and_predictions_per_run(
+    #     "S80 Pixel Threshold",
+    #     tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p",
+    #     output_dir=tr_resources.plots_output
+    # )
+    # plot_labels_and_predictions_per_run(
+    #     "S1140",
+    #     tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p",
+    #     output_dir=tr_resources.plots_output
+    # )
+    #
+    # plot_labels_and_predictions_per_run(
+    #     "S80",
+    #     tr_resources.chkp_S80_to_ds_no_thres.parent / "advanced_eval/predictions_per_run.p",
+    #     output_dir=tr_resources.plots_output
+    # )
+    exit()
+#
+#     print_rel_conf_matrix_at_certain_threshold(tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p", 0.49)
+#     print_rel_conf_matrix_at_certain_threshold(tr_resources.chkp_S1140_densenet_baseline_full_trainingset.parent / "advanced_eval/predictions_per_run.p", 0.54)
+#     print_rel_conf_matrix_at_certain_threshold(tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p", 0.57)
+#     print_rel_conf_matrix_at_certain_threshold(tr_resources.chkp_S80_densenet_baseline.parent / "advanced_eval/predictions_per_run.p", 0.52)
+#     exit()
+#     """    \multirow{2}{*}{Prediction} & No dry spot & 38.43 \% & 10.59 \%\\
+#     & Dry spot &    9.89 \% & 41.06 \% \\
+#         \hline
+#     \end{tabular}
+# \quad
+#     \begin{tabular}{cr|rr|}
+#     & & \multicolumn{2}{c|}{Label}\\
+#     & & No dry spot & Dry spot \\
+#     \hline
+#     \multirow{2}{*}{Prediction} & No dry spot & 40.99 \% &  8.03 \% \\
+#         & Dry spot & 8.39 \% & 42.56 \% \\"""
 
+
+
+    # 0.7522373199462891 0.51
+    # get_roc_curve_and_max_acc(tr_resources.chkp_S20_to_ds_retrain.parent / "advanced_eval/predictions_per_run.p")
+    # 0.8148288726806641 0.58
+    # get_roc_curve_and_max_acc(tr_resources.chkp_S80_to_ds_no_thres.parent / "advanced_eval/predictions_per_run.p")
+    # 0.9168109893798828 0.49
+    # get_roc_curve_and_max_acc(tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p")
+    # 0.8369369506835938 0.57
+    # get_roc_curve_and_max_acc(tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p")
+    # 0.8274965286254883 0.54
+    # get_roc_curve_and_max_acc(tr_resources.chkp_S1140_densenet_baseline_full_trainingset.parent / "advanced_eval/predictions_per_run.p")
+    # 0.7957048416137695 0.52
+    # get_roc_curve_and_max_acc(tr_resources.chkp_S80_densenet_baseline.parent / "advanced_eval/predictions_per_run.p")
+    # 0.7468843460083008 0.49
+    # get_roc_curve_and_max_acc(tr_resources.chkp_S20_densenet_baseline_full_trainingset.parent / "advanced_eval/predictions_per_run.p")
+
+    # exit()
+    # ccc_glob = calc_ccc_global(tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p")
+    # ccc_mean = calc_ccc_mean(tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p")
+    # print(ccc_glob, ccc_mean[1])
+    # exit()
     # plot_trainings()
     # exit()
     #
-    # get_roc_curves_1140_sensors()
-    # get_roc_curves_80_sensors()
-    # exit()
-    # get_roc_values_for_different_lengths_of_dryspot_runs()
-
-    plot_labels_and_predictions_per_run(
-        "S80 Pixel Threshold",
-        tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p",
-        output_dir=tr_resources.plots_output
-    )
-    plot_labels_and_predictions_per_run(
-        "S1140",
-        tr_resources.chkp_S1140_to_ds_0_basepr_frozen.parent / "advanced_eval/predictions_per_run.p",
-        output_dir=tr_resources.plots_output
-    )
-
-    plot_labels_and_predictions_per_run(
-        "S80",
-        tr_resources.chkp_S80_to_ds_no_thres.parent / "advanced_eval/predictions_per_run.p",
-        output_dir=tr_resources.plots_output
-    )
+    get_roc_curves_1140_sensors()
+    get_roc_curves_80_sensors()
     exit()
+    # get_roc_values_for_different_lengths_of_dryspot_runs()
 
     # count_correct_labels_and_predictions(
     #     tr_resources.chkp_S80_to_ds_thres_longer_train.parent / "advanced_eval/predictions_per_run.p", PROB_THRES=.5)
