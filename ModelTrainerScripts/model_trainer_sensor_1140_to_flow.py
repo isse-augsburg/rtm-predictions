@@ -11,6 +11,9 @@ from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
+    """
+    This is the starting point for training a network with 1140 sensor data.
+    """
     args = read_cmd_params()
 
     dl = DataloaderImages(image_size=(149, 117))
