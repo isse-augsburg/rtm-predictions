@@ -56,7 +56,8 @@ class LoopingDataGenerator:
                  save_torch_dataset_path=None,
                  load_torch_dataset_path=None,
                  dont_care_num_samples=False,
-                 test_mode=False
+                 test_mode=False,
+                 sampler=None
                  ):
         self.logger = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ class LoopingDataGenerator:
         self.saved_val_samples = None
 
         if looping_strategy is None:
-            looping_strategy = DataLoaderListLoopingStrategy(batch_size)
+            looping_strategy = DataLoaderListLoopingStrategy(batch_size, sampler=sampler)
         self.looping_strategy = looping_strategy
         self.first = True
         self.val_set_generator = None

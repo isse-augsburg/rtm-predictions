@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
 
+import Resources.training as tr_resources
 from Pipeline.resampling import get_fixed_number_of_indices
-from Utils.data_utils import extract_coords_of_mesh_nodes
+from Utils.data_utils import extract_coords_of_mesh_nodes, load_mean_std
 # from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
 from Utils.img_utils import (
@@ -23,7 +24,8 @@ class DataloaderImages:
     def __init__(self, image_size=(135, 103),
                  ignore_useless_states=True,
                  sensor_indizes=((0, 1), (0, 1)),
-                 skip_indizes=(0, None, 1)):
+                 skip_indizes=(0, None, 1),
+                 divide_by_100k=True):
         self.image_size = image_size
         self.coords = None
         self.ff_coords = None
@@ -31,6 +33,11 @@ class DataloaderImages:
         self.ignore_useless_states = ignore_useless_states
         self.sensor_indizes = sensor_indizes
         self.skip_indizes = skip_indizes
+        self.divide_by_100k = divide_by_100k
+        self.mean = None
+        self.std = None
+        if not self.divide_by_100k:
+            self.mean, self.std = load_mean_std(tr_resources.mean_std_1140_pressure_sensors)
 
     def _get_flowfront(self, f: h5py.File, meta_f: h5py.File, states=None):
         """
@@ -110,11 +117,10 @@ class DataloaderImages:
 
     def _get_sensordata(self, f):
         try:
-            pressure_array = f["post"]["multistate"]["TIMESERIES1"][
+            data = f["post"]["multistate"]["TIMESERIES1"][
                 "multientityresults"
             ]["SENSOR"]["PRESSURE"]["ZONE1_set1"]["erfblock"]["res"][()]
-            # convert barye to bar ( smaller values are more stable while training)
-            pressure_array = pressure_array / 100000
+
             states = f["post"]["singlestate"]
         except KeyError:
             return None
@@ -126,7 +132,13 @@ class DataloaderImages:
                 try:
                     s = state.replace("state", "")
                     state_num = int(s)
-                    sensordata = np.squeeze(pressure_array[state_num - 1])
+                    sensordata = np.squeeze(data[state_num - 1])
+                    if self.divide_by_100k:
+                        # convert barye to bar ( smaller values are more stable while training)
+                        sensordata = sensordata / 100000
+                    else:
+                        # Standardize
+                        sensordata = (sensordata - self.mean) / self.std
                     if self.sensor_indizes != ((0, 1), (0, 1)):
                         sensordata = sensordata.reshape((38, 30))
                         sensordata = sensordata[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
@@ -140,7 +152,7 @@ class DataloaderImages:
 
     def get_sensordata_and_flowfront(self, file: Path):
         try:
-            f = h5py.File(file, "r")
+            result_f = h5py.File(file, "r")
             if self.ignore_useless_states:
                 meta_f = h5py.File(str(file).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
             else:
@@ -150,21 +162,20 @@ class DataloaderImages:
             logger.error(f"Error: File not found: {file} (or meta_data.hdf5)")
             return None
 
-        fillings = self._get_flowfront(f, meta_f)
+        fillings = self._get_flowfront(result_f, meta_f)
         if not fillings:
             return None
 
-        sensor_data = self._get_sensordata(f)
+        sensor_data = self._get_sensordata(result_f)
         if not sensor_data:
             return None
 
         # Return only tuples without None values and if we get no data at all, return None
         # `if not None in t` does not work here because numpy does some weird stuff on
         # such comparisons
-        return (list((d,
-                      f,
-                      {"state": s}) for d, f, s in zip(sensor_data, fillings, f["post"]["singlestate"])
-                     if d is not None and f is not None)
+        return (list((sens_data, filling, {"state": state}) for sens_data, filling, state in
+                     zip(sensor_data, fillings, result_f["post"]["singlestate"])
+                     if sens_data is not None and filling is not None)
                 or None)
 
     def _get_coords(self, f: h5py.File):

@@ -111,8 +111,9 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
     It seems to have slightly better performance than the ComplexList approach.
     """
 
-    def __init__(self, batch_size):
+    def __init__(self, batch_size, sampler=None):
         super().__init__()
+        self.sampler = sampler
         self.batch_size = batch_size
         self.features = []
         self.labels = []
@@ -126,7 +127,11 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         self.aux.extend(split_aux_dicts(aux))
 
     def get_new_iterator(self):
-        return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
+        if not hasattr(self, "sampler") or self.sampler is None:
+            return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
+        else:
+            sampler = self.sampler((self.features, self.labels, self.aux))
+            return iter(torch.utils.data.DataLoader(self, sampler=sampler, batch_size=self.batch_size))
 
     def __getitem__(self, index):
         return self.features[index], self.labels[index], self.aux[index]

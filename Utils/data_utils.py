@@ -1,15 +1,78 @@
 import hashlib
 import json
+import logging
 import os
 import pickle
 import re
 from pathlib import Path
+from time import time
 
 import h5py
 import numpy as np
+import torch
 from scipy import spatial
+from torch.utils.data import Sampler
 
 import Resources.training as r
+
+
+class RandomOverSampler(Sampler):
+    """
+    Sampler to put more emphasis on the last samples of runs.
+    The original size of the dataset is kept. Some samples are dropped.
+
+    Arguments:
+        data_source (Dataset): dataset to sample from
+        emphasize_after_max_minus (int): index from which starting, counting from the back, the samples are used more
+            often
+        multiply_by (int): by how much those samples are multiplied in the dataset
+    """
+    def __init__(self, data_source, emphasize_after_max_minus=80, multiply_by=2):
+        self.data_source = data_source
+        self.emph = emphasize_after_max_minus
+        self.multiply_by = multiply_by
+
+    @property
+    def num_samples(self):
+        return len(self.data_source[0])
+
+    def double_samples_after_step_x_in_each_run(self):
+        logger = logging.getLogger()
+        logger.debug("Sampling ...")
+        t0 = time()
+        indices_lower = []
+        indices_higher = []
+        for i, aux in enumerate(self.data_source[2]):  # Aux data
+            index = aux["ix"]
+            _max = aux["max"]
+            if index > _max - self.emph:
+                indices_higher.append(i)
+            else:
+                indices_lower.append(i)
+        logger.debug(f"Going through data took {t0 - time()}")
+        t0 = time()
+        count_higher = len(indices_higher)
+        # Multiply the number of samples at the back of the runs
+        hi = torch.cat([torch.tensor(indices_higher) for x in range(self.multiply_by)])
+        hi = hi[torch.randperm(len(hi))]
+        logger.debug(f"Random 1 took {t0 - time()}")
+        t0 = time()
+        # Cast to tensor, randomize
+        low = torch.tensor(indices_lower)[torch.randperm(len(indices_lower))]
+        logger.debug(f"Random 2 took {t0 - time()}")
+        t0 = time()
+        low = low[:-count_higher * (self.multiply_by - 1)]
+        indizes = torch.cat((hi, low))
+        indizes = indizes[torch.randperm(len(indizes))]
+        logger.debug(f"Random All took {t0 - time()}")
+        return indizes
+
+    def __iter__(self):
+        indizes = self.double_samples_after_step_x_in_each_run()
+        return iter(indizes)
+
+    def __len__(self):
+        return self.num_samples
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -19,28 +82,32 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def handle_torch_caching(processing_function, data_source_paths, train_test_split_path):
-    """
-    If the train test split is not set, the same has will be used all the time, thus, the same split from the first
-    split will be loaded, so make sure to delete the hash if you change the train / test split.
-    """
+def load_mean_std(mean_std_f: Path):
+    with open(mean_std_f, "rb") as f:
+        mean, std = pickle.load(f)
+        mean = np.array(mean)
+        std = np.array(std)
+    return mean, std
+
+
+def handle_torch_caching(processing_function, data_source_paths, sampler_func, batch_size):
     data_loader_info = processing_function.__self__.__dict__
     data_loader_info["data_processing_function"] = processing_function.__name__
     data_loader_info["data_loader_name"] = processing_function.__self__.__class__.__name__
     data_loader_info["data_source_paths"] = [str(p) for p in data_source_paths]
-    if train_test_split_path is not None:
-        train_set = pickle.load(open(train_test_split_path / "training_set.p"))
-        test_set = pickle.load(open(train_test_split_path / "test_set.p"))
-        val_set = pickle.load(open(train_test_split_path / "val_set.p"))
-        data_loader_info["data_split_paths"] = {}
-        data_loader_info["data_split_paths"]["train"] = train_set
-        data_loader_info["data_split_paths"]["test"] = test_set
-        data_loader_info["data_split_paths"]["validation"] = val_set
+    data_loader_info["batch_size"] = batch_size
+    if sampler_func is None:
+        data_loader_info["sampler"] = ""
     else:
-        data_loader_info["data_split_paths"] = {}
+        data_loader_info["sampler"] = sampler_func(None).__dict__
     data_loader_str = str(data_loader_info).encode("utf-8")
     data_loader_hash = hashlib.md5(data_loader_str).hexdigest()
     load_and_save_path = r.datasets_dryspots_torch / data_loader_hash
+    if load_and_save_path.exists():
+        print("Existing caches: ")
+        print([x for x in load_and_save_path.iterdir() if x.is_file()])
+    else:
+        print("No existing caches.")
     load_and_save_path.mkdir(exist_ok=True)
 
     if (r.datasets_dryspots_torch / "info.json").is_file():

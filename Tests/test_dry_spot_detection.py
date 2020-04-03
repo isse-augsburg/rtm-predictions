@@ -19,7 +19,9 @@ class TestDrySpotDetectionLeoben(unittest.TestCase):
             index = int(entry.parent.stem)
             output_dir.mkdir(parents=True, exist_ok=True)
             Xi, Yi, triang, xi, yi = create_triangle_mesh(entry)
-            spot_list_s, spot_list_e, deltas_prob = dry_spot_analysis(entry, triang, Xi, Yi, xi, yi, silent=self.silent)
+            spot_list_s, spot_list_e, deltas_prob = dry_spot_analysis(entry, triang, Xi, Yi, xi, yi, silent=self.silent,
+                                                                      output_dir_imgs=output_dir,
+                                                                      save_flowfront_img=False)
             if len(spot_list_s) == 0:
                 if not self.silent:
                     print(f'Wrong index: should be {first_occurrences[index]}, is {spot_list_s}, '

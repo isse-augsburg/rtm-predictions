@@ -101,8 +101,9 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
 
     keys = list(f["/post/singlestate"].keys())
     # Fiber fraction map creation with tripcolor
+    _ = __create_permeability_map(f, triang, colored=True,
+                                  path=str(output_dir_imgs / f"permeability_map.png"))
     perm_map = __create_permeability_map(f, triang)
-
     spot_list_s = []
     spot_list_e = []
     b_set = False
@@ -122,6 +123,7 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
 
         spot_b, dryspot_img, probs = __analyze_image(img, perm_map)
         if save_flowfront_img:
+            cv2.imwrite(str(output_dir_imgs / (f"{k}_permeability_map.png")), perm_map)
             cv2.imwrite(str(output_dir_imgs / (f"{k}_dry.png")), dryspot_img)
 
         # check for large jumps in dryspot probability. This is used to determine whether a file should be blacklisted.
@@ -201,7 +203,7 @@ def __update_meta_data(meta_file, spot_list_e, spot_list_s, ignore_list, detect_
 def __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
     fig2 = plt.figure()
     ax2 = fig2.add_subplot(111)
-    ax2.contourf(xi, yi, zi, levels=10, cmap="gray", extend="both")
+    ax2.contourf(xi, yi, zi, levels=10, extend="both")  # cmap="gray")
     del zi
     ax2.set(xlim=(0, 375), ylim=(0, 300))
     plt.axis("off")
@@ -230,11 +232,14 @@ def __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
     return img
 
 
-def __create_permeability_map(f, triang):
+def __create_permeability_map(f, triang, colored=False, path=None):
     fvc = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"][()].flatten()
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    plt.tripcolor(triang, fvc, cmap="gray")
+    if colored:
+        plt.tripcolor(triang, fvc)
+    else:
+        plt.tripcolor(triang, fvc, cmap="gray")
     ax.set(xlim=(0, 375), ylim=(0, 300))
     plt.axis("off")
     plt.tight_layout()
@@ -242,6 +247,8 @@ def __create_permeability_map(f, triang):
     plt.clim(0, 1)
     del fvc
     perm_bytes = io.BytesIO()
+    if path is not None:
+        plt.savefig(path, bbox_inches=extent)
     plt.savefig(perm_bytes, bbox_inches=extent)
     fig.clear()
     plt.cla()
@@ -249,7 +256,10 @@ def __create_permeability_map(f, triang):
     perm_bytes.seek(0)
     file_bytes = np.asarray(bytearray(perm_bytes.read()), dtype=np.uint8)
     perm_bytes.close()
-    perm_map = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
+    if colored:
+        perm_map = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    else:
+        perm_map = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
     return perm_map
 
 

@@ -134,7 +134,11 @@ class BinaryClassificationEvaluator(Evaluator):
     """Evaluator specifically for binary classification. Calculates common metrics and a confusion matrix.
     """
 
-    def __init__(self, save_path: Path = None, skip_images=True, with_text_overlay=False, summary_writer=None):
+    def __init__(self, save_path: Path = None,
+                 skip_images=True,
+                 with_text_overlay=False,
+                 summary_writer=None,
+                 advanced_eval=False):
         super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
         self.accuracy, self.precision, self.recall, self.specificity = 0, 0, 0, 0
@@ -149,6 +153,8 @@ class BinaryClassificationEvaluator(Evaluator):
         self.with_text_overlay = with_text_overlay
         self.summary_writer = summary_writer
         plt.set_loglevel('warning')
+        if advanced_eval:
+            self.origin_tracker = {}
 
     def commit(self, net_output, label, inputs, aux, *args):
         """Updates the confusion matrix.
@@ -165,6 +171,12 @@ class BinaryClassificationEvaluator(Evaluator):
             label = np.delete(label, invalid)
 
         predictions = np.around(net_output[:, 0])
+        if hasattr(self, "origin_tracker"):
+            for i, aux_sample in enumerate(aux):
+                if aux_sample["sourcefile"] not in self.origin_tracker.keys():
+                    self.origin_tracker[aux_sample["sourcefile"]] = {}
+                self.origin_tracker[aux_sample["sourcefile"]][int(aux_sample['ix'])] = \
+                    (net_output.flatten()[i], float(label[i]))
 
         self.confusion_matrix = np.add(self.confusion_matrix, confusion_matrix(label, predictions, labels=[0, 1]))
 

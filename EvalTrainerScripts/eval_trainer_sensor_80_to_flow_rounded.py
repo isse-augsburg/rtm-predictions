@@ -14,12 +14,15 @@ if __name__ == "__main__":
     dl = DataloaderImages(image_size=(112, 96),
                           sensor_indizes=((1, 4), (1, 4)))
 
+    checkpoint_p = r.chkp_S80_to_ff2
+    adv_output_dir = checkpoint_p.parent / "advanced_eval"
+
     m = ModelTrainer(
         lambda: S80DeconvModelEfficient2(pretrained="all",
                                          freeze_nlayers=9,
-                                         checkpoint_path=r.chkp_S80_to_ff2,
-                                         round_at=.5),
-        data_source_paths=r.get_data_paths_debug(),
+                                         checkpoint_path=checkpoint_p,
+                                         round_at=.8),
+        data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path,
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,

@@ -97,6 +97,8 @@ class ModelTrainer:
         run_eval_step_before_training=False,
         dont_care_num_samples=False,
         use_mixed_precision=False,
+        sampler=None,
+        caching_torch=True
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -123,13 +125,20 @@ class ModelTrainer:
         self.model_name = "Model"
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
+        self.sampler = sampler
 
-        load_and_save_path, data_loader_hash = handle_torch_caching(
-            self.data_processing_function, self.data_source_paths, self.load_datasets_path)
-        self.data_loader_hash = data_loader_hash
+        if caching_torch:
+            load_and_save_path, data_loader_hash = handle_torch_caching(
+                self.data_processing_function, self.data_source_paths, self.sampler, self.batch_size)
+            self.data_loader_hash = data_loader_hash
+            self.load_torch_dataset_path = load_and_save_path
+            self.save_torch_dataset_path = load_and_save_path
+        else:
+            self.data_loader_hash = "NOT_CACHING"
+            self.load_torch_dataset_path = None
+            self.save_torch_dataset_path = None
 
-        self.load_torch_dataset_path = load_and_save_path
-        self.save_torch_dataset_path = load_and_save_path
+        print(f"HASH: {self.data_loader_hash}")
 
         self.optimizer_function = optimizer_function
         self.lr_scheduler_function = lr_scheduler_function
@@ -166,7 +175,8 @@ class ModelTrainer:
                 save_torch_dataset_path=self.save_torch_dataset_path,
                 load_torch_dataset_path=self.load_torch_dataset_path,
                 dont_care_num_samples=self.dont_care_num_samples,
-                test_mode=test_mode
+                test_mode=test_mode,
+                sampler=self.sampler
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -214,6 +224,8 @@ class ModelTrainer:
         self.writer.add_text("Optimizer/LRScheduler", f"{sched_str}")
         self.writer.add_text("Model/Structure", f"{self.__get_model_def()}")
         self.writer.add_text("Model/ParamCount", f"{param_count}")
+        if hasattr(self.model, "round_at") and self.model.round_at is not None:
+            self.writer.add_text("Model/Threshold", f"{self.model.round_at}")
         self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
         self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
         dl_info = self.data_processing_function.__self__.__dict__
@@ -465,8 +477,10 @@ class ModelTrainer:
         data_generator = self.__create_datagenerator(test_mode=True)
         logger.info("Loading Checkpoint")
         if checkpoint_path is not None:
+            logger.info(f"Loading Checkpoint: {checkpoint_path}")
             self.__load_checkpoint(checkpoint_path)
         else:
+            logger.info(f"Loading Checkpoint: {self.save_path / r.chkp}")
             self.__load_checkpoint(self.save_path / r.chkp)
 
         data_list = data_generator.get_test_samples()
@@ -474,4 +488,5 @@ class ModelTrainer:
             self.classification_evaluator = classification_evaluator_function(summary_writer=None)
         logger.info("Starting inference")
         self.__eval(data_list, test_mode=True)
+        logger.info("Inference completed.")
         logging.shutdown()

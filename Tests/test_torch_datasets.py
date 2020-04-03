@@ -1,6 +1,7 @@
 import logging
 import shutil
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -85,21 +86,31 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         """ Check if the splits are produced the same way if only the training set is loaded and if the the
             loaded_* flags are set correctly.
         """
-        with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
-            m = self.create_trainer_and_start(Path(tempdir))
-            self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch.p"],
-                                                          self.reference_datasets_torch / m.data_loader_hash)
-            m.start_training()
-            self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
-            self.assertTrue(m.data_generator.loaded_train_set)
-            self.assertFalse(m.data_generator.loaded_val_set)
-            self.assertFalse(m.data_generator.loaded_test_set)
-            with open(self.torch_all_datasets / "val_set_torch.p", "rb") as f:
-                saved_val_set = torch.load(f)
-            with open(self.torch_all_datasets / "test_set_torch.p", "rb") as f:
-                saved_test_set = torch.load(f)
-            self.compare_old_new_dataset(saved_val_set, m.data_generator.get_validation_samples())
-            self.compare_old_new_dataset(saved_test_set, m.data_generator.get_test_samples())
+        tempdir = tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading")
+        m = self.create_trainer_and_start(Path(tempdir.__enter__()))
+        self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch.p"],
+                                                      self.reference_datasets_torch / m.data_loader_hash)
+        m.start_training()
+        self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+        self.assertTrue(m.data_generator.loaded_train_set)
+        self.assertFalse(m.data_generator.loaded_val_set)
+        self.assertFalse(m.data_generator.loaded_test_set)
+        with open(self.torch_all_datasets / "val_set_torch.p", "rb") as f:
+            saved_val_set = torch.load(f)
+        with open(self.torch_all_datasets / "test_set_torch.p", "rb") as f:
+            saved_test_set = torch.load(f)
+        self.compare_old_new_dataset(saved_val_set, m.data_generator.get_validation_samples())
+        self.compare_old_new_dataset(saved_test_set, m.data_generator.get_test_samples())
+        """
+        Problem here is that the output.log is still in use, therefore we have to wait
+        """
+        clean = False
+        while not clean:
+            try:
+                tempdir.cleanup()
+                clean = True
+            except PermissionError:
+                time.sleep(1)
 
     def test_load_train_and_test_set_only(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
