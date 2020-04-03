@@ -50,3 +50,4 @@ Modules
    Utils
    Tests
    Resources
+   ModelTrainerScripts
