@@ -1,10 +1,41 @@
-### Rerun experiments from FlowFrontNet paper:
+## Rerun experiments from FlowFrontNet paper:
 
-1. Deconv/Conv
+1. Download the data from here:
+https://figshare.com/s/6d8ebc90e0e820b7f08f.
+There are two big Zip files: SensorToDryspot, SensorToFlowFront.
+To recreate the experiments from the paper, we need both.
 
-2. Full FlowFrontNet with pretrained DeConv/Conv
+The SensorToDryspot dataset can be used for:
+* DenseNet baseline
+* Finetuning FlowFrontNet with a pretrained Deconv / Conv 
 
-### Short Guide to the RTM-Predictions Data-Pipeline:
+The SensorToFlowFront dataset can be used to train the Deconv / Conv Network to produce FlowFrontImages
+
+2. Unzip those files and put it in the root directory of this repository
+
+3. Trainings:
+* Start the following script for 1140 sensors to flowfront:
+`python3 -u ModelTrainerScripts.model_trainer_sensor_1140_to_flow.py --demo`
+
+* To use the fine-tuned model for binary classification:
+`python3 -u ModelTrainerScripts.model_trainer_sensor_1140_to_dryspot.py --demo`
+
+* For the baseline, run:
+`python3 -u ModelTrainerScripts.model_trainer_sensor_1140_dryspot_end_to_end_dense.py --demo`
+
+4. Evaluation:
+* Start the following script for 1140 sensors to flowfront:
+`python3 -u ModelTrainerScripts.model_trainer_sensor_1140_to_flow.py --demo --eval`
+
+* To use the fine-tuned model for binary classification:
+`python3 -u ModelTrainerScripts.model_trainer_sensor_1140_to_dryspot.py --demo --eval`
+
+* For the baseline, run:
+`python3 -u ModelTrainerScripts.model_trainer_sensor_1140_dryspot_end_to_end_dense.py --demo --eval`
+
+Caution: New Folders will be created in the current directory.
+
+### Short Guide to the RTM-Predictions Data-Pipeline (regular use):
 
 Note: A complete documentation can be found in `/cfs/share/cache/website/html/index.html` or http://137.250.170.59:8000/
 
