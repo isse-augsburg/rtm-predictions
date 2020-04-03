@@ -32,10 +32,10 @@ def count_correct_labels_and_predictions(input_file: Path,
         pred_label = np.asarray([one_run[k] for k in one_run], dtype=float)
         predictions = pred_label[:, 0]
         predicted_dryspots = sum(np.array(predictions > PROB_THRES))
-        predicted_non_dryspots = sum(np.array(predictions == 0))
+        # predicted_non_dryspots = sum(np.array(predictions == 0))
         labels = pred_label[:, 1]
         actual_dryspots = sum(np.array(labels == 1))
-        actual_non_dryspots = sum(np.array(labels == 0))
+        # actual_non_dryspots = sum(np.array(labels == 0))
         if consecutive:
             """
             Consecutive means there have to be cons. frames of dryspots, not just the sum of dryspots
@@ -117,7 +117,7 @@ def plot_labels_and_predictions_per_run(modelname, input_file: Path, output_dir:
         plt.xlabel("Steps")
         plt.ylabel("Dry Spot")
         plt.ylim((-0.1, 1.1))
-        run_name = k.split('/')[-1:][0]
+        # run_name = k.split('/')[-1:][0]
         plt.title(f"{modelname} - Run {i + 1}")
         plt.legend()
         plt.tight_layout()
@@ -150,7 +150,7 @@ def plot_labels_and_predictions_of_three_models_per_run(names: list, input_files
         plt.xlabel("Steps")
         plt.ylabel("Dry Spot")
         plt.ylim((-0.1, 1.1))
-        run_name = k.split('/')[-1:][0]
+        # run_name = k.split('/')[-1:][0]
         plt.title(f"All Models - Run {i + 8}")
         plt.legend()
         plt.tight_layout()
@@ -402,7 +402,7 @@ def get_roc_curves():
 
 def different_tpr_fpr_with_and_without_overlap():
     fn2 = "consecutive_len_rates_no_overlap.p"
-    fn1 = "consecutive_len_rates_overlap.p"
+    # fn1 = "consecutive_len_rates_overlap.p"
     fn = "consecutive_len_rates_no_overlap_different_thres.p"
     with open(fn2, "rb") as f:
         rates = pickle.load(f)
