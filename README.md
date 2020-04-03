@@ -1,3 +1,11 @@
+## General:
+To run the code, either use the environment.yaml with anaconda or even easier use Docker:
+```
+cd Docker
+docker build -t "pytorch_extended:20.02"
+docker run ...
+```
+
 ## Rerun experiments from FlowFrontNet paper:
 
 1. Download the data from here:
@@ -37,7 +45,8 @@ Caution: New Folders will be created in the current directory.
 
 ### Short Guide to the RTM-Predictions Data-Pipeline (regular use):
 
-Note: A complete documentation can be found in `/cfs/share/cache/website/html/index.html` or http://137.250.170.59:8000/
+Note: A complete documentation can be found in `/cfs/share/cache/website/html/index.html` or http://137.250.170.59:8000/ or
+https://rtm-predictions.readthedocs.io/en/latest/index.html (which might be not as up to date es the others).
 
 * Most of the work is done by the `ModelTrainer` class (defined in `Trainer.ModelTrainer.py`)
 * `ModelTrainer` is the generic base class which takes all necessary parameters for any kind of training
