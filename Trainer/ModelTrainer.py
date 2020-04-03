@@ -138,8 +138,7 @@ class ModelTrainer:
             self.load_torch_dataset_path = None
             self.save_torch_dataset_path = None
 
-        print(self.data_loader_hash)
-
+        print(f"HASH: {self.data_loader_hash}")
 
         self.optimizer_function = optimizer_function
         self.lr_scheduler_function = lr_scheduler_function

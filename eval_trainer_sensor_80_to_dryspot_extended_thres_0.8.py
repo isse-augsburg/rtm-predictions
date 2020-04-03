@@ -1,5 +1,3 @@
-import pickle
-
 import torch
 
 import Resources.training as r
@@ -8,6 +6,7 @@ from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
+from Utils.eval_utils import run_eval_w_binary_classificator
 from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
@@ -42,15 +41,4 @@ if __name__ == "__main__":
         caching_torch=False
     )
 
-    adv_output_dir.mkdir(exist_ok=True)
-    m.inference_on_test_set(
-        output_path=adv_output_dir,
-        checkpoint_path=checkpoint_p,
-        classification_evaluator_function=lambda summary_writer:
-        BinaryClassificationEvaluator(adv_output_dir,
-                                      skip_images=True,
-                                      with_text_overlay=True,
-                                      advanced_eval=True)
-    )
-    with open(adv_output_dir/"predictions_per_run.p", "wb") as f:
-        pickle.dump(m.classification_evaluator.origin_tracker, f)
+    run_eval_w_binary_classificator(adv_output_dir, m, checkpoint_p)

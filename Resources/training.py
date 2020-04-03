@@ -54,12 +54,12 @@ chkp_S1140_to_ds_frozen_deeper_convnet2 = _ij_S1140_deconv_conv / \
     "2020-01-22_16-44-26_S1140_to_DS_frozen_deeper_convnet" / \
     "checkpoint_best_val_loss.pth"
 chkp_S1140_densenet_baseline = _ij_densenet_baselines / "2020-01-17_09-41-19_S1140_to_DS_densenet_32768bs" / chkp
-chkp_S1140_densenet_baseline_full_trainingset = _ij_densenet_baselines / \
-                               "2020-03-26_16-51-56_S1140_to_DS_densenet_32768bs_full_training" / chkp
+chkp_S1140_densenet_baseline_full_trainingset = \
+    _ij_densenet_baselines / "2020-03-26_16-51-56_S1140_to_DS_densenet_32768bs_full_training" / chkp
 
 chkp_S20_densenet_baseline = _ij_densenet_baselines / "2020-01-17_12-03-17_S20_to_DS_densenet_wide_32768bs" / chkp
-chkp_S20_densenet_baseline_full_trainingset = _ij_densenet_baselines / \
-                             "2020-03-26_16-39-42_S20_to_DS_densenet_32768bs_full_training_set" / chkp
+chkp_S20_densenet_baseline_full_trainingset = \
+    _ij_densenet_baselines / "2020-03-26_16-39-42_S20_to_DS_densenet_32768bs_full_training_set" / chkp
 chkp_S20_to_ff = output_stiebesi / "2020-01-10_15-09-30/checkpoint0_2055val.pth"
 chkp_S20_to_ff_basepr_0 = _ij_S20_deconv_conv / "2020-02-14_16-05-28_S_to_FF" / chkp
 chkp_S20_to_ds = _ij_S20_deconv_conv / "2020-02-18_08-34-18_S_to_DS" / chkp
@@ -71,15 +71,15 @@ chkp_S80_to_ff2 = _ij_S80_deconv_conv / "2020-02-28_12-07-38_deconv_second_try" 
 chkp_S80_to_ds_no_thres = _ij_S80_deconv_conv / "2020-03-02_14-19-12_conv_second_try_no_threshold" / chkp
 dir_S80_to_ds_thres = _ij_S80_deconv_conv / "2020-03-04_10-41-02_th_0.8_best"
 chkp_S80_to_ds_thres = _ij_S80_deconv_conv / "2020-03-04_10-41-02_th_0.8_best" / chkp
-chkp_S80_to_ds_thres_longer_train = _ij_S80_deconv_conv / \
-                                    "2020-03-10_17-52-15_S80_to_DS_th_0.8_longer_train_no_lr_scheduler" / chkp
+chkp_S80_to_ds_thres_longer_train = \
+    _ij_S80_deconv_conv / "2020-03-10_17-52-15_S80_to_DS_th_0.8_longer_train_no_lr_scheduler" / chkp
 chkp_S80_to_ff_standardized = _ij_S80_deconv_conv / "standardized/2020-03-09_18-14-25_S80_to_ff_standardized" / chkp
 
-# data_root = _stiebesi_home / 'data/RTM/Leoben/output/with_shapes'
 data_root = _share_path / 'data/RTM/Leoben/sim_output'
 nearest_nodes_to_sensors = _share_path / "data/RTM/Leoben/Mesh/nearest_nodes_to_sensors.p"
 mean_std_20_flowfront_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_20_flowfront_sensors.p"
 mean_std_1140_pressure_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_1140_pressure_sensors.p"
+
 
 def get_all_data_paths():
     data_paths = [

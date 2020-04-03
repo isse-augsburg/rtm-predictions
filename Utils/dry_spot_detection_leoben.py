@@ -102,7 +102,7 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     keys = list(f["/post/singlestate"].keys())
     # Fiber fraction map creation with tripcolor
     _ = __create_permeability_map(f, triang, colored=True,
-                                         path=str(output_dir_imgs / f"permeability_map.png"))
+                                  path=str(output_dir_imgs / f"permeability_map.png"))
     perm_map = __create_permeability_map(f, triang)
     spot_list_s = []
     spot_list_e = []
@@ -203,7 +203,7 @@ def __update_meta_data(meta_file, spot_list_e, spot_list_s, ignore_list, detect_
 def __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
     fig2 = plt.figure()
     ax2 = fig2.add_subplot(111)
-    ax2.contourf(xi, yi, zi, levels=10, extend="both") # cmap="gray")
+    ax2.contourf(xi, yi, zi, levels=10, extend="both")  # cmap="gray")
     del zi
     ax2.set(xlim=(0, 375), ylim=(0, 300))
     plt.axis("off")

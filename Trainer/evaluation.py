@@ -175,7 +175,8 @@ class BinaryClassificationEvaluator(Evaluator):
             for i, aux_sample in enumerate(aux):
                 if aux_sample["sourcefile"] not in self.origin_tracker.keys():
                     self.origin_tracker[aux_sample["sourcefile"]] = {}
-                self.origin_tracker[aux_sample["sourcefile"]][int(aux_sample['ix'])] = (net_output.flatten()[i], float(label[i]))
+                self.origin_tracker[aux_sample["sourcefile"]][int(aux_sample['ix'])] = \
+                    (net_output.flatten()[i], float(label[i]))
 
         self.confusion_matrix = np.add(self.confusion_matrix, confusion_matrix(label, predictions, labels=[0, 1]))
 
@@ -270,4 +271,3 @@ class BinaryClassificationEvaluator(Evaluator):
             plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
 
         return figure
-
