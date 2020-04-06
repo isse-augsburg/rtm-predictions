@@ -136,8 +136,8 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         features, labels, aux = batch
 
         self.samples.extend(zip((f.squeeze(0) for f in torch.split(features, 1)),
-            (l.squeeze(0) for l in torch.split(labels, 1)),
-            split_aux_dicts(aux)))
+                                (l.squeeze(0) for l in torch.split(labels, 1)),
+                                split_aux_dicts(aux)))
 
     def get_new_iterator(self):
         if not hasattr(self, "sampler") or self.sampler is None:
@@ -147,7 +147,7 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
             return iter(torch.utils.data.DataLoader(self, sampler=sampler, batch_size=self.batch_size))
 
     def __getitem__(self, index):
-        return samples[index]
+        return self.samples[index]
 
     def dump_content(self, f):
         torch.save(self.samples)

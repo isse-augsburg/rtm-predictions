@@ -235,9 +235,9 @@ class TestLoopingStrategies(unittest.TestCase):
                     dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
                                                          _dummy_dataloader_fn, looping_strategy=strategy)
                     first_epoch = set(s for _, s in zip(range(16), _get_samples_in_epoch(dataloader)))
-                    self.assertEqual(len(dataloader), 16*self.batch_size)
+                    self.assertEqual(len(dataloader), 16 * self.batch_size)
                     try:
-                        strategy.dump_content(dump_path) # TODO: The DL should call dump and load
+                        strategy.dump_content(dump_path)  # TODO: The DL should call dump and load
                     except NotImplementedError:
                         continue
 
@@ -247,7 +247,6 @@ class TestLoopingStrategies(unittest.TestCase):
                                                          _dummy_dataloader_fn, looping_strategy=strategy)
                     second_epoch = set(s for _, s in zip(range(16), _get_samples_in_epoch(dataloader)))
                     self.assertSetEqual(first_epoch, second_epoch)
-
 
 
 class TestLoopingDatagenerator(unittest.TestCase):
