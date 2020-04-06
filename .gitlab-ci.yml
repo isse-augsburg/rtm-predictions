@@ -19,9 +19,6 @@ test:
   tags:
     - dgx2
 
-  only:
-    - master
-
 documentation:
   stage: docs
 
