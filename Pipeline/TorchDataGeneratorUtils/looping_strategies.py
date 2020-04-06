@@ -41,6 +41,20 @@ class LoopingStrategy(ABC):
     def __len__(self):
         return self.num_samples
 
+    def dump_content(self, f):
+        """
+        Write the stored samples of this generator into the pickle f
+        """
+        # TODO: Implement fallback via get_new_iterator?
+        raise NotImplementedError
+
+    def load_content(self, f):
+        """
+        Load the stored samples for this generator from the pickle f
+        """
+        # TODO: Implement fallback via store?
+        raise NotImplementedError
+
     @abstractmethod
     def get_new_iterator(self):
         """ This should return a new iterator.
@@ -115,16 +129,15 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         super().__init__()
         self.sampler = sampler
         self.batch_size = batch_size
-        self.features = []
-        self.labels = []
-        self.aux = []
+        self.samples = []
 
     def store(self, batch):
         super().store(batch)
         features, labels, aux = batch
-        self.features.extend(f.squeeze(0) for f in torch.split(features, 1))
-        self.labels.extend(l.squeeze(0) for l in torch.split(labels, 1))
-        self.aux.extend(split_aux_dicts(aux))
+
+        self.samples.extend(zip((f.squeeze(0) for f in torch.split(features, 1)),
+            (l.squeeze(0) for l in torch.split(labels, 1)),
+            split_aux_dicts(aux)))
 
     def get_new_iterator(self):
         if not hasattr(self, "sampler") or self.sampler is None:
@@ -134,7 +147,13 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
             return iter(torch.utils.data.DataLoader(self, sampler=sampler, batch_size=self.batch_size))
 
     def __getitem__(self, index):
-        return self.features[index], self.labels[index], self.aux[index]
+        return samples[index]
+
+    def dump_content(self, f):
+        torch.save(self.samples)
+
+    def load_content(self, f):
+        self.samples = torch.load(f)
 
 
 class NoOpLoopingStrategy(LoopingStrategy):

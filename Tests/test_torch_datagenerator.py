@@ -226,6 +226,29 @@ class TestLoopingStrategies(unittest.TestCase):
         second_epoch = set(_get_samples_in_epoch(dataloader))
         self.assertEqual(len(second_epoch), 0)
 
+    def test_dump_load(self):
+        for strategyfn in self.looping_strategies:
+            strategy = strategyfn()
+            with self.subTest(msg=f"Checking dump/load for strategy {type(strategy).__name__}"):
+                with tempfile.TemporaryDirectory(prefix="LoopingStrategy_DumpPath") as dump_path:
+                    dump_path = Path(dump_path) / "samples.p"
+                    dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
+                                                         _dummy_dataloader_fn, looping_strategy=strategy)
+                    first_epoch = set(s for _, s in zip(range(16), _get_samples_in_epoch(dataloader)))
+                    self.assertEqual(len(dataloader), 16*self.batch_size)
+                    try:
+                        strategy.dump_content(dump_path) # TODO: The DL should call dump and load
+                    except NotImplementedError:
+                        continue
+
+                    strategy = strategyfn()
+                    strategy.load_content(dump_path)
+                    dataloader = td.LoopingDataGenerator(self.test_set.paths, dg.get_filelist_within_folder,
+                                                         _dummy_dataloader_fn, looping_strategy=strategy)
+                    second_epoch = set(s for _, s in zip(range(16), _get_samples_in_epoch(dataloader)))
+                    self.assertSetEqual(first_epoch, second_epoch)
+
+
 
 class TestLoopingDatagenerator(unittest.TestCase):
     def setUp(self):

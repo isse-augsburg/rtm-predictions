@@ -88,6 +88,8 @@ class LoopingDataGenerator:
             looping_strategy = DataLoaderListLoopingStrategy(batch_size, sampler=sampler)
         self.looping_strategy = looping_strategy
         self.first = True
+        if len(self.looping_strategy) > 0:
+            self.first = False
         self.val_set_generator = None
         self.test_set_generator = None
         self.file_iterable = None
