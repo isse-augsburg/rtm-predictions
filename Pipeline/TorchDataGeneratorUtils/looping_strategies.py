@@ -150,7 +150,7 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         return self.samples[index]
 
     def dump_content(self, f):
-        torch.save(self.samples)
+        torch.save(self.samples, f)
 
     def load_content(self, f):
         self.samples = torch.load(f)
