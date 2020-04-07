@@ -124,7 +124,7 @@ class LoopingDataGenerator:
             return
         if (self.load_torch_dataset_path / "train_set_torch.p").is_file():
             self.logger.info(f"Loading training set - torch - from {self.load_torch_dataset_path}.")
-            self.looping_strategy = torch.load(self.load_torch_dataset_path / "train_set_torch.p")
+            self.looping_strategy.load_content(self.load_torch_dataset_path / "train_set_torch.p")
             self.loaded_train_set = True
             self.logger.info(f"Done.")
             with open(self.split_save_path / "training_set.p", "wb") as f:
@@ -187,7 +187,7 @@ class LoopingDataGenerator:
         else:
             if not self.saved and self.save_torch_dataset_path is not None:
                 if not (self.save_torch_dataset_path / "train_set_torch.p").is_file():
-                    torch.save(self.looping_strategy, self.save_torch_dataset_path / "train_set_torch.p")
+                    self.looping_strategy.dump_content(self.save_torch_dataset_path / "train_set_torch.p")
                 self.saved = True
 
             iterator = self.looping_strategy.get_new_iterator()
