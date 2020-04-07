@@ -13,7 +13,7 @@ torch_datasets = test_src_dir / "TestSaveDatasetsTorch" / "unix"
 # if running_in_docker():
 #     test_out_dir = Path('/cache')
 # else:
-test_out_dir = Path(f'/cfs/share/cache/output_{getpass.getuser()}/tests')
+test_out_dir = Path(f'/cfs/share/cache/output_johanmay/tests')
 
 if os.name == "nt":
     test_out_dir = Path(r'C:\Users\stiebesi\CACHE\test_output')
