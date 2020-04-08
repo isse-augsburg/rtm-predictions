@@ -11,19 +11,22 @@ from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
+    """
+    This is the starting point for training the Deconv/Conv Part of the FlowFrontNet 
+    with 80 sensor data to Flowfront images.
+    """
     args = read_cmd_params()
 
     dl = DataloaderImages(image_size=(112, 96),
-                          sensor_indizes=((1, 4), (1, 4)),
-                          divide_by_100k=False)
+                          sensor_indizes=((1, 4), (1, 4)))
 
     m = ModelTrainer(
         lambda: S80DeconvModelEfficient2(),
         data_source_paths=r.get_data_paths_base_0(),
-        save_path=r.save_path,
+        save_path=r.save_path if args.demo is None else Path(args.demo),
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
-        batch_size=4096,
+        batch_size=2048,
         train_print_frequency=100,
         epochs=1000,
         num_workers=75,
@@ -32,10 +35,10 @@ if __name__ == "__main__":
         data_processing_function=dl.get_sensordata_and_flowfront,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
-        optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.001),
+        optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
         classification_evaluator_function=lambda summary_writer:
         SensorToFlowfrontEvaluator(summary_writer=summary_writer),
-        use_mixed_precision=True
+        demo_path=args.demo
     )
 
     if not args.eval:

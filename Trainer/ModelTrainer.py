@@ -98,7 +98,8 @@ class ModelTrainer:
         dont_care_num_samples=False,
         use_mixed_precision=False,
         sampler=None,
-        caching_torch=True
+        caching_torch=True,
+        demo_path=None
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -126,6 +127,9 @@ class ModelTrainer:
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
         self.sampler = sampler
+        self.demo_path = demo_path
+        if demo_path is not None:
+            caching_torch = False
 
         if caching_torch:
             load_and_save_path, data_loader_hash = handle_torch_caching(
@@ -138,7 +142,11 @@ class ModelTrainer:
             self.load_torch_dataset_path = None
             self.save_torch_dataset_path = None
 
-        print(f"HASH: {self.data_loader_hash}")
+        if self.demo_path is not None:
+            print(f"Running in demo mode. Please refer to {self.save_path} for logs et al.")
+            self.data_loader_hash = "DEMO_MODE"
+            self.load_torch_dataset_path = Path(self.demo_path)
+            self.save_torch_dataset_path = Path(self.demo_path)
 
         self.optimizer_function = optimizer_function
         self.lr_scheduler_function = lr_scheduler_function
