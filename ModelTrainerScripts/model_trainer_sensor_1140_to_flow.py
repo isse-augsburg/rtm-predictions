@@ -36,7 +36,8 @@ if __name__ == "__main__":
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
         classification_evaluator_function=lambda summary_writer:
         SensorToFlowfrontEvaluator(summary_writer=summary_writer),
-        demo_path=args.demo
+        demo_path=args.demo,
+        run_eval_step_before_training=True
     )
 
     if not args.eval:
