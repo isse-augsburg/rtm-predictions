@@ -66,13 +66,18 @@ class S20DryspotModelFCWide(nn.Module):
 
 
 class S80DryspotModelFCWide(nn.Module):
-    def __init__(self, input_dim=80):
+    def __init__(self, input_dim=80, demo_mode=False):
         super(S80DryspotModelFCWide, self).__init__()
         self.fc = nn.Linear(input_dim, 4096)
         self.fc2 = nn.Linear(4096, 2048)
         self.fc3 = nn.Linear(2048, 1)
 
+        self.demo_mode = demo_mode
+
     def forward(self, _input):
+        # With the following hack, we can use the original full dataloader, here too -> saving online storage
+        if self.demo_mode:
+            _input = _input.reshape((38, 30))[1::4, 1::4].flatten()
         out = F.leaky_relu(self.fc(_input))
         out = F.relu(self.fc2(out))
         out = torch.sigmoid(self.fc3(out))
