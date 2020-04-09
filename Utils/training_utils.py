@@ -68,7 +68,7 @@ def read_cmd_params():
     parser = argparse.ArgumentParser(description="Run training or test. Rerun experiments from paper with data from"
                                                  "https://figshare.com/s/6d8ebc90e0e820b7f08f")
     parser.add_argument("--eval", type=str, default=None, help="Run a test. Full directory to output "
-                                                                "trained model (to test).")
+                                                               "trained model (to test).")
     parser.add_argument("--demo", type=str, default=None, help="Run experiments from FlowFrontNet paper. "
                                                                "Add the full directory path to dataset")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Full directory path to a checkpoint")

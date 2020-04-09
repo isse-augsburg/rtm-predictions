@@ -51,7 +51,7 @@ class DeconvModelEfficientBn(nn.Module):
 
 
 class S20DeconvModelEfficient(nn.Module):
-    def __init__(self):
+    def __init__(self, demo_mode=False):
         super(S20DeconvModelEfficient, self).__init__()
 
         self.ct1 = ConvTranspose2d(1, 256, 3, stride=2, padding=0)
@@ -62,7 +62,11 @@ class S20DeconvModelEfficient(nn.Module):
         self.details = Conv2d(16, 8, 5)
         self.details2 = Conv2d(8, 1, 3, padding=0)
 
+        self.demo_mode = demo_mode
+
     def forward(self, inputs):
+        if self.demo_mode:
+            inputs = reshape_to_indeces(inputs, ((1, 8), (1, 8)), 20).contiguous()
         inp = inputs.reshape((-1, 1, 5, 4))
         k = F.relu(self.ct1(inp))
         k = F.relu(self.ct2(k))
@@ -143,13 +147,13 @@ class S80DeconvModelEfficient2(nn.Module):
 
     def forward(self, inputs):
         if self.demo_mode:
-            _input = reshape_to_indeces(inputs, ((1, 4), (1, 4)), 80)
-        inp = inputs.reshape((-1, 1, 10, 8))
-        x = F.relu(self.ct1(inp))
-        x = F.relu(self.ct3(x))
-        x = F.relu(self.ct5(x))
-        x = F.relu(self.ct6(x))
-        x = F.relu(self.ctr(x))
+            inputs = reshape_to_indeces(inputs, ((1, 4), (1, 4)), 80).contiguous()
+        inp = inputs.reshape((-1, 1, 10, 8)).contiguous()
+        x = F.relu(self.ct1(inp)).contiguous()
+        x = F.relu(self.ct3(x)).contiguous()
+        x = F.relu(self.ct5(x)).contiguous()
+        x = F.relu(self.ct6(x)).contiguous()
+        x = F.relu(self.ctr(x)).contiguous()
 
         x = F.relu(self.c1(x))
         x = F.relu(self.cu(x))
@@ -348,10 +352,10 @@ if __name__ == "__main__":
     # model = SensorDeconvToDryspot()
     # model = DeconvModelEfficientBn()
     # model = DeconvModelEfficient()
-    model = S80DeconvModelEfficient2()
+    model = S80DeconvModelEfficient2(demo_mode=True)
     print('param count:', count_parameters(model))
     m = model.cuda()
-    em = torch.empty((1, 80)).cuda()
+    em = torch.empty((16, 1140)).cuda()
     out = m(em)
 
     print('end', out.shape)

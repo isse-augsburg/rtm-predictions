@@ -56,9 +56,8 @@ if __name__ == "__main__":
         m.inference_on_test_set(
             output_path=Path(args.eval),
             checkpoint_path=Path(args.checkpoint_path),
-            classification_evaluator_function=
-            lambda summary_writer: BinaryClassificationEvaluator(Path(args.eval) /
-                                                                 "eval_on_test_set",
-                                                                 skip_images=True,
-                                                                 with_text_overlay=True)
+            classification_evaluator_function=lambda summary_writer:
+            BinaryClassificationEvaluator(Path(args.eval) / "eval_on_test_set",
+                                          skip_images=True,
+                                          with_text_overlay=True)
         )

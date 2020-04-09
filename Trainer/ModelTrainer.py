@@ -338,9 +338,7 @@ class ModelTrainer:
 
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
-                if self.resize_label != (0, 0):
-                    torch.nn.functional.interpolate(label, self.resize_label)
-                print(outputs.shape, label.shape)
+                label = self.resize_label_if_necessary(label)
                 loss = self.loss_criterion(outputs, label)
                 self.writer.add_scalar("Training/Loss", loss.item(), step_count)
                 if not self.use_mixed_precision:
@@ -393,11 +391,8 @@ class ModelTrainer:
                 label = label.to(self.device, non_blocking=True)
                 # data = torch.unsqueeze(data, 0)
                 # label = torch.unsqueeze(label, 0)
-                print(data.shape)
                 output = self.model(data)
-                print(output.shape, label.shape)
-                if self.resize_label != (0, 0):
-                    torch.nn.functional.interpolate(label, self.resize_label)
+                label = self.resize_label_if_necessary(label)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
                 count += 1
@@ -423,6 +418,19 @@ class ModelTrainer:
                     self.__save_checkpoint(eval_step, loss, fn=f"checkpoint_{eval_step}.pth")
 
             return loss
+
+    def resize_label_if_necessary(self, label):
+        """
+        Resize the label: saves online storage by making it possible to use the bigger image labels of 1140 sensors
+        also for 80 and 20 sensors
+        :param label:
+        :return:
+        """
+        if self.resize_label != (0, 0):
+            label = torch.nn.functional.interpolate(label.reshape(-1, 1, label.shape[1], label.shape[2]),
+                                                    self.resize_label)
+            label = label.squeeze()
+        return label
 
     def __save_checkpoint(self, eval_step, loss, fn=r.chkp):
         torch.save(

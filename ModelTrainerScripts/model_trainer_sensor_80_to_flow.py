@@ -17,7 +17,7 @@ if __name__ == "__main__":
     """
     args = read_cmd_params()
 
-    img_size=(112, 96)
+    img_size = (112, 96)
     dl = DataloaderImages(image_size=img_size,
                           sensor_indizes=((1, 4), (1, 4)))
 
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         save_path=r.save_path if args.demo is None else Path(args.demo),
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
-        batch_size=2048,
+        batch_size=128,
         train_print_frequency=100,
         epochs=1000,
         num_workers=75,
@@ -43,9 +43,6 @@ if __name__ == "__main__":
         run_eval_step_before_training=True,
         resize_label_to=img_size if args.demo is not None else (0, 0)
     )
-
-    # if args.demo:
-    #     raise NotImplementedError("Image size not available in demo data.")
 
     if not args.run_eval:
         m.start_training()
