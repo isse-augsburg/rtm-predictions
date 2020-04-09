@@ -40,7 +40,7 @@ if __name__ == "__main__":
         # run_eval_step_before_training=True
     )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(

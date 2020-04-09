@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.nn import ConvTranspose2d, Conv2d, Linear
 
 from Models.model_utils import load_model_layers_from_path
+from Utils.data_utils import reshape_to_indeces
 from Utils.training_utils import count_parameters
 
 
@@ -101,7 +102,8 @@ class S80DeconvModelEfficient(nn.Module):
 
 
 class S80DeconvModelEfficient2(nn.Module):
-    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0, round_at: float = None):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0,
+                 round_at: float = None, demo_mode=False):
         super(S80DeconvModelEfficient2, self).__init__()
 
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
@@ -116,6 +118,7 @@ class S80DeconvModelEfficient2(nn.Module):
         self.cj = Conv2d(32, 1, 3, padding=0)
 
         self.round_at = round_at
+        self.demo_mode = demo_mode
 
         if pretrained == "all":
             logger = logging.getLogger(__name__)
@@ -139,6 +142,8 @@ class S80DeconvModelEfficient2(nn.Module):
                 break
 
     def forward(self, inputs):
+        if self.demo_mode:
+            _input = reshape_to_indeces(inputs, ((1, 4), (1, 4)), 80)
         inp = inputs.reshape((-1, 1, 10, 8))
         x = F.relu(self.ct1(inp))
         x = F.relu(self.ct3(x))

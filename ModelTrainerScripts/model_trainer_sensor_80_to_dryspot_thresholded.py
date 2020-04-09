@@ -43,7 +43,7 @@ if __name__ == "__main__":
         # sampler=get_sampler
     )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(

@@ -16,6 +16,12 @@ from torch.utils.data import Sampler
 import Resources.training as r
 
 
+def reshape_to_indeces(_input, ix=((1, 4), (1, 4)), goal=80):
+    _input = _input.reshape((-1, 1, 38, 30))
+    _input = _input[:, :, ix[0][0]::ix[0][1], ix[1][0]::ix[1][1]]
+    return _input.reshape(-1, 1, goal)
+
+
 class RandomOverSampler(Sampler):
     """
     Sampler to put more emphasis on the last samples of runs.

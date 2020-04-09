@@ -383,7 +383,8 @@ class S80DeconvToDrySpotEff(nn.Module):
 class S80Deconv2ToDrySpotEff(nn.Module):
     def __init__(self, pretrained="", checkpoint_path=None,
                  freeze_nlayers=0,  # Could be 9
-                 round_at: float = None):
+                 round_at: float = None,
+                 demo_mode=False):
         super(S80Deconv2ToDrySpotEff, self).__init__()
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
@@ -408,6 +409,8 @@ class S80Deconv2ToDrySpotEff(nn.Module):
         self.lin3 = nn.Linear(512, 1)
 
         self.round_at = round_at
+
+        self.demo_mode = demo_mode
 
         if pretrained == "deconv_weights":
             logger = logging.getLogger(__name__)
@@ -441,6 +444,9 @@ class S80Deconv2ToDrySpotEff(nn.Module):
                 break
 
     def forward(self, inputs):
+        # With the following hack, we can use the full data here too -> saving online storage
+        if self.demo_mode:
+            inputs = inputs.reshape((-1, 1, 38, 30))[1::4, 1::4].flatten()
         inputs = inputs.reshape((-1, 1, 10, 8))
         x = F.relu(self.ct1(inputs))
         x = F.relu(self.ct3(x))

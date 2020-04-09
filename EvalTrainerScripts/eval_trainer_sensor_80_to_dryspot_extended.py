@@ -7,11 +7,8 @@ from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.eval_utils import run_eval_w_binary_classificator
-from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
-    args = read_cmd_params()
-
     dl = DataloaderDryspots(sensor_indizes=((1, 4), (1, 4)),
                             aux_info=True)
 

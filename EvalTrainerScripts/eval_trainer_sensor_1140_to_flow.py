@@ -6,11 +6,8 @@ from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImages
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
-from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
-    args = read_cmd_params()
-
     dl = DataloaderImages((149, 117))
 
     checkpoint_p = r.chkp_S1140_to_ff_0_basepr

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from Utils.data_utils import reshape_to_indeces
 from Utils.training_utils import count_parameters
 
 
@@ -51,7 +52,7 @@ class S1140DryspotModelFCWide(nn.Module):
 # self.fc = nn.Linear(input_dim, 1024)
 # self.fc2 = nn.Linear(1024, 256)
 # self.fc3 = nn.Linear(256, 1)
-class S20DryspotModelFCWide(nn.Module):
+class S20DryspotModelFCWide(nn.Module, demo_mode=False):
     def __init__(self, input_dim=20):
         super(S20DryspotModelFCWide, self).__init__()
         self.fc = nn.Linear(input_dim, 4096)
@@ -59,6 +60,9 @@ class S20DryspotModelFCWide(nn.Module):
         self.fc3 = nn.Linear(2048, 1)
 
     def forward(self, _input):
+        if self.demo_mode:
+            _input = reshape_to_indeces(_input, ((1, 8), (1, 8)), 20)
+            _input = _input.reshape(-1, 20)
         out = F.leaky_relu(self.fc(_input))
         out = F.relu(self.fc2(out))
         out = torch.sigmoid(self.fc3(out))
@@ -75,9 +79,10 @@ class S80DryspotModelFCWide(nn.Module):
         self.demo_mode = demo_mode
 
     def forward(self, _input):
-        # With the following hack, we can use the original full dataloader, here too -> saving online storage
+        # With the following hack, we can use the full data here too -> saving online storage
         if self.demo_mode:
-            _input = _input.reshape((38, 30))[1::4, 1::4].flatten()
+            _input = reshape_to_indeces(_input, ((1, 4), (1, 4)), 80)
+            _input = _input.reshape(-1, 80)
         out = F.leaky_relu(self.fc(_input))
         out = F.relu(self.fc2(out))
         out = torch.sigmoid(self.fc3(out))

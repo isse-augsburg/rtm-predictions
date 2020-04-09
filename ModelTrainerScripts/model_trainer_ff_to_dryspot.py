@@ -35,7 +35,7 @@ if __name__ == "__main__":
         BinaryClassificationEvaluator(summary_writer=summary_writer),
     )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(

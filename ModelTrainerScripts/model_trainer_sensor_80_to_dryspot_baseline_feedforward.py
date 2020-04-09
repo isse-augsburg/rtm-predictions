@@ -38,11 +38,11 @@ if __name__ == "__main__":
         demo_path=args.demo
     )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(
-            output_path=Path(args.eval_path),
+            output_path=Path(args.eval),
             checkpoint_path=Path(args.checkpoint_path),
             classification_evaluator_function=lambda summary_writer: BinaryClassificationEvaluator(
                 Path(args.eval_path) / "eval_on_test_set",

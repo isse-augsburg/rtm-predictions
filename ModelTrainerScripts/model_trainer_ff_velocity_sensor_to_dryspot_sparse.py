@@ -36,13 +36,13 @@ if __name__ == "__main__":
                      # lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.1),
                      )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(
             output_path=Path(args.eval_path),
             checkpoint_path=Path(args.checkpoint_path),
-            classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(
+            classification_evaluator_function=lambda summary_writer: BinaryClassificationEvaluator(
                 Path(args.eval_path) / "eval_on_test_set",
                 skip_images=True,
                 with_text_overlay=True)

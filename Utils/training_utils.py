@@ -67,19 +67,21 @@ def apply_blacklists(_data_source_paths):
 def read_cmd_params():
     parser = argparse.ArgumentParser(description="Run training or test. Rerun experiments from paper with data from"
                                                  "https://figshare.com/s/6d8ebc90e0e820b7f08f")
-    parser.add_argument("--eval", action="store_true", help="Run a test.")
-    parser.add_argument("--eval_path", type=str, default=None, help="Full directory to output "
-                                                                    "trained model (to test).")
+    parser.add_argument("--eval", type=str, default=None, help="Run a test. Full directory to output "
+                                                                "trained model (to test).")
     parser.add_argument("--demo", type=str, default=None, help="Run experiments from FlowFrontNet paper. "
                                                                "Add the full directory path to dataset")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Full directory path to a checkpoint")
 
     args = parser.parse_args()
-    run_eval = args.eval
-    eval_path = args.eval_path
+    if args.eval is None:
+        args.run_eval = False
+    else:
+        args.run_eval = True
+    eval_path = args.eval
     checkpoint_path = args.checkpoint_path
 
-    if run_eval and (eval_path is None or checkpoint_path is None):
+    if args.run_eval and (eval_path is None or checkpoint_path is None):
         logger = logging.getLogger(__name__)
         logger.error(
             "No eval_path or checkpoint_path given. You should specify the --eval_path / --checkpoint_path argument if"

@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 import Resources.training as r
-from Models.erfh5_fullyConnected import S1140DryspotModelFCWide
+from Models.erfh5_fullyConnected import S20DryspotModelFCWide
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.ModelTrainer import ModelTrainer
@@ -12,13 +12,13 @@ from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
     """
-    This is the starting point for training the feed foward network with 1140 sensor data to binary classification.
+    This is the starting point for training the feed foward network with 20 sensor data to binary classification.
     """
     args = read_cmd_params()
 
-    dlds = DataloaderDryspots()
+    dlds = DataloaderDryspots(sensor_indizes=((1, 8), (1, 8)))
     m = ModelTrainer(
-        lambda: S1140DryspotModelFCWide(),
+        lambda: S20DryspotModelFCWide(demo_mode=True if args.demo is not None else False),
         data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path if args.demo is None else Path(args.demo),
         load_datasets_path=r.datasets_dryspots,
@@ -35,15 +35,14 @@ if __name__ == "__main__":
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda summary_writer:
         BinaryClassificationEvaluator(summary_writer=summary_writer),
-        demo_path=args.demo,
-        run_eval_step_before_training=True
+        demo_path=args.demo
     )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(
-            output_path=Path(args.eval_path),
+            output_path=Path(args.eval),
             checkpoint_path=Path(args.checkpoint_path),
             classification_evaluator_function=lambda summary_writer: BinaryClassificationEvaluator(
                 Path(args.eval_path) / "eval_on_test_set",

@@ -23,7 +23,7 @@ def eval_preparation(save_path):
     shutil.copytree(src_path, save_path / "rtm-predictions",
                     ignore=shutil.ignore_patterns('.git*', 'env*', '.idea*', '.vscode*', '__pycache__*',
                                                   'Docs/*', 'Debugging/*', 'Legacy/*'))
-    docker_img = 'docker://nvcr.io/isse/pytorch_extended:19.12'
+    docker_img = 'docker://nvcr.io/isse/pytorch_extended:20.02'
     slurm_txt = f"""#!/bin/sh
 #SBATCH --gres=gpu:8
 #SBATCH --job-name eval_rtm_predictions
@@ -37,8 +37,7 @@ export SINGULARITY_DOCKER_PASSWORD={os.getenv('SINGULARITY_DOCKER_PASSWORD')}
 
 """ \
                 f'singularity exec --nv -B /cfs:/cfs {docker_img} ' \
-                f'python3 -u {save_path}/rtm-predictions/{calling_script} --eval ' \
-                f'--eval_path {save_path} ' \
+                f'python3 -u {save_path}/rtm-predictions/{calling_script} --eval {save_path} ' \
                 f'--checkpoint_path {save_path / "checkpoint.pth"} '
     with open(save_path / Path("run_model_eval.sh"), "w") as slurm_script:
         slurm_script.write(slurm_txt)

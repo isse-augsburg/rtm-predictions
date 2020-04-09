@@ -99,7 +99,8 @@ class ModelTrainer:
         use_mixed_precision=False,
         sampler=None,
         caching_torch=True,
-        demo_path=None
+        demo_path=None,
+        resize_label_to=(0, 0)
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -143,7 +144,6 @@ class ModelTrainer:
             self.save_torch_dataset_path = None
 
         if self.demo_path is not None:
-            print(f"Running in demo mode. Please refer to {self.save_path} for logs et al.")
             self.data_loader_hash = "DEMO_MODE"
             self.load_torch_dataset_path = Path(self.demo_path)
             self.save_torch_dataset_path = Path(self.demo_path)
@@ -164,6 +164,7 @@ class ModelTrainer:
         self.dont_care_num_samples = dont_care_num_samples
 
         self.use_mixed_precision = use_mixed_precision
+        self.resize_label = resize_label_to
 
     def __create_datagenerator(self, test_mode=False):
         try:
@@ -284,6 +285,8 @@ class ModelTrainer:
         """ Sets up training and logging and starts train loop
         """
         # self.save_path.mkdir(parents=True, exist_ok=True)
+        if self.demo_path is not None:
+            print(f"Running in demo mode. Please refer to {self.save_path} for logs et al.")
         logging_cfg.apply_logging_config(self.save_path)
         self.writer = SummaryWriter(log_dir=self.save_path)
         self.classification_evaluator = self.classification_evaluator_function(summary_writer=self.writer)
@@ -335,7 +338,9 @@ class ModelTrainer:
 
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
-
+                if self.resize_label != (0, 0):
+                    torch.nn.functional.interpolate(label, self.resize_label)
+                print(outputs.shape, label.shape)
                 loss = self.loss_criterion(outputs, label)
                 self.writer.add_scalar("Training/Loss", loss.item(), step_count)
                 if not self.use_mixed_precision:
@@ -388,7 +393,11 @@ class ModelTrainer:
                 label = label.to(self.device, non_blocking=True)
                 # data = torch.unsqueeze(data, 0)
                 # label = torch.unsqueeze(label, 0)
+                print(data.shape)
                 output = self.model(data)
+                print(output.shape, label.shape)
+                if self.resize_label != (0, 0):
+                    torch.nn.functional.interpolate(label, self.resize_label)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
                 count += 1
@@ -474,6 +483,9 @@ class ModelTrainer:
             save_path.mkdir(parents=True, exist_ok=True)
         else:
             save_path = self.save_path
+
+        if self.demo_path is not None:
+            print(f"Eval - running in demo mode. Please refer to {save_path.absolute()} for log / results.")
 
         logging_cfg.apply_logging_config(save_path, eval=True)
 

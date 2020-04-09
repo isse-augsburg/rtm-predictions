@@ -39,7 +39,7 @@ if __name__ == "__main__":
         lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
     )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(

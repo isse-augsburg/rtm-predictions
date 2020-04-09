@@ -17,7 +17,8 @@ if __name__ == "__main__":
     """
     args = read_cmd_params()
 
-    dl = DataloaderImages(image_size=(112, 96),
+    img_size=(112, 96)
+    dl = DataloaderImages(image_size=img_size,
                           sensor_indizes=((1, 4), (1, 4)))
 
     m = ModelTrainer(
@@ -38,10 +39,15 @@ if __name__ == "__main__":
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
         classification_evaluator_function=lambda summary_writer:
         SensorToFlowfrontEvaluator(summary_writer=summary_writer),
-        demo_path=args.demo
+        demo_path=args.demo,
+        run_eval_step_before_training=True,
+        resize_label_to=img_size if args.demo is not None else (0, 0)
     )
 
-    if not args.eval:
+    # if args.demo:
+    #     raise NotImplementedError("Image size not available in demo data.")
+
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(

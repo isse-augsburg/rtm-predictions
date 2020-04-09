@@ -11,14 +11,20 @@ from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
+    """
+    This is the starting point for training the Deconv/Conv Part of the FlowFrontNet 
+    with 20 sensor data to Flowfront images.
+    """
     args = read_cmd_params()
 
-    dl = DataloaderImages((125, 109), sensor_indizes=((1, 8), (1, 8)))
+    img_size=(125, 109)
+    dl = DataloaderImages(image_size=img_size,
+                          sensor_indizes=((1, 8), (1, 8)))
 
     m = ModelTrainer(
         lambda: S20DeconvModelEfficient(),
         data_source_paths=r.get_data_paths_base_0(),
-        save_path=r.save_path,
+        save_path=r.save_path if args.demo is None else Path(args.demo),
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
         batch_size=2048,
@@ -33,9 +39,15 @@ if __name__ == "__main__":
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.001),
         classification_evaluator_function=lambda summary_writer:
         SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+        demo_path=args.demo,
+        run_eval_step_before_training=True,
+        resize_label_to=img_size if args.demo is not None else (0, 0)
     )
 
-    if not args.eval:
+    # if args.demo:
+    #     raise NotImplementedError("Image size not available in demo data.")
+
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(

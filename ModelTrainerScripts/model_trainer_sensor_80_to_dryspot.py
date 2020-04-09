@@ -12,16 +12,27 @@ from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
+    """
+    This is the second stage for training the FlowFrontNet: the DrySpotNet 
+    with 80 sensor data to Flowfront images.
+    Please add the path to the pretrained weights as parameter 
+    checkpoint_path to the SensorDeconvToDryspotEfficient2 Model or use the command line option --checkpoint_path.
+    """
     args = read_cmd_params()
+    if args.demo is not None:
+        checkpoint_path = args.checkpoint_path
+    else:
+        checkpoint_path = "Use your own path to checkpoint."
 
     dl = DataloaderDryspots(sensor_indizes=((1, 4), (1, 4)))
 
     m = ModelTrainer(
-        lambda: S80Deconv2ToDrySpotEff(pretrained="deconv_weights",
-                                       checkpoint_path=r.chkp_S80_to_ff2,
+        lambda: S80Deconv2ToDrySpotEff(demo_mode=True if args.demo is not None else False,
+                                       pretrained="deconv_weights",
+                                       checkpoint_path=Path(checkpoint_path),
                                        freeze_nlayers=9),
         data_source_paths=r.get_data_paths_base_0(),
-        save_path=r.save_path,
+        save_path=r.save_path if args.demo is None else Path(args.demo),
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
         batch_size=2048,
@@ -37,9 +48,10 @@ if __name__ == "__main__":
         classification_evaluator_function=lambda summary_writer:
         BinaryClassificationEvaluator(summary_writer=summary_writer),
         lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
+        demo_path=args.demo
     )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(
