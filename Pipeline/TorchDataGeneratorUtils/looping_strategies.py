@@ -149,6 +149,9 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
     def __getitem__(self, index):
         return self.samples[index]
 
+    def __len__(self):
+        return len(self.samples)
+
     def dump_content(self, f):
         torch.save(self.samples, f)
 
