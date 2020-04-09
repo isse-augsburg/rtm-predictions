@@ -14,6 +14,12 @@
 #
 import os
 import sys
+import cv2  
+import numpy
+import h5py
+
+autodoc_mock_imports = ["torch", "apex"]
+
 
 sys.path.insert(0, os.path.abspath('../..'))
 

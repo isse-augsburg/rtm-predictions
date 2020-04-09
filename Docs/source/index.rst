@@ -43,7 +43,6 @@ Modules
 .. toctree::
    :maxdepth: 4
 
-   Training Files
    Models
    Pipeline
    Trainer
