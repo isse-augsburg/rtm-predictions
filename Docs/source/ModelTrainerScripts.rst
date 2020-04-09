@@ -23,7 +23,7 @@ Classification goal: Map 80 sensor values to the flow front as an image.
 
 ModelTrainerScripts.model\_trainer\_sensor\_20\_to\_flow
 -----------------------------------------------------------
-Classification goal: Map 80 sensor values to the flow front as an image.
+Classification goal: Map 20 sensor values to the flow front as an image.
 
 .. automodule:: ModelTrainerScripts.model_trainer_sensor_20_to_flow.py
     :members:
