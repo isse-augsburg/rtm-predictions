@@ -22,7 +22,7 @@ if __name__ == "__main__":
                           sensor_indizes=((1, 8), (1, 8)))
 
     m = ModelTrainer(
-        lambda: S20DeconvModelEfficient(),
+        lambda: S20DeconvModelEfficient(demo_mode=True if args.demo is not None else False),
         data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path if args.demo is None else Path(args.demo),
         load_datasets_path=r.datasets_dryspots,
