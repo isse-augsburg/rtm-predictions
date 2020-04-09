@@ -114,13 +114,14 @@ class LoopingDataGenerator:
     def try_loading_torch_datasets(self):
         if self.load_torch_dataset_path is None:
             return
-        if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
-            self.logger.info(f"Loading test set - torch - from {self.load_torch_dataset_path}.")
-            self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
-            self.loaded_test_set = True
-            with open(self.split_save_path / "test_set.p", "wb") as f:
-                pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
         if self.test_mode:
+            if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
+                self.logger.info(f"Loading test set - torch - from {self.load_torch_dataset_path}.")
+                self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
+                self.loaded_test_set = True
+                self.logger.info(f"Done.")
+                with open(self.split_save_path / "test_set.p", "wb") as f:
+                    pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
             return
         if (self.load_torch_dataset_path / "train_set_torch.p").is_file():
             self.logger.info(f"Loading training set - torch - from {self.load_torch_dataset_path}.")
@@ -133,6 +134,7 @@ class LoopingDataGenerator:
             self.logger.info(f"Loading validation set - torch - from {self.load_torch_dataset_path}.")
             self.saved_val_samples = torch.load(self.load_torch_dataset_path / "val_set_torch.p")
             self.loaded_val_set = True
+            self.logger.info(f"Done.")
             with open(self.split_save_path / "validation_set.p", "wb") as f:
                 pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_val_samples]))), f)
 

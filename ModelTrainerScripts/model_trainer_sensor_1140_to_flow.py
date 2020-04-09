@@ -33,11 +33,11 @@ if __name__ == "__main__":
         data_processing_function=dl.get_sensordata_and_flowfront,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
-        optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
+        optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda summary_writer:
         SensorToFlowfrontEvaluator(summary_writer=summary_writer),
         demo_path=args.demo,
-        run_eval_step_before_training=True
+        # run_eval_step_before_training=True
     )
 
     if not args.eval:
