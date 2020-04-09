@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 # -- Project information -----------------------------------------------------
 
 project = 'RTM-Predictions'
-copyright = '2020, ISSE Uni Augsburg'
+copyright = '2020, ISSE Universität Augsburg'
 author = 'lodesluk'
 
 # The short X.Y version
