@@ -41,5 +41,5 @@ To recreate the experiments from the paper, we need both.
     `python3 -u ModelTrainerScripts.model_trainer_sensor_1140_dryspot_end_to_end_dense.py --demo data_path/SensorToDrySpot --eval eval_output_path --checkpoint_path checkpoint_path`
 
 Caution: New Folders with logs, tensorboard files etc. will be created in the directory of the Datasets, corresponding to the task: SensorToFlowFront or SensorToDryspot.
-For the trainings and evaluations with 80 and 20 sensors replace the number in `ModelTrainerScripts.model_trainer_sensor_*_...`
+For the trainings and evaluations with 80 and 20 sensors use the respective `ModelTrainerScripts.model_trainer_sensor_*_...` scripts.
 
