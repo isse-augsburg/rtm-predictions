@@ -109,12 +109,12 @@ def handle_torch_caching(processing_function, data_source_paths, sampler_func, b
     data_loader_str = str(data_loader_info).encode("utf-8")
     data_loader_hash = hashlib.md5(data_loader_str).hexdigest()
     load_and_save_path = r.datasets_dryspots_torch / data_loader_hash
-    logger = logging.getLogger(__name__)
-    if load_and_save_path.exists():
-        logger.debug("Existing caches: ")
-        logger.debug(f"{[x for x in load_and_save_path.iterdir() if x.is_file()]}")
-    else:
-        logger.debug("No existing caches.")
+    # logger = logging.getLogger(__name__)
+    # if load_and_save_path.exists():
+    #     logger.debug("Existing caches: ")
+    #     logger.debug(f"{[x for x in load_and_save_path.iterdir() if x.is_file()]}")
+    # else:
+    #     logger.debug("No existing caches.")
     load_and_save_path.mkdir(exist_ok=True)
 
     if (r.datasets_dryspots_torch / "info.json").is_file():
