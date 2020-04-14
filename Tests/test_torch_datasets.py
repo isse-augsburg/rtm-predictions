@@ -65,6 +65,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             m = self.create_trainer_and_start(out_path, epochs=2)
             m.start_training()
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+            print(self.reference_datasets_torch / m.data_loader_hash)
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch.p").is_file())
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
             m.inference_on_test_set()
