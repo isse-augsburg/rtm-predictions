@@ -100,7 +100,8 @@ class ModelTrainer:
         sampler=None,
         caching_torch=True,
         demo_path=None,
-        resize_label_to=(0, 0)
+        resize_label_to=(0, 0),
+        load_test_set_in_training_mode=False
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -165,6 +166,7 @@ class ModelTrainer:
 
         self.use_mixed_precision = use_mixed_precision
         self.resize_label = resize_label_to
+        self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
     def __create_datagenerator(self, test_mode=False):
         try:
@@ -185,7 +187,8 @@ class ModelTrainer:
                 load_torch_dataset_path=self.load_torch_dataset_path,
                 dont_care_num_samples=self.dont_care_num_samples,
                 test_mode=test_mode,
-                sampler=self.sampler
+                sampler=self.sampler,
+                load_test_set_in_training_mode=self.load_test_set_in_training_mode,
             )
         except Exception:
             logger = logging.getLogger(__name__)

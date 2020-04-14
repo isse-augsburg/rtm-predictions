@@ -24,7 +24,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         self.reference_datasets_torch = tr_resources.datasets_dryspots_torch
         self.load_and_save_path = None
 
-    def create_trainer_and_start(self, out_path, epochs=1):
+    def create_trainer_and_start(self, out_path, epochs=1, load_test_set=False):
         dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
         m = ModelTrainer(lambda: S20DryspotModelFCWide(),
                          data_source_paths=tr_resources.get_data_paths_debug(),
@@ -41,6 +41,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                          classification_evaluator_function=lambda summary_writer:
                          BinaryClassificationEvaluator(summary_writer=summary_writer),
+
                          )
         return m
 
@@ -114,12 +115,15 @@ class TestSaveDatasetsTorch(unittest.TestCase):
 
     def test_load_train_and_test_set_only(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
-            m = self.create_trainer_and_start(Path(tempdir))
+            m = self.create_trainer_and_start(Path(tempdir), load_test_set=True)
             self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch.p",
                                                            self.torch_all_datasets / "test_set_torch.p"],
                                                           self.reference_datasets_torch / m.data_loader_hash)
             m.start_training()
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+
+            m.inference_on_test_set()
+
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertFalse(m.data_generator.loaded_val_set)
             self.assertTrue(m.data_generator.loaded_test_set)
@@ -148,7 +152,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         is loaded correctly
         """
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
-            m = self.create_trainer_and_start(Path(tempdir))
+            m = self.create_trainer_and_start(Path(tempdir), load_test_set=True)
             self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "val_set_torch.p",
                                                            self.torch_all_datasets / "test_set_torch.p"],
                                                           self.reference_datasets_torch / m.data_loader_hash)
@@ -156,6 +160,8 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
             self.assertFalse(m.data_generator.loaded_train_set)
             self.assertTrue(m.data_generator.loaded_val_set)
+
+            m.inference_on_test_set()
             self.assertTrue(m.data_generator.loaded_test_set)
             with open(self.torch_all_datasets / "train_set_torch.p", "rb") as f:
                 saved_train_set = torch.load(f)

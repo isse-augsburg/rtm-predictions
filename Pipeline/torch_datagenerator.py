@@ -57,7 +57,8 @@ class LoopingDataGenerator:
                  load_torch_dataset_path=None,
                  dont_care_num_samples=False,
                  test_mode=False,
-                 sampler=None
+                 sampler=None,
+                 load_test_set_in_training_mode=False
                  ):
         self.logger = logging.getLogger(__name__)
 
@@ -100,7 +101,7 @@ class LoopingDataGenerator:
 
         self.dont_care_num_samples = dont_care_num_samples
 
-        self.try_loading_torch_datasets()
+        self.try_loading_torch_datasets(load_test_set_in_training_mode)
 
         if self.test_mode and self.loaded_test_set:
             self.logger.info(f"Running in test mode and loaded test data set.")
@@ -111,10 +112,10 @@ class LoopingDataGenerator:
         else:
             self.load_datasets()
 
-    def try_loading_torch_datasets(self):
+    def try_loading_torch_datasets(self, load_test_set_in_training_mode):
         if self.load_torch_dataset_path is None:
             return
-        if self.test_mode:
+        if self.test_mode or load_test_set_in_training_mode:
             if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
                 self.logger.info(f"Loading test set - torch - from {self.load_torch_dataset_path}.")
                 self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
@@ -122,7 +123,8 @@ class LoopingDataGenerator:
                 self.logger.info(f"Done.")
                 with open(self.split_save_path / "test_set.p", "wb") as f:
                     pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
-            return
+            if not load_test_set_in_training_mode:
+                return
         if (self.load_torch_dataset_path / "train_set_torch.p").is_file():
             self.logger.info(f"Loading training set - torch - from {self.load_torch_dataset_path}.")
             self.looping_strategy.load_content(self.load_torch_dataset_path / "train_set_torch.p")
