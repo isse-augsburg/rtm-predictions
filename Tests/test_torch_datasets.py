@@ -1,4 +1,3 @@
-import logging
 import shutil
 import tempfile
 import time
@@ -169,7 +168,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             new_paths = set([x[2]["sourcefile"][0] for x in m.data_generator])
             self.assertEqual(old_paths, new_paths)
 
-    def tearDown(self) -> None:
-        logging.shutdown()
-        if self.load_and_save_path.exists():
-            shutil.rmtree(self.load_and_save_path)
+    # def tearDown(self) -> None:
+    #     logging.shutdown()
+    #     if self.load_and_save_path.exists():
+    #         shutil.rmtree(self.load_and_save_path)
