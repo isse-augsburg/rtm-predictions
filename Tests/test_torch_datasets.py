@@ -41,7 +41,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                          classification_evaluator_function=lambda summary_writer:
                          BinaryClassificationEvaluator(summary_writer=summary_writer),
-
+                         load_test_set_in_training_mode=load_test_set,
                          )
         return m
 
@@ -121,11 +121,10 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                                                           self.reference_datasets_torch / m.data_loader_hash)
             m.start_training()
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
-
-            m.inference_on_test_set()
-
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertFalse(m.data_generator.loaded_val_set)
+
+            m.inference_on_test_set()
             self.assertTrue(m.data_generator.loaded_test_set)
             with open(self.torch_all_datasets / "test_set_torch.p", "rb") as f:
                 saved_test_set = torch.load(f)
