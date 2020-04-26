@@ -89,7 +89,7 @@ class ModelTrainer:
         data_processing_function=None,
         data_gather_function=None,
         looping_strategy=None,
-        cache_mode=td.CachingMode.Both,
+        cache_mode=td.CachingMode.FileList,
         loss_criterion=MSELoss(),
         optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
         lr_scheduler_function=None,
