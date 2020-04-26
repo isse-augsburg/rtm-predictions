@@ -30,7 +30,7 @@ class LoopingDataGenerator:
         num_workers (int): The number of worker processes for the dataloader. Defaults to 0 so that no additional
             processes are spawned.
         cache_path (Path): The cache directory for file lists and samples
-        cache_mode (CachingMode): The cache mode. If set to FileLists, lists of gathered files will be stored.
+        cache_mode (CachingMode): The cache mode. If set to FileList, lists of gathered files will be stored.
         looping_strategy (LoopingStrategy): The strategy for looping samples.
             Defaults to the DataLoaderListLoopingStrategy. You may want to use the NoOpLoopingStrategy if you only
             need a single epoch.
@@ -51,7 +51,7 @@ class LoopingDataGenerator:
                  split_save_path=None,
                  num_workers=0,
                  cache_path=None,
-                 cache_mode=CachingMode.FileLists,
+                 cache_mode=CachingMode.FileList,
                  looping_strategy: LoopingStrategy = None,
                  save_torch_dataset_path=None,
                  load_torch_dataset_path=None,
