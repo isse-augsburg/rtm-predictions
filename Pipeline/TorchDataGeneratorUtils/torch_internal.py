@@ -11,7 +11,6 @@ import numpy as np
 import torch
 
 from Utils.data_utils import change_win_to_unix_path_if_needed
-from Utils.natural_sorting import natural_sort_key
 
 
 class FileSetIterator:
