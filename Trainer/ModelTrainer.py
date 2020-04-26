@@ -47,6 +47,7 @@ class ModelTrainer:
         epochs: Number of epochs for training.
         dummy_epoch: If set to True, a dummy epoch will be fetched before training.
                      This results in better shuffling for the first epoch
+        cache_only: Only write cache data
         num_workers: Number of processes for processing data.
         num_validation_samples: Number of samples for the validation set.
         num_test_samples: Number of samples for the test set.
@@ -81,6 +82,7 @@ class ModelTrainer:
         train_print_frequency: int = 10,
         epochs: int = 10,
         dummy_epoch=True,
+        cache_only=False,
         num_workers: int = 10,
         num_validation_samples: int = 10,
         num_test_samples: int = 10,
@@ -114,6 +116,9 @@ class ModelTrainer:
         self.load_datasets_path = load_datasets_path
         self.epochs = epochs
         self.dummy_epoch = dummy_epoch
+        self.cache_only = cache_only
+        if cache_only and not dummy_epoch:
+            raise ValueError("Can't do a cache only run without enabling dummy_epoch!")
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
         self.num_test_samples = num_test_samples
@@ -322,8 +327,13 @@ class ModelTrainer:
             logger.info("Running eval before training to see, if any training happens")
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), 0, 0)
             self.writer.add_scalar("Validation/Loss", validation_loss, 0)
-        logger.info("The Training Will Start Shortly")
-        self.__train_loop()
+
+        if self.cache_only:
+            logger.info("Triggering caching")
+            iter(self.data_generator)
+        else:
+            logger.info("The Training Will Start Shortly")
+            self.__train_loop()
 
         logging.shutdown()
 
