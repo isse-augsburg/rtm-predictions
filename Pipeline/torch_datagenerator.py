@@ -30,7 +30,7 @@ class LoopingDataGenerator:
         num_workers (int): The number of worker processes for the dataloader. Defaults to 0 so that no additional
             processes are spawned.
         cache_path (Path): The cache directory for file lists and samples
-        cache_mode (CachingMode): The cache mode. If set to FileLists, only lists of gathered files will be stored.
+        cache_mode (CachingMode): The cache mode. If set to FileList, lists of gathered files will be stored.
         looping_strategy (LoopingStrategy): The strategy for looping samples.
             Defaults to the DataLoaderListLoopingStrategy. You may want to use the NoOpLoopingStrategy if you only
             need a single epoch.
@@ -51,7 +51,7 @@ class LoopingDataGenerator:
                  split_save_path=None,
                  num_workers=0,
                  cache_path=None,
-                 cache_mode=CachingMode.Both,
+                 cache_mode=CachingMode.FileList,
                  looping_strategy: LoopingStrategy = None,
                  save_torch_dataset_path=None,
                  load_torch_dataset_path=None,
@@ -161,8 +161,7 @@ class LoopingDataGenerator:
             with open(filename, 'wb') as f:
                 pickle.dump([str(fn) for fn in remaining_files], f)
         self.logger.info(f"{len(remaining_files)} remaining files will be loaded using {self.num_workers} workers.")
-        self.file_iterable = FileSetIterable(remaining_files, self.load_data,
-                                             cache_path=self.cache_path, cache_mode=self.cache_mode)
+        self.file_iterable = FileSetIterable(remaining_files, self.load_data)
         self.logger.info("Data generator initialization is done.")
 
     def _discover_files(self, data_paths, gather_data):

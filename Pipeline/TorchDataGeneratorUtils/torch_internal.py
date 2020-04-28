@@ -11,7 +11,6 @@ import numpy as np
 import torch
 
 from Utils.data_utils import change_win_to_unix_path_if_needed
-from Utils.natural_sorting import natural_sort_key
 
 
 class FileSetIterator:
@@ -28,10 +27,9 @@ class FileSetIterator:
         worker_id (int): The id of this worker for multiprocessing environments
     """
 
-    def __init__(self, files, load_data, cache_path=None, worker_id=0):
+    def __init__(self, files, load_data, worker_id=0):
         self.files = list(files)  # Copy the file list because we remove the items in this list
         self.load_data = load_data
-        self.cache_path = cache_path
         self.sample_queue = Queue()
         self.worker_id = worker_id
 
@@ -46,27 +44,7 @@ class FileSetIterator:
                 instance[idx] += (dict(),)
             assert len(instance[idx]) == 3, err
 
-    def _get_cache_path_for_file(self, filename):
-        s_path = Path(filename)
-        s_path = self.cache_path.joinpath(s_path.stem)
-        return s_path
-
-    def _load_cached_samples(self, filename):
-        if self.cache_path is not None:
-            s_path = self._get_cache_path_for_file(filename)
-            if s_path.exists():
-                # Get all pickled sample files
-                instance_f = s_path.glob("*.pt")
-                instance_f = sorted(instance_f, key=natural_sort_key)
-                for i in range(len(instance_f) // 3):
-                    _data = torch.load(s_path.joinpath(instance_f[i * 3]))
-                    _label = torch.load(s_path.joinpath(instance_f[i * 3 + 1]))
-                    _aux = torch.load(s_path.joinpath(instance_f[i * 3 + 2]))
-                    self.sample_queue.put((_data, _label, _aux))
-                return True
-        return False
-
-    def _transform_to_tensor_and_cache(self, i, num, s_path):
+    def _transform_to_tensor(self, i, num):
         _data = torch.FloatTensor(i[0])
         # The following if else is necessary to have 0, 1 Binary Labels in Tensors
         # since FloatTensor(0) = FloatTensor([])
@@ -81,19 +59,12 @@ class FileSetIterator:
         _aux = i[2]
 
         self.sample_queue.put((_data, _label, _aux))
-        if s_path is not None:
-            torch.save(_data, s_path.joinpath(f"{num}-data.pt"))
-            torch.save(_label, s_path.joinpath(f"{num}-label.pt"))
-            # Preserve alphabetic ordering by using xua instead of aux
-            torch.save(_aux, s_path.joinpath(f"{num}-xua.pt"))
 
     def _load_file(self):
         while True:
             if len(self.files) == 0:
                 return False
             fn = self.files.pop(0)
-            if self._load_cached_samples(fn):
-                break  # This file was already cached; nothing to do here
 
             instance = self.load_data(fn)
             if instance is None:
@@ -110,12 +81,8 @@ class FileSetIterator:
                 # for i, sample in enumerate(instance):
                 #     sample[2]["sourcefile"] = str(fn)
                 #     sample[2]["n"] = i
-                s_path = None
-                if self.cache_path is not None:
-                    s_path = self._get_cache_path_for_file(fn)
-                    s_path.mkdir(parents=True, exist_ok=True)
                 for num, i in enumerate(instance):
-                    self._transform_to_tensor_and_cache(i, num, s_path)
+                    self._transform_to_tensor(i, num)
                 break
         return True
 
@@ -152,11 +119,9 @@ class CachingMode(Enum):
 
     Nothing: No caching is done
     FileList: Only the list of files is cached.
-    Both: The list of files and the processed data is cached.
     """
     Nothing = 1
-    Both = 2
-    FileList = 3
+    FileList = 2
 
 
 class FileSetIterable(torch.utils.data.IterableDataset):
@@ -167,19 +132,11 @@ class FileSetIterable(torch.utils.data.IterableDataset):
         load_data (function): A function that can load a list of samples given a filename 
             MUST return the following format:
             [(data_1, label_1), ... , (data_n, label_n)]
-        cache_path (Path): A path to cache loaded samples
-        cache_mode (CachingMOde): A path to cache loaded samples
     """
 
-    def __init__(self, files, load_data, cache_path=None, cache_mode=CachingMode.Both):
-        self.cache_path = cache_path
+    def __init__(self, files, load_data):
         self.load_data = load_data
         self.files = files
-
-        self.sample_cache_path = None
-        if cache_path is not None and cache_mode in [CachingMode.Both]:
-            self.sample_cache_path = Path(cache_path).joinpath(self.load_data.__name__)
-            self.sample_cache_path.mkdir(parents=True, exist_ok=True)
 
     def __iter__(self):
         """ Creates an iterator that loads a subset of the file set.
@@ -207,7 +164,7 @@ class FileSetIterable(torch.utils.data.IterableDataset):
             iter_start = worker_id * per_worker
             iter_end = iter_start + per_worker
             worker_paths = self.files[iter_start:iter_end]
-        return FileSetIterator(worker_paths, self.load_data, cache_path=self.sample_cache_path, worker_id=worker_id)
+        return FileSetIterator(worker_paths, self.load_data, worker_id=worker_id)
 
 
 class FileDiscovery:
@@ -222,7 +179,7 @@ class FileDiscovery:
 
     def __init__(self, gather_data, cache_path=None, cache_mode=CachingMode.FileList):
         self.filelist_cache_path = None
-        if cache_path is not None and cache_mode in [CachingMode.Both, CachingMode.FileList]:
+        if cache_path is not None and cache_mode in [CachingMode.FileList]:
             self.filelist_cache_path = Path(cache_path).joinpath("filelists")
             self.filelist_cache_path.mkdir(parents=True, exist_ok=True)
         self.gather_data = gather_data

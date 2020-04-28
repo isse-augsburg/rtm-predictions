@@ -113,15 +113,6 @@ class TestFileSetIterator(unittest.TestCase):
         loaded_files = set(fn for fn in (b.aux["sourcefile"] for b in samples))
         self.assertSetEqual(set(map(str, self.test_set.erf_files)), loaded_files)
 
-    def test_caching(self):
-        with tempfile.TemporaryDirectory(prefix="FileSetIterator_Cache") as cache_path:
-            cache_path = Path(cache_path)
-            iterator = ti.FileSetIterator(list(self.test_set.erf_files), _dummy_dataloader_fn, cache_path=cache_path)
-            orig_samples = list(SampleWrapper(sample) for sample in iterator)
-            iterator = ti.FileSetIterator(list(self.test_set.erf_files), None, cache_path=cache_path)
-            cached_samples = list(SampleWrapper(sample) for sample in iterator)
-            self.assertListEqual(orig_samples, cached_samples)
-
     def test_get_remaining_files(self):
         iterator = ti.FileSetIterator(list(self.test_set.erf_files), _dummy_dataloader_fn)
         next(iterator)
