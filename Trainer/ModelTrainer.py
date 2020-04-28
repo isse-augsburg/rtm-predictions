@@ -47,7 +47,10 @@ class ModelTrainer:
         epochs: Number of epochs for training.
         dummy_epoch: If set to True, a dummy epoch will be fetched before training.
                      This results in better shuffling for the first epoch
-        cache_only: Only write cache data
+        produce_torch_datasets_only: Only write cache data, useful for producing and publishing certain datasets.
+                                     Output directory is the caching directory, that comes out of the
+                                     handle_torch_caching method. The root dir is saved in
+                                     Ressources.training.datasets_dryspots_torch
         num_workers: Number of processes for processing data.
         num_validation_samples: Number of samples for the validation set.
         num_test_samples: Number of samples for the test set.
@@ -59,16 +62,11 @@ class ModelTrainer:
                       Specifies if and how caching is done.
         loss_criterion: Loss criterion for training.
         optimizer_function: Object of a Torch optimizer. Passed as a lambda call, e.g.
-                            lambda: params: torch.optim.Adam(params, lr=0.0001
+                            lambda: params: torch.optim.Adam(params, lr=0.0001)
         classification_evaluator: Classification Evaluator for evaluating the
                                   models performance.
-        chechpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
+        checkpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
-        save_torch_dataset_path (Path): Saves the Dataset to this Path. Use a full path, including a filename. Note that
-            this should only be used with the DataLoaderListLoopingStrategy. This could use very much Space on your
-            drive
-        load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
-            first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
     """
 
     def __init__(
@@ -82,14 +80,14 @@ class ModelTrainer:
         train_print_frequency: int = 10,
         epochs: int = 10,
         dummy_epoch=True,
-        cache_only=False,
+        produce_torch_datasets_only=False,
         num_workers: int = 10,
         num_validation_samples: int = 10,
         num_test_samples: int = 10,
         data_processing_function=None,
         data_gather_function=None,
         looping_strategy=None,
-        cache_mode=td.CachingMode.FileList,
+        cache_mode=td.CachingMode.Both,
         loss_criterion=MSELoss(),
         optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
         lr_scheduler_function=None,
@@ -116,8 +114,8 @@ class ModelTrainer:
         self.load_datasets_path = load_datasets_path
         self.epochs = epochs
         self.dummy_epoch = dummy_epoch
-        self.cache_only = cache_only
-        if cache_only and not dummy_epoch:
+        self.produce_torch_datasets_only = produce_torch_datasets_only
+        if produce_torch_datasets_only and not dummy_epoch:
             raise ValueError("Can't do a cache only run without enabling dummy_epoch!")
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
@@ -328,9 +326,14 @@ class ModelTrainer:
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), 0, 0)
             self.writer.add_scalar("Validation/Loss", validation_loss, 0)
 
-        if self.cache_only:
-            logger.info("Triggering caching")
+        if self.produce_torch_datasets_only:
+            logger.info(f"Triggering caching, saving all datasets to {self.save_torch_dataset_path}")
+            logger.info("Training dataset ...")
             iter(self.data_generator)
+            logger.info("Validation dataset ...")
+            _ = self.data_generator.get_validation_samples()
+            logger.info("Test dataset ...")
+            _ = self.data_generator.get_test_samples()
         else:
             logger.info("The Training Will Start Shortly")
             self.__train_loop()
