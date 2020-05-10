@@ -181,9 +181,7 @@ class TestSubsetGenerator(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="SubsetGenerator_Splits") as splitpath:
             subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
                                             save_path=splitpath, data_root=self.test_set.data_root)
-            files = list(self.test_set.erf_files)
             save_unused_files = subset_gen.prepare_subset(self.test_set.erf_files)
-            save_samples = subset_gen.get_samples()
             self.assertListEqual(save_unused_files, sorted(save_unused_files, key=natural_sort_key))
 
             subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
@@ -215,7 +213,6 @@ class TestSubsetGenerator(unittest.TestCase):
 
             self.assertSetEqual(set(save_samples), set(load_samples))
             self.assertListEqual(save_samples, load_samples)
-
 
 
 def _batch_to_samples(batch):
