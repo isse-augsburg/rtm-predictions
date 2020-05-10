@@ -186,7 +186,7 @@ class ModelTrainer:
                 num_test_samples=self.num_test_samples,
                 split_load_path=self.load_datasets_path,
                 split_save_path=self.save_path,
-                data_root=self.data_root,
+                split_data_root=self.data_root,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 cache_mode=self.cache_mode,
