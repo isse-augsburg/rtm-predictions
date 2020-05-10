@@ -301,7 +301,7 @@ class SubSetGenerator:
                 # If we got a data_root and have non relative paths, apply the data_root
                 # This assumes that we never get mixed relative and absolute paths which should be reasonable
                 if self.data_root is not None and not all_abs:
-                    self.used_filenames = [data_root / p for p in self.used_filenames]
+                    self.used_filenames = [self.data_root / p for p in self.used_filenames]
                 elif not all_abs:
                     raise ValueError("Got relative paths in stored split but data_root was not set!")
                 if os.name == 'nt':
