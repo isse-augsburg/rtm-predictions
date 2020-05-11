@@ -55,9 +55,9 @@ if __name__ == "__main__":
         m.start_training()
     else:
         m.inference_on_test_set(
-            Path(args.eval_path),
+            Path(args.eval),
             Path(args.checkpoint_path),
             lambda summary_writer: BinaryClassificationEvaluator(
-                Path(args.eval_path) / "eval_on_test_set",
+                Path(args.eval) / "eval_on_test_set",
             ),
         )

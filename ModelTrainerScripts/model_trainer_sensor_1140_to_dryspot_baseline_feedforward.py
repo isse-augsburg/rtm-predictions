@@ -45,7 +45,7 @@ if __name__ == "__main__":
             output_path=Path(args.eval),
             checkpoint_path=Path(args.checkpoint_path),
             classification_evaluator_function=lambda summary_writer: BinaryClassificationEvaluator(
-                Path(args.eval_path) / "eval_on_test_set",
+                Path(args.eval) / "eval_on_test_set",
                 skip_images=True,
                 with_text_overlay=True)
         )
