@@ -232,6 +232,7 @@ class SubSetGenerator:
                  num_samples: int,
                  load_path=None,
                  save_path=None,
+                 data_root=None,
                  dont_care_num_samples=False):
         self.logger = logging.getLogger(__name__)
         self.load_data = load_data
@@ -256,6 +257,11 @@ class SubSetGenerator:
         self.subset_name = subset_name
         self.samples = None
         self.used_filenames = None
+
+        if data_root is not None:
+            self.data_root = Path(data_root)
+        else:
+            self.data_root = None
 
     def _list_difference(self, a, b):
         bset = set(b)
@@ -291,6 +297,13 @@ class SubSetGenerator:
             with open(self.load_file, 'rb') as f:
                 self.logger.info(f"Loading {self.subset_name} from stored file {self.load_file}")
                 self.used_filenames = [Path(fn) for fn in pickle.load(f)]
+                all_abs = all(p.is_absolute() for p in self.used_filenames)
+                # If we got a data_root and have non relative paths, apply the data_root
+                # This assumes that we never get mixed relative and absolute paths which should be reasonable
+                if self.data_root is not None and not all_abs:
+                    self.used_filenames = [self.data_root / p for p in self.used_filenames]
+                elif not all_abs:
+                    raise ValueError("Got relative paths in stored split but data_root was not set!")
                 if os.name == 'nt':
                     # If the paths were already saved as Windows paths, as in the tests, do nothing
                     # Explicitly not using type() and WindowsPath here, since this Class is not implemented on Linux
@@ -308,7 +321,10 @@ class SubSetGenerator:
             unused_files = self._list_difference(file_paths, self.used_filenames)
         if self.save_file is not None:
             with open(self.save_file, 'wb') as f:
-                pickle.dump([str(fn) for fn in self.used_filenames], f)
+                used_files_rel = self.used_filenames
+                if self.data_root is not None:
+                    used_files_rel = [p.relative_to(self.data_root) for p in self.used_filenames]
+                pickle.dump([str(fn) for fn in used_files_rel], f)
         return unused_files
 
     def get_samples(self):

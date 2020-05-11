@@ -33,7 +33,8 @@ class TestTrainingDryspotFF(unittest.TestCase):
             classification_evaluator_function=lambda summary_writer:
             BinaryClassificationEvaluator(summary_writer=summary_writer,
                                           save_path=self.training_save_path,
-                                          skip_images=True)
+                                          skip_images=True),
+            data_root=resources.test_src_dir,
         )
 
     def test_training(self):

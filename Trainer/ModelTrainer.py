@@ -54,6 +54,7 @@ class ModelTrainer:
         num_workers: Number of processes for processing data.
         num_validation_samples: Number of samples for the validation set.
         num_test_samples: Number of samples for the test set.
+        data_root: The root directory for the training data.
         data_processing_function: function object used by the data generator
                                   for transforming paths into desired data.
         data_gather_function: function object used by the data generator for
@@ -84,6 +85,7 @@ class ModelTrainer:
         num_workers: int = 10,
         num_validation_samples: int = 10,
         num_test_samples: int = 10,
+        data_root: Path = None,
         data_processing_function=None,
         data_gather_function=None,
         looping_strategy=None,
@@ -171,6 +173,8 @@ class ModelTrainer:
         self.resize_label = resize_label_to
         self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
+        self.data_root = data_root
+
     def __create_datagenerator(self, test_mode=False):
         try:
             generator = td.LoopingDataGenerator(
@@ -182,6 +186,7 @@ class ModelTrainer:
                 num_test_samples=self.num_test_samples,
                 split_load_path=self.load_datasets_path,
                 split_save_path=self.save_path,
+                split_data_root=self.data_root,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 cache_mode=self.cache_mode,
