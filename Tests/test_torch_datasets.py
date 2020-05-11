@@ -42,6 +42,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          classification_evaluator_function=lambda summary_writer:
                          BinaryClassificationEvaluator(summary_writer=summary_writer),
                          load_test_set_in_training_mode=load_test_set,
+                         data_root=test_resources.test_src_dir,
                          )
         return m
 

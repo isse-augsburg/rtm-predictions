@@ -85,7 +85,7 @@ class ModelTrainer:
         num_workers: int = 10,
         num_validation_samples: int = 10,
         num_test_samples: int = 10,
-        data_root: Path = None,
+        data_root: Path = r.data_root,
         data_processing_function=None,
         data_gather_function=None,
         looping_strategy=None,
