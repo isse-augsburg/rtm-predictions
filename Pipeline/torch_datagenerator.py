@@ -25,8 +25,9 @@ class LoopingDataGenerator:
         batch_size (int): The batch size
         num_validation_samples (int): The number of samples in the validation subset
         num_test_samples (int): The number of samples for the test subset
-        split_load_path  (int): The directory to load validation and test set splits from
-        split_save_path  (int): The directory to save validation and test set splits to
+        split_load_path  (Path): The directory to load validation and test set splits from
+        split_save_path  (Path): The directory to save validation and test set splits to
+        split_data_root  (Path): The data root directory. Split paths will be saved relative to this path.
         num_workers (int): The number of worker processes for the dataloader. Defaults to 0 so that no additional
             processes are spawned.
         cache_path (Path): The cache directory for file lists and samples
@@ -49,6 +50,7 @@ class LoopingDataGenerator:
                  num_test_samples=0,
                  split_load_path=None,
                  split_save_path=None,
+                 split_data_root=None,
                  num_workers=0,
                  cache_path=None,
                  cache_mode=CachingMode.FileList,
@@ -70,6 +72,7 @@ class LoopingDataGenerator:
         self.num_test_samples = num_test_samples
         self.split_load_path = split_load_path
         self.split_save_path = split_save_path
+        self.split_data_root = split_data_root
 
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -150,10 +153,12 @@ class LoopingDataGenerator:
         # if self.saved_val_samples is None or self.saved_test_samples is None:
         self.val_set_generator = SubSetGenerator(self.load_data, "validation_set", self.num_validation_samples,
                                                  load_path=self.split_load_path, save_path=self.split_save_path,
-                                                 dont_care_num_samples=self.dont_care_num_samples)
+                                                 dont_care_num_samples=self.dont_care_num_samples,
+                                                 data_root=self.split_data_root)
         self.test_set_generator = SubSetGenerator(self.load_data, "test_set", self.num_test_samples,
                                                   load_path=self.split_load_path, save_path=self.split_save_path,
-                                                  dont_care_num_samples=self.dont_care_num_samples)
+                                                  dont_care_num_samples=self.dont_care_num_samples,
+                                                  data_root=self.split_data_root)
         remaining_files = self.val_set_generator.prepare_subset(all_files)
         remaining_files = self.test_set_generator.prepare_subset(remaining_files)
         if self.split_save_path is not None:
